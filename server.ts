@@ -22,7 +22,7 @@ try {
 }
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 // Set up JSON body parsing with large limit for OCR uploads
 app.use(express.json({ limit: '15mb' }));
