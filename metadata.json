@@ -1,0 +1,6 @@
+{
+  "name": "AI Super Tools Hub",
+  "description": "A high-performance portal featuring over 100 AI-powered helpers and productivity tools, including AI Chat, Image Prompting, OCR, Rich Notes, Translators, calculators, and builders.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

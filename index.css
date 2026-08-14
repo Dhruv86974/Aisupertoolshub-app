@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+@media print {
+  /* Hide heavy UI clutter, headers, floating assistants, billing dialogs, search bars, and triggers */
+  header,
+  footer,
+  aside,
+  button,
+  .no-print,
+  #touch-assistant,
+  #shortcut-modal,
+  .search-pill-container,
+  .categories-container,
+  .smart-suggestions,
+  .toast,
+  .modal-overlay,
+  .bg-blue-500\/10 {
+    display: none !important;
+  }
+
+  /* Reset document flow and colors to pure high-contrast black-and-white print output */
+  body, 
+  html, 
+  main,
+  #root,
+  .print-container {
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    font-size: 11pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Ensure the active tool workspace occupies the entire printable canvas */
+  .active-tool-workspace {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 1.5cm !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  /* Force high contrast dark texts on white hardcopies */
+  p, span, h1, h2, h3, h4, h5, h6, label, textarea, input, select {
+    color: #000000 !important;
+    border-color: #666666 !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Prevent page breaks inside widgets or tool outputs */
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+@keyframes scanLaser {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+.animate-scan-laser {
+  animation: scanLaser 2.5s infinite linear;
+}
