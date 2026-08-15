@@ -167,6 +167,26 @@ export interface AdsConfig {
   googleAdsenseSlotId: string;
 }
 
+const GoogleAdSenseAd = ({ clientId, slotId }: { clientId: string; slotId: string }) => {
+  useEffect(() => {
+    try {
+      (window as any).adsbygoogle = (window as any).adsbygoogle || [];
+      (window as any).adsbygoogle.push({});
+    } catch (e) {
+      console.warn('[AdSense] Individual ad block delayed/failed initialization:', e);
+    }
+  }, [clientId, slotId]);
+
+  return (
+    <ins className="adsbygoogle"
+         style={{ display: 'block', width: '100%', minHeight: '90px' }}
+         data-ad-client={clientId}
+         data-ad-slot={slotId}
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+  );
+};
+
 const AdBanner = ({ config, theme, lang }: { config: AdsConfig; theme: 'dark' | 'light'; lang: 'en' | 'gu' }) => {
   if (config.activeMode === 'none') return null;
 
@@ -176,18 +196,12 @@ const AdBanner = ({ config, theme, lang }: { config: AdsConfig; theme: 'dark' | 
 
   if (config.activeMode === 'google') {
     return (
-      <div className={`my-6 p-4 rounded-3xl border ${theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-slate-50 border-slate-200'} text-center overflow-hidden relative`}>
-        <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase block mb-2">SPONSORED ADVERTISEMENT (GOOGLE ADSENSE)</span>
-        <div className="flex flex-col items-center justify-center min-h-[100px] bg-slate-950/20 rounded-2xl border border-dashed border-slate-800 p-4">
-          <ins className="adsbygoogle"
-               style={{ display: 'block' }}
-               data-ad-client={config.googleAdsenseClientId}
-               data-ad-slot={config.googleAdsenseSlotId}
-               data-ad-format="auto"
-               data-full-width-responsive="true"></ins>
-          <div className="text-center">
-            <span className="text-xs font-mono text-slate-500 block">Google AdSense ID: {config.googleAdsenseClientId}</span>
-            <span className="text-[10px] text-slate-600 block mt-1">Script will load inside standard Google ad frames on your custom domain</span>
+      <div className={`my-6 p-4.5 rounded-3xl border ${theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-slate-50 border-slate-200'} text-center overflow-hidden relative shadow-sm`}>
+        <span className="text-[9px] font-black tracking-widest text-indigo-400 uppercase block mb-2">{isGu ? "પ્રાયોજિત જાહેરાત (GOOGLE ADSENSE)" : "SPONSORED ADVERTISEMENT (GOOGLE ADSENSE)"}</span>
+        <div className="flex flex-col items-center justify-center min-h-[120px] bg-slate-950/20 rounded-2xl border border-dashed border-slate-800 p-4">
+          <GoogleAdSenseAd clientId={config.googleAdsenseClientId} slotId={config.googleAdsenseSlotId} />
+          <div className="text-center mt-3 pt-2.5 border-t border-slate-800/25 w-full">
+            <span className="text-[10px] font-mono text-slate-500 block">Publisher ID: {config.googleAdsenseClientId} • Ad Slot: {config.googleAdsenseSlotId}</span>
           </div>
         </div>
       </div>
@@ -382,6 +396,29 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('hub_ads_config', JSON.stringify(adsConfig));
   }, [adsConfig]);
+
+  // Dynamically load Google AdSense script into document head when enabled
+  useEffect(() => {
+    if (adsConfig.activeMode === 'google' && adsConfig.googleAdsenseClientId) {
+      const cleanClientId = adsConfig.googleAdsenseClientId.trim();
+      const existingScript = document.querySelector('script[src*="pagead2.googlesyndication.com"]');
+      if (existingScript) {
+        // Remove old script to allow update if ID changed
+        if (!existingScript.getAttribute('src')?.includes(cleanClientId)) {
+          existingScript.remove();
+        } else {
+          return;
+        }
+      }
+      
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${cleanClientId}`;
+      script.crossOrigin = 'anonymous';
+      document.head.appendChild(script);
+      console.log('[AdSense] Dynamic script successfully injected for client:', cleanClientId);
+    }
+  }, [adsConfig.activeMode, adsConfig.googleAdsenseClientId]);
 
   // --- UPI Merchant Configuration State ---
   const [upiId, setUpiId] = useState<string>(() => {
