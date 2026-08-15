@@ -155,6 +155,93 @@ const SOUND_PRESETS = [
   { id: 'cosmic', nameEn: 'Cosmic Shift', nameGu: 'કોસ્મિક શિફ્ટ', scheme: 'scifi' as const, volume: 0.6, pitch: 1.8 }
 ];
 
+export interface AdsConfig {
+  activeMode: 'google' | 'custom' | 'none';
+  customTitleEn: string;
+  customTitleGu: string;
+  customDescriptionEn: string;
+  customDescriptionGu: string;
+  customImageUrl: string;
+  customRedirectUrl: string;
+  googleAdsenseClientId: string;
+  googleAdsenseSlotId: string;
+}
+
+const AdBanner = ({ config, theme, lang }: { config: AdsConfig; theme: 'dark' | 'light'; lang: 'en' | 'gu' }) => {
+  if (config.activeMode === 'none') return null;
+
+  const isGu = lang === 'gu';
+  const title = isGu ? config.customTitleGu : config.customTitleEn;
+  const description = isGu ? config.customDescriptionGu : config.customDescriptionEn;
+
+  if (config.activeMode === 'google') {
+    return (
+      <div className={`my-6 p-4 rounded-3xl border ${theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-slate-50 border-slate-200'} text-center overflow-hidden relative`}>
+        <span className="text-[9px] font-black tracking-widest text-slate-500 uppercase block mb-2">SPONSORED ADVERTISEMENT (GOOGLE ADSENSE)</span>
+        <div className="flex flex-col items-center justify-center min-h-[100px] bg-slate-950/20 rounded-2xl border border-dashed border-slate-800 p-4">
+          <ins className="adsbygoogle"
+               style={{ display: 'block' }}
+               data-ad-client={config.googleAdsenseClientId}
+               data-ad-slot={config.googleAdsenseSlotId}
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <div className="text-center">
+            <span className="text-xs font-mono text-slate-500 block">Google AdSense ID: {config.googleAdsenseClientId}</span>
+            <span className="text-[10px] text-slate-600 block mt-1">Script will load inside standard Google ad frames on your custom domain</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <a 
+      href={config.customRedirectUrl} 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="block my-6 group active:scale-[0.99] transition-transform duration-100"
+    >
+      <div className={`relative rounded-3xl border p-5 md:p-6 overflow-hidden flex flex-col md:flex-row items-center gap-5 justify-between transition-all duration-300 ${
+        theme === 'dark' 
+          ? 'bg-gradient-to-br from-indigo-950/20 via-[#090d16] to-slate-950 border-slate-900 hover:border-indigo-500/40' 
+          : 'bg-gradient-to-br from-indigo-50/50 via-white to-slate-50 border-slate-200 hover:border-indigo-500/30 shadow-md'
+      }`}>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-indigo-500/10 transition-colors" />
+        
+        <div className="flex flex-col md:flex-row items-center gap-5 text-center md:text-left">
+          {config.customImageUrl && (
+            <img 
+              src={config.customImageUrl} 
+              alt="Sponsor Banner" 
+              className="w-20 h-20 rounded-2xl object-cover border border-slate-800/20 shadow-lg shrink-0" 
+              referrerPolicy="no-referrer"
+            />
+          )}
+          <div className="space-y-1 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-[9px] text-indigo-400 font-extrabold tracking-widest uppercase">
+              <span>{isGu ? "પ્રાયોજિત જાહેરાત" : "SPONSORED AD"}</span>
+            </div>
+            <h4 className={`text-sm md:text-base font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'} group-hover:text-indigo-400 transition-colors`}>
+              {title}
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-normal font-semibold">
+              {description}
+            </p>
+          </div>
+        </div>
+
+        <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shrink-0 transition-all ${
+          theme === 'dark' 
+            ? 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 group-hover:bg-indigo-505 group-hover:text-slate-950' 
+            : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/10 group-hover:bg-indigo-500'
+        }`}>
+          {isGu ? "વધુ જાણઓ ➔" : "Learn More ➔"}
+        </div>
+      </div>
+    </a>
+  );
+};
+
 export default function App() {
   // --- Persistent States ---
   const [lang, setLang] = useState<LanguageCode>(() => {
@@ -271,6 +358,30 @@ export default function App() {
     userState.college,
     userState.semester
   ]);
+
+  const [adsConfig, setAdsConfig] = useState<AdsConfig>(() => {
+    const saved = localStorage.getItem('hub_ads_config');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {
+      activeMode: 'custom',
+      customTitleEn: 'Promote your products or services here!',
+      customTitleGu: 'અહીં તમારી બ્રાન્ડ અથવા પ્રોડક્ટ્સ પ્રમોટ કરો!',
+      customDescriptionEn: 'Get exposure to thousands of local students, designers, and developers. Click to sponsor!',
+      customDescriptionGu: 'ગુજરાતી યુઝર્સ અને ડેવલપર્સ સુધી ડાયરેક્ટ પહોંચો. તમારી લિંક સેટ કરવા માટે ક્લિક કરો!',
+      customImageUrl: 'https://images.unsplash.com/photo-1542744094-3a31f103e35f?q=80&w=600&auto=format&fit=crop',
+      customRedirectUrl: 'mailto:dhruvtarsariya3@gmail.com?subject=Advertise on AI Super Tools Hub',
+      googleAdsenseClientId: 'ca-pub-1234567890123456',
+      googleAdsenseSlotId: '1234567890'
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('hub_ads_config', JSON.stringify(adsConfig));
+  }, [adsConfig]);
 
   // --- UPI Merchant Configuration State ---
   const [upiId, setUpiId] = useState<string>(() => {
@@ -2174,6 +2285,9 @@ export default function App() {
                   onUseCredit={useCredit}
                   theme={theme}
                 />
+
+                {/* ADVERTISEMENT HUB SLOT INSIDE SELECTED UTILITY */}
+                <AdBanner config={adsConfig} theme={theme} lang={lang} />
               </div>
 
               {/* Interactive Sandbox/Outputs History for this tool */}
@@ -2376,6 +2490,9 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              {/* LIVE DYNAMIC ADVERTISEMENT HUB SLOT */}
+              <AdBanner config={adsConfig} theme={theme} lang={lang} />
 
               {/* UNIVERSAL ACADEMIC AI HUB WORKSPACE (SCHOOL STD 1-12, BCA, BCOM, BBA, BA, BSC) */}
               <div className={`bg-gradient-to-br ${theme === 'dark' ? 'from-[#0b1021] via-[#0e1630] to-[#0b1021] border-indigo-900/40' : 'from-indigo-50/80 via-blue-50/70 to-indigo-50/80 border-indigo-200 shadow-sm'} border rounded-3xl p-5 lg:p-6 space-y-5 text-left relative overflow-hidden transition-all duration-300 hover:shadow-indigo-500/5 hover:border-indigo-500/30`}>
@@ -4455,6 +4572,189 @@ export default function App() {
                     })}
                   </div>
                 )}
+              </div>
+
+              {/* SPONSOR & ADS LIVE MANAGEMENT HUB */}
+              <div className={`p-5 rounded-2xl border ${theme === 'dark' ? 'bg-slate-950/80 border-slate-900 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'} space-y-4`}>
+                <div className="flex items-center gap-2 border-b border-slate-500/10 pb-3">
+                  <Icons.Megaphone className="w-5 h-5 text-indigo-400 animate-pulse" />
+                  <div>
+                    <span className="text-[10px] font-black tracking-widest uppercase block text-indigo-400">
+                      {isGu ? "લાઇવ જાહેરાત અને પ્રાયોજક નિયંત્રણ" : "SPONSOR & ADS LIVE MANAGEMENT HUB"}
+                    </span>
+                    <h4 className="text-sm font-black uppercase">
+                      {isGu ? "જાહેરાતો સેટ કરો (Google AdSense / Custom Banners)" : "Configure Site Advertisements"}
+                    </h4>
+                  </div>
+                </div>
+
+                {/* Advertisement Mode Select Tab */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black tracking-wider uppercase text-slate-500 block">
+                    {isGu ? "સક્રિય જાહેરાત મોડ" : "Active Ad Mode"}
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['custom', 'google', 'none'] as const).map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setAdsConfig(prev => ({ ...prev, activeMode: mode }))}
+                        className={`py-2 px-3 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all duration-200 ${
+                          adsConfig.activeMode === mode
+                            ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-500/15'
+                            : theme === 'dark'
+                            ? 'bg-slate-900/60 hover:bg-slate-900 border-slate-850 text-slate-400'
+                            : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-600 shadow-sm'
+                        }`}
+                      >
+                        {mode === 'custom' ? (isGu ? 'કસ્ટમ બેનર' : 'Custom Banner') : mode === 'google' ? 'Google AdSense' : (isGu ? 'બંધ કરો' : 'No Ads')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Conditional Form Inputs */}
+                {adsConfig.activeMode === 'google' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 animate-in fade-in duration-200">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black tracking-wider uppercase text-slate-500 block">
+                        Google AdSense Client ID (Publisher ID)
+                      </label>
+                      <input
+                        type="text"
+                        value={adsConfig.googleAdsenseClientId}
+                        onChange={(e) => setAdsConfig(prev => ({ ...prev, googleAdsenseClientId: e.target.value }))}
+                        placeholder="e.g., ca-pub-1234567890123456"
+                        className={`w-full text-xs font-semibold font-mono p-2.5 rounded-xl border focus:outline-none focus:border-indigo-500 ${
+                          theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black tracking-wider uppercase text-slate-500 block">
+                        Google AdSense Slot ID
+                      </label>
+                      <input
+                        type="text"
+                        value={adsConfig.googleAdsenseSlotId}
+                        onChange={(e) => setAdsConfig(prev => ({ ...prev, googleAdsenseSlotId: e.target.value }))}
+                        placeholder="e.g., 1234567890"
+                        className={`w-full text-xs font-semibold font-mono p-2.5 rounded-xl border focus:outline-none focus:border-indigo-500 ${
+                          theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {adsConfig.activeMode === 'custom' && (
+                  <div className="space-y-4 pt-2 animate-in fade-in duration-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* English Fields */}
+                      <div className="space-y-3 p-3 rounded-xl border border-slate-500/10 bg-indigo-500/5">
+                        <span className="text-[9px] font-black uppercase text-indigo-400 block tracking-widest">ENGLISH AD DETAIL</span>
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-black tracking-wider uppercase text-slate-500 block">English Title</label>
+                          <input
+                            type="text"
+                            value={adsConfig.customTitleEn}
+                            onChange={(e) => setAdsConfig(prev => ({ ...prev, customTitleEn: e.target.value }))}
+                            placeholder="e.g., Advertise your company here!"
+                            className={`w-full text-xs font-semibold p-2.5 rounded-xl border focus:outline-none focus:border-indigo-500 ${
+                              theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                            }`}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-black tracking-wider uppercase text-slate-500 block">English Description</label>
+                          <textarea
+                            value={adsConfig.customDescriptionEn}
+                            onChange={(e) => setAdsConfig(prev => ({ ...prev, customDescriptionEn: e.target.value }))}
+                            placeholder="e.g., Promote your digital products to active developers."
+                            rows={2}
+                            className={`w-full text-xs font-semibold p-2.5 rounded-xl border focus:outline-none focus:border-indigo-500 ${
+                              theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                            }`}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Gujarati Fields */}
+                      <div className="space-y-3 p-3 rounded-xl border border-slate-500/10 bg-emerald-500/5">
+                        <span className="text-[9px] font-black uppercase text-emerald-400 block tracking-widest">ગુજરાતી જાહેરાત વિગત</span>
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-black tracking-wider uppercase text-slate-500 block">ગુજરાતી શીર્ષક (Gujarati Title)</label>
+                          <input
+                            type="text"
+                            value={adsConfig.customTitleGu}
+                            onChange={(e) => setAdsConfig(prev => ({ ...prev, customTitleGu: e.target.value }))}
+                            placeholder="દા.ત. અહીં તમારી જાહેરાત મૂકો!"
+                            className={`w-full text-xs font-semibold p-2.5 rounded-xl border focus:outline-none focus:border-indigo-500 ${
+                              theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                            }`}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] font-black tracking-wider uppercase text-slate-500 block">ગુજરાતી વર્ણન (Gujarati Description)</label>
+                          <textarea
+                            value={adsConfig.customDescriptionGu}
+                            onChange={(e) => setAdsConfig(prev => ({ ...prev, customDescriptionGu: e.target.value }))}
+                            placeholder="દા.ત. આજના દિવસમાં હજારો ગુજરાતી સ્ટુડન્ટ્સ સુધી પહોંચો."
+                            rows={2}
+                            className={`w-full text-xs font-semibold p-2.5 rounded-xl border focus:outline-none focus:border-indigo-500 ${
+                              theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                            }`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Image & Redirect URL */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black tracking-wider uppercase text-slate-500 block">
+                          {isGu ? "બેનર છબી લિંક (Banner Image URL)" : "Banner Image URL"}
+                        </label>
+                        <input
+                          type="text"
+                          value={adsConfig.customImageUrl}
+                          onChange={(e) => setAdsConfig(prev => ({ ...prev, customImageUrl: e.target.value }))}
+                          placeholder="e.g., https://images.unsplash.com/photo-..."
+                          className={`w-full text-xs font-semibold font-mono p-2.5 rounded-xl border focus:outline-none focus:border-indigo-500 ${
+                            theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black tracking-wider uppercase text-slate-500 block">
+                          {isGu ? "લિંક રીડાયરેક્શન લિંક (Click Redirect Link)" : "Click Redirect URL"}
+                        </label>
+                        <input
+                          type="text"
+                          value={adsConfig.customRedirectUrl}
+                          onChange={(e) => setAdsConfig(prev => ({ ...prev, customRedirectUrl: e.target.value }))}
+                          placeholder="e.g., https://wa.me/91..."
+                          className={`w-full text-xs font-semibold font-mono p-2.5 rounded-xl border focus:outline-none focus:border-indigo-500 ${
+                            theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSynthSound('success');
+                      showToast(isGu ? 'જાહેરાતો સેટિંગ્સ સફળતાપૂર્વક અપડેટ થઈ ગઈ!' : 'Advertisements updated successfully!', 'success');
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-[10px] py-2 px-5 rounded-xl shadow-lg shadow-indigo-500/10 transition-all duration-150 uppercase tracking-widest"
+                  >
+                    {isGu ? "સેવ કરો 💾" : "Save Changes 💾"}
+                  </button>
+                </div>
               </div>
 
               {/* Security advice warning box */}
