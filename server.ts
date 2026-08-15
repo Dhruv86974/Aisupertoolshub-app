@@ -878,7 +878,7 @@ app.post('/api/tools/generate', async (req, res) => {
 
     const ai = getGemini();
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.5-flash',
       contents: prompt,
       config: {
         systemInstruction: systemInstruction || 'You are a highly efficient assistant.',
@@ -903,7 +903,7 @@ app.post('/api/tools/generate-stream', async (req, res) => {
 
     const ai = getGemini();
     const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.5-flash',
       contents: prompt,
       config: {
         systemInstruction: systemInstruction || 'You are a highly efficient assistant.',
@@ -943,7 +943,7 @@ app.post('/api/tools/chat', async (req, res) => {
 
     const ai = getGemini();
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.5-flash',
       contents: contents,
       config: {
         systemInstruction: 'You are an advanced conversational assistant inside the AI Super Tools Hub. Provide clear, visually formatted, engaging, and detailed responses in markdown layout.',
@@ -973,7 +973,7 @@ app.post('/api/tools/chat-stream', async (req, res) => {
 
     const ai = getGemini();
     const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.5-flash',
       contents: contents,
       config: {
         systemInstruction: 'You are an advanced conversational assistant inside the AI Super Tools Hub. Provide clear, visually formatted, engaging, and detailed responses in markdown layout.',
@@ -1005,7 +1005,7 @@ app.post('/api/tools/ocr', async (req, res) => {
       return res.status(400).json({ error: 'Image data is required' });
     }
 
-    // Prepare image payload for Gemini 3.6-flash
+    // Prepare image payload for Gemini 3.5-flash
     const imagePart = {
       inlineData: {
         mimeType: mimeType || 'image/png',
@@ -1019,7 +1019,7 @@ app.post('/api/tools/ocr', async (req, res) => {
 
     const ai = getGemini();
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.5-flash',
       contents: { parts: [imagePart, textPart] },
     });
 

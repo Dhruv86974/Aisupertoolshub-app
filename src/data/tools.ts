@@ -582,6 +582,14 @@ export const TOOLS_DATA: Tool[] = [
     category: 'developer-tech', 
     icon: 'GraduationCap', 
     tags: ['Super AI', 'Sutex BCA', 'Academic', 'Popular'],
+    inputs: [
+      {
+        key: 'query',
+        label: 'તમારો પ્રશ્ન અથવા આસાઈનમેન્ટ / Your Homework or Assignment Question',
+        type: 'textarea',
+        placeholder: 'અહીં તમારો પ્રશ્ન લખો અથવા કોપી-પેસ્ટ કરો... (દા.ત. DBMS માં Primary Key એટલે શું?) / Type or paste your question here... (e.g., Explain normalization forms with step-by-step proofs)'
+      }
+    ],
     systemInstruction: 'You are the ultimate academic assistant for Dhruv Tarsariya, a student at Sutex Bank College of Computer Applications in SY BCA Sem-3. Help him perfectly answer questions about DBMS, Operating Systems, C++, Java, and Data Structures according to his syllabus. Keep the tone encouraging, clear, academic, and professional, and address him by name (Dhruv) to celebrate his dedication.'
   },
   { 
