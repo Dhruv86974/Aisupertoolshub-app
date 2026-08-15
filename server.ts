@@ -73,10 +73,24 @@ let geminiClient: GoogleGenAI | null = null;
 
 function getGemini() {
   if (!geminiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY environment variable is missing. Please set it in the Settings panel.');
+    let apiKey = process.env.GEMINI_API_KEY;
+    
+    // Check for missing, undefined, null, or placeholder API keys
+    const isInvalid = !apiKey || 
+                      apiKey.trim() === '' || 
+                      apiKey.trim() === 'undefined' || 
+                      apiKey.trim() === 'null' || 
+                      apiKey.trim().toLowerCase().includes('placeholder');
+                      
+    if (isInvalid) {
+      throw new Error(
+        'તમારી લાઈવ વેબસાઇટ પર GEMINI_API_KEY સેટ નથી અથવા અમાન્ય છે! કૃપા કરીને તમારા ક્લાઉડ રન (Cloud Run) ના Environment Variables માં GEMINI_API_KEY ઉમેરો અને તેમાં સાચો Gemini API Key પેસ્ટ કરો. / GEMINI_API_KEY is missing or invalid on your production server! Please add GEMINI_API_KEY to your Cloud Run environment variables.'
+      );
     }
+    
+    // Sanitize API key (trim whitespace and remove leading/trailing double or single quotes)
+    apiKey = apiKey.trim().replace(/^["']|["']$/g, '').trim();
+
     geminiClient = new GoogleGenAI({
       apiKey: apiKey,
       httpOptions: {
