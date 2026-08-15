@@ -207,7 +207,14 @@ export default function AuthScreen({ lang, theme, playSynthSound, showToast, onA
   React.useEffect(() => {
     const handleOAuthMessage = (event: MessageEvent) => {
       const origin = event.origin;
-      if (!origin.endsWith('.run.app') && !origin.includes('localhost') && !origin.includes('127.0.0.1')) {
+      const isAllowedOrigin = 
+        origin === window.location.origin ||
+        origin.endsWith('.run.app') || 
+        origin.includes('localhost') || 
+        origin.includes('127.0.0.1') || 
+        origin.includes('aisupertoolshub.com');
+
+      if (!isAllowedOrigin) {
         return;
       }
       if (event.data && event.data.type === 'OAUTH_AUTH_SUCCESS' && event.data.user) {
