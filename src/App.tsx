@@ -811,9 +811,29 @@ export default function App() {
       };
 
       recognition.onerror = (event: any) => {
-        console.error('Speech recognition error', event);
+        console.error('Speech recognition error', event.error, event);
         setIsListening(false);
-        showToast(lang === 'gu' ? 'વૉઇસ રેકોર્ડિંગમાં ભૂલ આવી!' : 'Speech recognition error occurred!', 'error');
+        
+        let errorMsg = lang === 'gu' ? 'વૉઇસ રેકોર્ડિંગમાં ભૂલ આવી!' : 'Speech recognition error occurred!';
+        if (event.error === 'not-allowed') {
+          errorMsg = lang === 'gu' 
+            ? 'માઇક્રોફોન પરમિશન નથી મળી! લાઈવ સાઈટ અથવા નવી ટેબમાં ઓપન કરી માઈક ચાલુ કરો.' 
+            : 'Microphone permission denied! Try opening in a new tab or allowing microphone access.';
+        } else if (event.error === 'no-speech') {
+          errorMsg = lang === 'gu'
+            ? 'કોઈ અવાજ ડિટેક્ટ ન થયો. ફરીથી બોલો!'
+            : 'No speech detected. Please speak clearly!';
+        } else if (event.error === 'audio-capture') {
+          errorMsg = lang === 'gu'
+            ? 'કોઈ માઇક્રોફોન મળ્યો નથી!'
+            : 'No microphone found! Please connect one.';
+        } else if (event.error === 'service-not-allowed') {
+          errorMsg = lang === 'gu'
+            ? 'બ્રાઉઝર દ્વારા વૉઇસ સર્વિસ માન્ય નથી!'
+            : 'Speech recognition service is blocked by your browser!';
+        }
+        
+        showToast(errorMsg, 'error');
       };
 
       recognition.onend = () => {
@@ -1344,14 +1364,16 @@ export default function App() {
         {/* User badge, language selector and subscription info */}
         <div className="flex items-center gap-3">
           {/* Merchant Admin Portal Button */}
-          <button
-            onClick={() => setShowAdminPortal(true)}
-            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/20 hover:border-amber-500/40 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all duration-200"
-            title="Merchant Control & Settlement Panel"
-          >
-            <Shield className="w-3.5 h-3.5" />
-            <span className="hidden md:inline font-bold">{lang === 'gu' ? 'એડમિન પોર્ટલ' : 'Admin Portal'}</span>
-          </button>
+          {userState.email === 'dhruvtarsariya3@gmail.com' && (
+            <button
+              onClick={() => setShowAdminPortal(true)}
+              className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/20 hover:border-amber-500/40 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all duration-200"
+              title="Merchant Control & Settlement Panel"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span className="hidden md:inline font-bold">{lang === 'gu' ? 'એડમિન પોર્ટલ' : 'Admin Portal'}</span>
+            </button>
+          )}
 
           {/* Standalone Voice Command Trigger when in tool view */}
           {selectedToolId && (
@@ -4125,7 +4147,7 @@ export default function App() {
       })()}
 
       {/* ================= MERCHANT CONTROL OPERATIONS PORTAL MODAL ================= */}
-      {showAdminPortal && (() => {
+      {showAdminPortal && userState.email === 'dhruvtarsariya3@gmail.com' && (() => {
         const isGu = lang === 'gu';
         return (
           <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
