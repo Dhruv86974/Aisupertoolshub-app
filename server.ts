@@ -868,6 +868,45 @@ const rateLimiter = (req: express.Request, res: express.Response, next: express.
 // Apply rate limiting to all AI generation routes
 app.use('/api/tools/*', rateLimiter);
 
+// --- HELPER FOR ROBUST MODEL FALLBACK SYSTEM ---
+const MODEL_FALLBACKS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-1.5-flash'];
+
+async function runGenerateWithFallback(ai: any, params: { contents: any, config?: any }) {
+  let lastError: any = null;
+  for (const modelName of MODEL_FALLBACKS) {
+    try {
+      console.log(`[API] Trying content generation using model: ${modelName}`);
+      const response = await ai.models.generateContent({
+        ...params,
+        model: modelName,
+      });
+      return response;
+    } catch (err: any) {
+      console.warn(`[API] Fallback warning: model ${modelName} failed. Reason:`, err.message || err);
+      lastError = err;
+    }
+  }
+  throw lastError || new Error('All fallback models returned failures.');
+}
+
+async function runGenerateStreamWithFallback(ai: any, params: { contents: any, config?: any }) {
+  let lastError: any = null;
+  for (const modelName of MODEL_FALLBACKS) {
+    try {
+      console.log(`[API] Trying streaming generation using model: ${modelName}`);
+      const stream = await ai.models.generateContentStream({
+        ...params,
+        model: modelName,
+      });
+      return stream;
+    } catch (err: any) {
+      console.warn(`[API] Fallback stream warning: model ${modelName} failed. Reason:`, err.message || err);
+      lastError = err;
+    }
+  }
+  throw lastError || new Error('All fallback streaming models returned failures.');
+}
+
 // Generic Tool Prompt Generation Endpoint
 app.post('/api/tools/generate', async (req, res) => {
   try {
@@ -877,8 +916,7 @@ app.post('/api/tools/generate', async (req, res) => {
     }
 
     const ai = getGemini();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+    const response = await runGenerateWithFallback(ai, {
       contents: prompt,
       config: {
         systemInstruction: systemInstruction || 'You are a highly efficient assistant.',
@@ -902,8 +940,7 @@ app.post('/api/tools/generate-stream', async (req, res) => {
     }
 
     const ai = getGemini();
-    const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-3.5-flash',
+    const responseStream = await runGenerateStreamWithFallback(ai, {
       contents: prompt,
       config: {
         systemInstruction: systemInstruction || 'You are a highly efficient assistant.',
@@ -942,8 +979,7 @@ app.post('/api/tools/chat', async (req, res) => {
     }));
 
     const ai = getGemini();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+    const response = await runGenerateWithFallback(ai, {
       contents: contents,
       config: {
         systemInstruction: 'You are an advanced conversational assistant inside the AI Super Tools Hub. Provide clear, visually formatted, engaging, and detailed responses in markdown layout.',
@@ -972,8 +1008,7 @@ app.post('/api/tools/chat-stream', async (req, res) => {
     }));
 
     const ai = getGemini();
-    const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-3.5-flash',
+    const responseStream = await runGenerateStreamWithFallback(ai, {
       contents: contents,
       config: {
         systemInstruction: 'You are an advanced conversational assistant inside the AI Super Tools Hub. Provide clear, visually formatted, engaging, and detailed responses in markdown layout.',
@@ -1005,7 +1040,7 @@ app.post('/api/tools/ocr', async (req, res) => {
       return res.status(400).json({ error: 'Image data is required' });
     }
 
-    // Prepare image payload for Gemini 3.5-flash
+    // Prepare image payload for fallback
     const imagePart = {
       inlineData: {
         mimeType: mimeType || 'image/png',
@@ -1018,8 +1053,7 @@ app.post('/api/tools/ocr', async (req, res) => {
     };
 
     const ai = getGemini();
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
+    const response = await runGenerateWithFallback(ai, {
       contents: { parts: [imagePart, textPart] },
     });
 
