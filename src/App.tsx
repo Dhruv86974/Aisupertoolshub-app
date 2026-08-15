@@ -978,8 +978,8 @@ export default function App() {
 
   // --- UI States ---
   const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
-  const [academicCourse, setAcademicCourse] = useState<'BCA' | 'BCom' | 'BBA'>(() => {
-    return (localStorage.getItem('hub_academic_course') as 'BCA' | 'BCom' | 'BBA') || 'BCA';
+  const [academicCourse, setAcademicCourse] = useState<'School' | 'BCA' | 'BCom' | 'BBA' | 'BA' | 'BSc'>(() => {
+    return (localStorage.getItem('hub_academic_course') as any) || 'BCA';
   });
   const [academicSemester, setAcademicSemester] = useState<number>(() => {
     const saved = localStorage.getItem('hub_academic_semester');
@@ -1143,26 +1143,43 @@ export default function App() {
       
       let courseDetails = '';
       let subjects = '';
-      if (academicCourse === 'BCA') {
+      let labelType = isGu ? 'સેમેસ્ટર' : 'Sem';
+      if (academicCourse === 'School') {
+        courseDetails = isGu ? `ધોરણ ${academicSemester} (શાળા)` : `School Standard ${academicSemester} (Class 1-12)`;
+        subjects = isGu 
+          ? 'ગણિત, વિજ્ઞાન, સામાજિક વિજ્ઞાન, અંગ્રેજી, ગુજરાતી, કોમ્પ્યુટર પરિચય અને હોમવર્ક આસાઈનમેન્ટ'
+          : 'Mathematics, Science, Social Studies, English, regional language (Gujarati/Hindi), Computer Literacy, and homework assignment answers';
+        labelType = isGu ? 'ધોરણ' : 'Std';
+      } else if (academicCourse === 'BCA') {
         courseDetails = 'Bachelor of Computer Applications (BCA)';
         subjects = 'Programming, Data Structures, DBMS, Web Tech, Software Engineering, AI, and Cloud Computing';
       } else if (academicCourse === 'BCom') {
         courseDetails = 'Bachelor of Commerce (B.Com)';
         subjects = 'Financial Accounting, Economics, Business Law, Auditing, Corporate Taxation, and Statistics';
-      } else {
+      } else if (academicCourse === 'BBA') {
         courseDetails = 'Bachelor of Business Administration (BBA)';
         subjects = 'Principles of Management, Marketing, HR Management, Financial Strategy, and Entrepreneurship';
+      } else if (academicCourse === 'BA') {
+        courseDetails = 'Bachelor of Arts (BA)';
+        subjects = 'History, Sociology, Political Science, Economics, Psychology, and Languages/Literature';
+      } else if (academicCourse === 'BSc') {
+        courseDetails = 'Bachelor of Science (B.Sc)';
+        subjects = 'Physics, Chemistry, Mathematics, Botany, Zoology, and Computer Science';
       }
+
+      const toolName = isGu 
+        ? `યુનિવર્સલ ${academicCourse === 'School' ? 'શાળા' : academicCourse} ${labelType}-${academicSemester} અભ્યાસ અને આસાઈનમેન્ટ પ્રો` 
+        : `Universal ${academicCourse} ${labelType}-${academicSemester} AI Assignment Solver & Study Partner`;
+
+      const toolDescription = isGu
+        ? `${courseDetails} ના સંપૂર્ણ અભ્યાસક્રમ માટે ખાસ તૈયાર કરેલ અદ્યતન AI ટ્યુટર. ${subjects} વિષયોના આસાઈનમેન્ટ સોલ્યુશન્સ, પ્રશ્નોત્તરી, નોટ્સ અને સ્વાધ્યાય માટે.`
+        : `Bespoke AI Tutor & Assignment Solver fine-tuned for ${courseDetails}. Instantly formulates step-by-step textbook solutions, curated exam notes, custom homework scripts, and syllabus-tuned guidelines for ${subjects}.`;
 
       return {
         ...found,
-        name: isGu 
-          ? `યુનિવર્સલ ${academicCourse} સેમેસ્ટર-${academicSemester} અભ્યાસ પ્રો` 
-          : `Universal ${academicCourse} Sem-${academicSemester} Academic Pro`,
-        description: isGu
-          ? `${courseDetails} સેમેસ્ટર-${academicSemester} માટે ખાસ તૈયાર કરેલ અદ્યતન AI ટ્યુટર. ${subjects} વિષયોના સોલ્યુશન, નોટ્સ અને સ્વાધ્યાય માટે.`
-          : `Bespoke AI Companion fine-tuned for ${courseDetails} Semester-${academicSemester}. Formulates master textbook proofs, syllabus structures, study notes, and custom assignments for ${subjects}.`,
-        systemInstruction: `You are the ultimate academic assistant and senior professor for Dhruv Tarsariya, studying ${courseDetails} in Semester ${academicSemester}. Help him perfectly answer academic questions, assignments, and practicals for his curriculum. Focus specifically on ${subjects} relevant to Semester ${academicSemester}. Keep the tone highly encouraging, clear, academic, precise, and professional, and address him by name (Dhruv) to celebrate his dedication.`
+        name: toolName,
+        description: toolDescription,
+        systemInstruction: `You are the ultimate academic assistant, assignment solver, and expert senior professor for student Dhruv Tarsariya, studying ${courseDetails}. Help him perfectly answer academic questions, assignments, homework exercises, and curriculum practicals step-by-step. Focus specifically on ${subjects} relevant to this level. Provide rich details, formatted math/code blocks where appropriate, keep the tone highly encouraging, clear, academic, precise, and professional, and address him by name (Dhruv) to celebrate his dedication.`
       };
     }
     return found || null;
@@ -2358,32 +2375,38 @@ export default function App() {
                 </div>
               </div>
 
-              {/* UNIVERSAL ACADEMIC AI HUB WORKSPACE (BCA, BCOM, BBA & SEMESTERS 1 TO 6) */}
+              {/* UNIVERSAL ACADEMIC AI HUB WORKSPACE (SCHOOL STD 1-12, BCA, BCOM, BBA, BA, BSC) */}
               <div className={`bg-gradient-to-br ${theme === 'dark' ? 'from-[#0b1021] via-[#0e1630] to-[#0b1021] border-indigo-900/40' : 'from-indigo-50/80 via-blue-50/70 to-indigo-50/80 border-indigo-200 shadow-sm'} border rounded-3xl p-5 lg:p-6 space-y-5 text-left relative overflow-hidden transition-all duration-300 hover:shadow-indigo-500/5 hover:border-indigo-500/30`}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
                 
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-indigo-500/10 pb-4">
+                <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 border-b border-indigo-500/10 pb-4">
                   <div className="flex items-center gap-3">
                     <div className="bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 p-3 rounded-2xl shrink-0 shadow-inner">
                       <Icons.GraduationCap className="w-5 h-5 animate-bounce" />
                     </div>
                     <div>
                       <h3 className={`text-sm lg:text-base font-black ${theme === 'dark' ? 'text-white' : 'text-slate-900'} tracking-tight`}>
-                        {lang === 'gu' ? 'યુનિવર્સલ એકેડેમિક AI હબ' : 'Universal Academic AI Hub'}
+                        {lang === 'gu' ? 'યુનિવર્સલ એકેડેમિક અને આસાઈનમેન્ટ AI હબ' : 'Universal Academic & Assignment AI Hub'}
                       </h3>
                       <p className="text-[10px] text-slate-400 font-bold">
-                        {lang === 'gu' ? 'તમારો અભ્યાસક્રમ અને સેમેસ્ટર પસંદ કરો' : 'Select your course and semester to auto-tune the AI Tutor'}
+                        {lang === 'gu' ? 'તમારો વર્ગ અથવા ડિગ્રી કોર્સ પસંદ કરો' : 'Select Class 1-12 or Degree course for precise syllabus-tuned answers'}
                       </p>
                     </div>
                   </div>
 
                   {/* Course Selection Tabs */}
-                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-indigo-500/5 border border-indigo-500/10 self-start md:self-auto">
-                    {(['BCA', 'BCom', 'BBA'] as const).map(course => (
+                  <div className="flex flex-wrap items-center gap-1 p-1 rounded-xl bg-indigo-500/5 border border-indigo-500/10 self-start xl:self-auto">
+                    {([ 'School', 'BCA', 'BCom', 'BBA', 'BA', 'BSc' ] as const).map(course => (
                       <button
                         key={course}
                         onClick={() => {
                           setAcademicCourse(course);
+                          // Set default values appropriate to category
+                          if (course === 'School') {
+                            setAcademicSemester(10); // Default to Std 10
+                          } else {
+                            setAcademicSemester(3);  // Default to Sem 3
+                          }
                           playSynthSound('click');
                         }}
                         className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${
@@ -2392,36 +2415,51 @@ export default function App() {
                             : 'text-slate-400 hover:text-slate-200 hover:bg-indigo-500/10'
                         }`}
                       >
-                        {course}
+                        {course === 'School' ? (lang === 'gu' ? 'શાળા (ધોરણ ૧-૧૨)' : 'School (Class 1-12)') : course}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Semester selection pills (Sem 1 to 6) */}
+                {/* Semester or Standard selection pills */}
                 <div className="space-y-2">
                   <span className="text-[8px] uppercase tracking-widest font-black text-indigo-400 block">
-                    {lang === 'gu' ? 'સેમેસ્ટર પસંદ કરો' : 'Select Semester'}
+                    {academicCourse === 'School'
+                      ? (lang === 'gu' ? 'ધોરણ પસંદ કરો (૧ થી ૧૨)' : 'Select Standard (Class 1 to 12)')
+                      : (lang === 'gu' ? 'સેમેસ્ટર પસંદ કરો (૧ થી ૬)' : 'Select Semester (Sem 1 to 6)')
+                    }
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    {[1, 2, 3, 4, 5, 6].map(sem => (
-                      <button
-                        key={sem}
-                        onClick={() => {
-                          setAcademicSemester(sem);
-                          playSynthSound('click');
-                        }}
-                        className={`px-3.5 py-1.5 text-[9px] font-black rounded-xl border transition-all ${
-                          academicSemester === sem
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-transparent text-white shadow-lg shadow-blue-500/10 scale-105'
-                            : theme === 'dark'
-                              ? 'bg-slate-950/40 border-slate-900 text-slate-400 hover:border-indigo-500/30 hover:text-slate-200'
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-500/30 hover:text-indigo-600'
-                        }`}
-                      >
-                        {lang === 'gu' ? `સેમ-${sem}` : `Sem-${sem}`}
-                      </button>
-                    ))}
+                    {(academicCourse === 'School' 
+                      ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] 
+                      : [1, 2, 3, 4, 5, 6]
+                    ).map(num => {
+                      const isActive = academicSemester === num;
+                      let label = '';
+                      if (academicCourse === 'School') {
+                        label = lang === 'gu' ? `ધોરણ-${num}` : `Std-${num}`;
+                      } else {
+                        label = lang === 'gu' ? `સેમ-${num}` : `Sem-${num}`;
+                      }
+                      return (
+                        <button
+                          key={num}
+                          onClick={() => {
+                            setAcademicSemester(num);
+                            playSynthSound('click');
+                          }}
+                          className={`px-3 py-1.5 text-[9px] font-black rounded-xl border transition-all ${
+                            isActive
+                              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-transparent text-white shadow-lg shadow-blue-500/10 scale-105'
+                              : theme === 'dark'
+                                ? 'bg-slate-950/40 border-slate-900 text-slate-400 hover:border-indigo-500/30 hover:text-slate-200'
+                                : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-500/30 hover:text-indigo-600'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -2430,16 +2468,24 @@ export default function App() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[8px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-black uppercase tracking-widest font-mono animate-pulse">
-                        {academicCourse} Sem-{academicSemester} Ready
+                        {academicCourse === 'School' 
+                          ? (lang === 'gu' ? `ધોરણ-${academicSemester} આસાઈનમેન્ટ રેડી` : `Std-${academicSemester} Ready`)
+                          : `${academicCourse} Sem-${academicSemester} Ready`
+                        }
                       </span>
                       <span className="text-[8px] bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-black uppercase tracking-widest font-mono">
-                        {lang === 'gu' ? 'સંપૂર્ણ અભ્યાસક્રમ' : 'Full Syllabus'}
+                        {lang === 'gu' ? '૧૦૦% સચોટ જવાબો' : '100% Accurate Answers'}
                       </span>
                     </div>
                     <p className={`text-[11px] ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'} leading-relaxed font-semibold`}>
                       {lang === 'gu' 
-                        ? `નમસ્તે ધ્રુવ! આ પ્લેટફોર્મ સેમેસ્ટર-${academicSemester} ના ${academicCourse} અભ્યાસક્રમ માટે ઓપ્ટિમાઇઝ કરેલ છે. ટેક્સ્ટબુકના જવાબો, આસાઈનમેન્ટ અને નોટ્સ મેળવો.`
-                        : `Welcome, Dhruv! Your AI Companion is auto-tuned for ${academicCourse} Semester-${academicSemester} syllabus. Get instant textbook proofs, curated study materials, and code/finance solvers.`}
+                        ? (academicCourse === 'School'
+                            ? `નમસ્તે ધ્રુવ! ધોરણ-${academicSemester} ના ગણિત, વિજ્ઞાન, અંગ્રેજી, સામાજિક વિજ્ઞાન અને તમામ હોમવર્ક આસાઈનમેન્ટ ના સાચા જવાબો મેળવો.`
+                            : `નમસ્તે ધ્રુવ! આ પ્લેટફોર્મ સેમેસ્ટર-${academicSemester} ના ${academicCourse} ના સંપૂર્ણ અભ્યાસક્રમ માટે ઓપ્ટિમાઇઝ કરેલ છે. ટેક્સ્ટબુકના જવાબો, આસાઈનમેન્ટ અને નોટ્સ મેળવો.`)
+                        : (academicCourse === 'School'
+                            ? `Welcome, Dhruv! Get step-by-step textbook solutions and verified assignment answers for Standard ${academicSemester} (Class 1-12) subjects.`
+                            : `Welcome, Dhruv! Your AI Companion is auto-tuned for ${academicCourse} Semester-${academicSemester} syllabus. Get textbook proofs, customized assignments, and code/finance solvers.`)
+                      }
                     </p>
                   </div>
 
@@ -2450,7 +2496,7 @@ export default function App() {
                     }}
                     className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-[10px] font-black uppercase tracking-wider py-3 px-5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-600/20 cursor-pointer text-center whitespace-nowrap self-stretch sm:self-auto"
                   >
-                    {lang === 'gu' ? 'અભ્યાસ AI શરૂ કરો 🚀' : 'Launch Academic AI 🚀'}
+                    {lang === 'gu' ? 'આસાઈનમેન્ટ AI શરૂ કરો 🚀' : 'Launch Assignment AI 🚀'}
                   </button>
                 </div>
               </div>
