@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Configuration from firebase-applet-config.json
 const firebaseConfig = {
@@ -15,8 +15,49 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Authentication and Firestore
+// Initialize Firebase Authentication
 export const auth = getAuth(app);
-export const db = getFirestore(app, "ai-studio-aisupertoolshub-ed12c8af-0de6-4766-a5b3-85d8f6e82b8e");
+
+// Dynamic resilient Firestore setup
+let activeDb: Firestore;
+try {
+  activeDb = getFirestore(app, "ai-studio-aisupertoolshub-ed12c8af-0de6-4766-a5b3-85d8f6e82b8e");
+} catch (e) {
+  console.warn("Could not load custom named database, using default:", e);
+  activeDb = getFirestore(app);
+}
+
+export let db = activeDb;
+
+// Method to switch live database instance to default
+export function switchToDefaultDatabase() {
+  try {
+    db = getFirestore(app);
+    console.log("[Firebase] Switched database instance to default successfully.");
+  } catch (err) {
+    console.error("[Firebase] Error switching to default database:", err);
+  }
+}
+
+// Wrapper for robust database queries
+export async function executeResilientDbOp<T>(op: (currentDb: Firestore) => Promise<T>): Promise<T> {
+  try {
+    return await op(db);
+  } catch (err: any) {
+    const errMsg = err?.message || String(err);
+    if (
+      errMsg.includes('closing') || 
+      errMsg.includes('hidden') || 
+      errMsg.includes('not-found') || 
+      errMsg.includes('disabled') ||
+      errMsg.includes('precondition')
+    ) {
+      console.warn("[Firebase] Detected database state exception. Switching to default database and retrying...", errMsg);
+      switchToDefaultDatabase();
+      return await op(db);
+    }
+    throw err;
+  }
+}
 
 export default app;

@@ -13,7 +13,7 @@ import AuthScreen from './components/AuthScreen';
 import ProfileModal from './components/ProfileModal';
 import GlobalOperationsHub from './components/GlobalOperationsHub';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, executeResilientDbOp } from './firebase';
 
 // --- Global Procedural Synthesizer for Immersive Micro-Sounds ---
 const playSynthSound = (type: 'click' | 'success' | 'rate' | 'chime' | 'laser' | 'toggle') => {
@@ -204,9 +204,9 @@ export default function App() {
   useEffect(() => {
     if (!userState.isLoggedIn || !userState.id) return;
 
-    const userDocRef = doc(db, 'users', userState.id);
-    
-    getDoc(userDocRef).then((docSnap) => {
+    executeResilientDbOp(async (currentDb) => {
+      const userDocRef = doc(currentDb, 'users', userState.id);
+      const docSnap = await getDoc(userDocRef);
       if (docSnap.exists()) {
         const cloudData = docSnap.data();
         setUserState(prev => ({
@@ -220,7 +220,7 @@ export default function App() {
           semester: cloudData.semester || prev.semester || '',
         }));
       } else {
-        setDoc(userDocRef, {
+        await setDoc(userDocRef, {
           email: userState.email || '',
           name: userState.name || '',
           username: userState.username || '',
@@ -232,31 +232,33 @@ export default function App() {
           college: userState.college || '',
           semester: userState.semester || '',
           updatedAt: new Date().toISOString()
-        }).catch(err => console.warn("Error creating user doc:", err));
+        });
       }
     }).catch(err => {
-      console.warn("Firestore offline or permission issue:", err);
+      console.warn("Firestore resilient sync failed:", err);
     });
   }, [userState.isLoggedIn, userState.id]);
 
   useEffect(() => {
     if (!userState.isLoggedIn || !userState.id) return;
     
-    const userDocRef = doc(db, 'users', userState.id);
     const timeoutId = setTimeout(() => {
-      setDoc(userDocRef, {
-        email: userState.email || '',
-        name: userState.name || '',
-        username: userState.username || '',
-        tier: userState.tier || 'free',
-        credits: typeof userState.credits === 'number' ? userState.credits : 30,
-        favorites: userState.favorites || [],
-        savedNotes: userState.savedNotes || [],
-        history: userState.history || [],
-        college: userState.college || '',
-        semester: userState.semester || '',
-        updatedAt: new Date().toISOString()
-      }, { merge: true }).catch(err => console.warn("Firestore sync update failed:", err));
+      executeResilientDbOp(async (currentDb) => {
+        const userDocRef = doc(currentDb, 'users', userState.id);
+        await setDoc(userDocRef, {
+          email: userState.email || '',
+          name: userState.name || '',
+          username: userState.username || '',
+          tier: userState.tier || 'free',
+          credits: typeof userState.credits === 'number' ? userState.credits : 30,
+          favorites: userState.favorites || [],
+          savedNotes: userState.savedNotes || [],
+          history: userState.history || [],
+          college: userState.college || '',
+          semester: userState.semester || '',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      }).catch(err => console.warn("Firestore sync update failed:", err));
     }, 1200); // Debounce to keep writes optimal
 
     return () => clearTimeout(timeoutId);
