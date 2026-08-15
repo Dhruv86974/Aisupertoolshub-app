@@ -172,8 +172,8 @@ export default function ProfileModal({
   // Profile fields state
   const [name, setName] = useState(userState.name || '');
   const [username, setUsername] = useState(userState.username || '');
-  const [college, setCollege] = useState(userState.college || 'Sutex Bank College of Computer Applications');
-  const [semester, setSemester] = useState(userState.semester || 'SY BCA Sem 3');
+  const [college, setCollege] = useState(userState.college || 'Universal College of Commerce & Computer Applications');
+  const [semester, setSemester] = useState(userState.semester || 'BCA Semester 3');
 
   // Password fields state
   const [currentPassword, setCurrentPassword] = useState('');

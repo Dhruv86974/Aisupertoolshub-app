@@ -978,6 +978,22 @@ export default function App() {
 
   // --- UI States ---
   const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
+  const [academicCourse, setAcademicCourse] = useState<'BCA' | 'BCom' | 'BBA'>(() => {
+    return (localStorage.getItem('hub_academic_course') as 'BCA' | 'BCom' | 'BBA') || 'BCA';
+  });
+  const [academicSemester, setAcademicSemester] = useState<number>(() => {
+    const saved = localStorage.getItem('hub_academic_semester');
+    return saved ? parseInt(saved, 10) : 3;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('hub_academic_course', academicCourse);
+  }, [academicCourse]);
+
+  useEffect(() => {
+    localStorage.setItem('hub_academic_semester', String(academicSemester));
+  }, [academicSemester]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<ToolCategory>('all');
   const [showBillingModal, setShowBillingModal] = useState(false);
@@ -1121,8 +1137,36 @@ export default function App() {
   // Active Tool selection helper
   const activeTool = useMemo(() => {
     if (!selectedToolId) return null;
-    return TOOLS_DATA.find(t => t.id === selectedToolId) || null;
-  }, [selectedToolId]);
+    const found = TOOLS_DATA.find(t => t.id === selectedToolId);
+    if (found && found.id === 'sutex-bca-assistant') {
+      const isGu = lang === 'gu';
+      
+      let courseDetails = '';
+      let subjects = '';
+      if (academicCourse === 'BCA') {
+        courseDetails = 'Bachelor of Computer Applications (BCA)';
+        subjects = 'Programming, Data Structures, DBMS, Web Tech, Software Engineering, AI, and Cloud Computing';
+      } else if (academicCourse === 'BCom') {
+        courseDetails = 'Bachelor of Commerce (B.Com)';
+        subjects = 'Financial Accounting, Economics, Business Law, Auditing, Corporate Taxation, and Statistics';
+      } else {
+        courseDetails = 'Bachelor of Business Administration (BBA)';
+        subjects = 'Principles of Management, Marketing, HR Management, Financial Strategy, and Entrepreneurship';
+      }
+
+      return {
+        ...found,
+        name: isGu 
+          ? `યુનિવર્સલ ${academicCourse} સેમેસ્ટર-${academicSemester} અભ્યાસ પ્રો` 
+          : `Universal ${academicCourse} Sem-${academicSemester} Academic Pro`,
+        description: isGu
+          ? `${courseDetails} સેમેસ્ટર-${academicSemester} માટે ખાસ તૈયાર કરેલ અદ્યતન AI ટ્યુટર. ${subjects} વિષયોના સોલ્યુશન, નોટ્સ અને સ્વાધ્યાય માટે.`
+          : `Bespoke AI Companion fine-tuned for ${courseDetails} Semester-${academicSemester}. Formulates master textbook proofs, syllabus structures, study notes, and custom assignments for ${subjects}.`,
+        systemInstruction: `You are the ultimate academic assistant and senior professor for Dhruv Tarsariya, studying ${courseDetails} in Semester ${academicSemester}. Help him perfectly answer academic questions, assignments, and practicals for his curriculum. Focus specifically on ${subjects} relevant to Semester ${academicSemester}. Keep the tone highly encouraging, clear, academic, precise, and professional, and address him by name (Dhruv) to celebrate his dedication.`
+      };
+    }
+    return found || null;
+  }, [selectedToolId, academicCourse, academicSemester, lang]);
 
   useEffect(() => {
     setShowToolTutorial(false);
@@ -2209,16 +2253,17 @@ export default function App() {
                           theme === 'dark' ? 'bg-slate-950 hover:bg-slate-900 border-slate-850 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
                         }`}
                       >
-                        <Download className="w-3 h-3 text-blue-500" />
+                        <Icons.Download className="w-3 h-3 text-blue-500" />
                         <span>Export JSON</span>
                       </button>
+
                       <button
                         onClick={() => handleExportHistory('csv')}
                         className={`text-[9px] font-black px-2.5 py-1.5 rounded-lg border transition flex items-center gap-1 ${
                           theme === 'dark' ? 'bg-slate-950 hover:bg-slate-900 border-slate-850 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
                         }`}
                       >
-                        <Download className="w-3 h-3 text-emerald-500" />
+                        <Icons.Download className="w-3 h-3 text-emerald-500" />
                         <span>Export CSV</span>
                       </button>
                     </div>
@@ -2313,39 +2358,99 @@ export default function App() {
                 </div>
               </div>
 
-              {/* SUTEX BANK COLLEGE OF COMPUTER APPLICATIONS EXCLUSIVE ACADEMIC WORKSPACE */}
-              <div className={`bg-gradient-to-r ${theme === 'dark' ? 'from-[#0b1021] via-[#0e1630] to-[#0b1021] border-indigo-900/40' : 'from-indigo-50/80 via-blue-50/70 to-indigo-50/80 border-indigo-200 shadow-sm'} border rounded-3xl p-5 lg:p-6 flex flex-col md:flex-row items-center justify-between gap-5 text-left relative overflow-hidden transition-all duration-300 hover:shadow-indigo-500/5 hover:border-indigo-500/30`}>
+              {/* UNIVERSAL ACADEMIC AI HUB WORKSPACE (BCA, BCOM, BBA & SEMESTERS 1 TO 6) */}
+              <div className={`bg-gradient-to-br ${theme === 'dark' ? 'from-[#0b1021] via-[#0e1630] to-[#0b1021] border-indigo-900/40' : 'from-indigo-50/80 via-blue-50/70 to-indigo-50/80 border-indigo-200 shadow-sm'} border rounded-3xl p-5 lg:p-6 space-y-5 text-left relative overflow-hidden transition-all duration-300 hover:shadow-indigo-500/5 hover:border-indigo-500/30`}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-                <div className="flex items-start gap-4">
-                  <div className="bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 p-3.5 rounded-2xl shrink-0 shadow-inner">
-                    <Icons.GraduationCap className="w-6 h-6 animate-bounce" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[8px] bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded font-black uppercase tracking-widest font-mono">
-                        Sutex BCA Workspace
-                      </span>
-                      <span className="text-[8px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-black uppercase tracking-widest font-mono animate-pulse">
-                        BCA Sem-3 Research VIP Activated
-                      </span>
+                
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-indigo-500/10 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 p-3 rounded-2xl shrink-0 shadow-inner">
+                      <Icons.GraduationCap className="w-5 h-5 animate-bounce" />
                     </div>
-                    <h3 className={`text-sm lg:text-base font-black ${theme === 'dark' ? 'text-white' : 'text-slate-900'} tracking-tight`}>
-                      Sutex Bank College of Computer Applications
-                    </h3>
-                    <p className="text-[11px] text-slate-400 leading-relaxed font-semibold">
-                      Welcome, <span className="text-blue-400 font-extrabold select-all">Dhruv Tarsariya</span>! This premium academic gateway is fully optimized for your SY BCA Sem-3 curriculum. Access customized textbook solutions, DBMS SQL compilers, C++/Java structure solvers, and unlimited high-performance computing pipelines.
-                    </p>
+                    <div>
+                      <h3 className={`text-sm lg:text-base font-black ${theme === 'dark' ? 'text-white' : 'text-slate-900'} tracking-tight`}>
+                        {lang === 'gu' ? 'યુનિવર્સલ એકેડેમિક AI હબ' : 'Universal Academic AI Hub'}
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-bold">
+                        {lang === 'gu' ? 'તમારો અભ્યાસક્રમ અને સેમેસ્ટર પસંદ કરો' : 'Select your course and semester to auto-tune the AI Tutor'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Course Selection Tabs */}
+                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-indigo-500/5 border border-indigo-500/10 self-start md:self-auto">
+                    {(['BCA', 'BCom', 'BBA'] as const).map(course => (
+                      <button
+                        key={course}
+                        onClick={() => {
+                          setAcademicCourse(course);
+                          playSynthSound('click');
+                        }}
+                        className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${
+                          academicCourse === course
+                            ? 'bg-indigo-600 text-white shadow-md'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-indigo-500/10'
+                        }`}
+                      >
+                        {course}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto">
+
+                {/* Semester selection pills (Sem 1 to 6) */}
+                <div className="space-y-2">
+                  <span className="text-[8px] uppercase tracking-widest font-black text-indigo-400 block">
+                    {lang === 'gu' ? 'સેમેસ્ટર પસંદ કરો' : 'Select Semester'}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[1, 2, 3, 4, 5, 6].map(sem => (
+                      <button
+                        key={sem}
+                        onClick={() => {
+                          setAcademicSemester(sem);
+                          playSynthSound('click');
+                        }}
+                        className={`px-3.5 py-1.5 text-[9px] font-black rounded-xl border transition-all ${
+                          academicSemester === sem
+                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-transparent text-white shadow-lg shadow-blue-500/10 scale-105'
+                            : theme === 'dark'
+                              ? 'bg-slate-950/40 border-slate-900 text-slate-400 hover:border-indigo-500/30 hover:text-slate-200'
+                              : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-500/30 hover:text-indigo-600'
+                        }`}
+                      >
+                        {lang === 'gu' ? `સેમ-${sem}` : `Sem-${sem}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bottom dynamic action bar */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-3 border-t border-indigo-500/10">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-black uppercase tracking-widest font-mono animate-pulse">
+                        {academicCourse} Sem-{academicSemester} Ready
+                      </span>
+                      <span className="text-[8px] bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-black uppercase tracking-widest font-mono">
+                        {lang === 'gu' ? 'સંપૂર્ણ અભ્યાસક્રમ' : 'Full Syllabus'}
+                      </span>
+                    </div>
+                    <p className={`text-[11px] ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'} leading-relaxed font-semibold`}>
+                      {lang === 'gu' 
+                        ? `નમસ્તે ધ્રુવ! આ પ્લેટફોર્મ સેમેસ્ટર-${academicSemester} ના ${academicCourse} અભ્યાસક્રમ માટે ઓપ્ટિમાઇઝ કરેલ છે. ટેક્સ્ટબુકના જવાબો, આસાઈનમેન્ટ અને નોટ્સ મેળવો.`
+                        : `Welcome, Dhruv! Your AI Companion is auto-tuned for ${academicCourse} Semester-${academicSemester} syllabus. Get instant textbook proofs, curated study materials, and code/finance solvers.`}
+                    </p>
+                  </div>
+
                   <button 
                     onClick={() => {
                       setSelectedToolId('sutex-bca-assistant');
                       playSynthSound('chime');
                     }}
-                    className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-[9px] font-black uppercase tracking-wider py-3 px-5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-600/20 cursor-pointer text-center"
+                    className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-[10px] font-black uppercase tracking-wider py-3 px-5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-600/20 cursor-pointer text-center whitespace-nowrap self-stretch sm:self-auto"
                   >
-                    Launch College AI
+                    {lang === 'gu' ? 'અભ્યાસ AI શરૂ કરો 🚀' : 'Launch Academic AI 🚀'}
                   </button>
                 </div>
               </div>
