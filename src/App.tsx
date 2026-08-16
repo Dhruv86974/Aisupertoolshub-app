@@ -416,6 +416,9 @@ export default function App() {
         if (parsed.googleAdsenseClientId === 'ca-pub-1234567890123456' || !parsed.googleAdsenseClientId) {
           parsed.googleAdsenseClientId = 'ca-pub-7594598332182178';
         }
+        if (parsed.googleAdsenseSlotId === '1234567890' || !parsed.googleAdsenseSlotId) {
+          parsed.googleAdsenseSlotId = '9168258592';
+        }
         return parsed;
       } catch (e) {}
     }
@@ -428,7 +431,7 @@ export default function App() {
       customImageUrl: 'https://images.unsplash.com/photo-1542744094-3a31f103e35f?q=80&w=600&auto=format&fit=crop',
       customRedirectUrl: 'mailto:dhruvtarsariya3@gmail.com?subject=Advertise on AI Super Tools Hub',
       googleAdsenseClientId: 'ca-pub-7594598332182178',
-      googleAdsenseSlotId: '1234567890',
+      googleAdsenseSlotId: '9168258592',
       customScriptCode: '<!-- Paste Adsterra banner or native script here -->'
     };
   });
