@@ -47,6 +47,7 @@ export default function InteractiveWidgets(props: WidgetProps) {
   if (tool.id === 'image-compressor') return <ImageCompressorWidget {...props} />;
   if (tool.id === 'upi-invoice') return <UPIInvoiceWidget {...props} />;
   if (tool.id === 'image-prompter') return <ImagePrompterWidget {...props} />;
+  if (tool.id === 'social-media-builder') return <SocialMediaBuilderWidget {...props} />;
 
   return <GenericAIWidget {...props} />;
 }
@@ -5029,5 +5030,808 @@ function renderInlineStyles(text: string) {
   });
   
   return <>{parts}</>;
+}
+
+// ================= SOCIAL MEDIA BANNER / POST BUILDER WIDGET =================
+function SocialMediaBuilderWidget({
+  lang,
+  theme: appTheme
+}: WidgetProps) {
+  const isGu = lang === 'gu';
+  
+  const [brandName, setBrandName] = useState('AI Super Tools Hub');
+  const [brandUrl, setBrandUrl] = useState('aisuertoolshub.com');
+  const [primaryHeading, setPrimaryHeading] = useState('100+ High-Performance AI Hub');
+  const [secondaryText, setSecondaryText] = useState('Instant Assignment Solver, Code Sandbox & PDF OCR tools.');
+  const [ctaText, setCtaText] = useState('LAUNCH FREE AI NOW 🚀');
+  const [aspectRatio, setAspectRatio] = useState<'1' | '9-16'>('1');
+  const [gradientTheme, setGradientTheme] = useState<'neon' | 'sunset' | 'cosmos' | 'cyberpunk'>('neon');
+  const [badgeText, setBadgeText] = useState('100% SECURE & FREE');
+  const [copiedText, setCopiedText] = useState(false);
+  const [activeTab, setActiveTab] = useState<'design' | 'animator' | 'captions' | 'script'>('animator');
+
+  // Video Animator States
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentFrame, setCurrentFrame] = useState(0); // 0 to 4 phases
+  const [audioSynthesizing, setAudioSynthesizing] = useState(false);
+
+  // Load presets
+  const applyPreset = (type: 'school' | 'developer' | 'general') => {
+    if (type === 'school') {
+      setPrimaryHeading(isGu ? '૧૦૦+ હોમવર્ક એઆઈ સોલ્વર' : 'Std 1-12 Homework AI Solver');
+      setSecondaryText(isGu ? 'ગણિત, વિજ્ઞાન અને આસાઈનમેન્ટના સાચા જવાબો મેળવો ફોટો પાડીને!' : 'Upload a photo of your textbook question and get step-by-step proofs.');
+      setCtaText(isGu ? 'આસાઈનમેન્ટ AI શરૂ કરો 🚀' : 'LAUNCH ASSIGNMENT AI 🚀');
+      setBadgeText('SCHOOL STD 1-12 & DEGREE');
+    } else if (type === 'developer') {
+      setPrimaryHeading('AI Sandbox & Live Compiler');
+      setSecondaryText('Write, edit, and compile code instantly inside full-stack browser sandbox.');
+      setCtaText('LAUNCH FREE SANDBOX 💻');
+      setBadgeText('DEVELOPERS & STUDENT WEB TECH');
+    } else {
+      setBrandName('AI Super Tools Hub');
+      setBrandUrl('aisuertoolshub.com');
+      setPrimaryHeading('100+ Elite AI Toolkit');
+      setSecondaryText('Dynamic document OCR, voice cloner, invoice splitter, and image processors.');
+      setCtaText('TRY IT FOR FREE 🚀');
+      setBadgeText('100% SECURE MULTITHREADED');
+    }
+  };
+
+  // Synthesize epic transition sound effect using Web Audio API
+  const playBeep = (freq: number, type: OscillatorType, duration: number) => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      
+      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+      
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    } catch (e) {}
+  };
+
+  // Run automatic multi-phase ad playback
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPlaying) {
+      setCurrentFrame(0);
+      playBeep(440, 'triangle', 0.6); // Intro chime
+      
+      const sequence = [
+        { time: 5000, beep: 523 }, // Phase 1 -> 2
+        { time: 10000, beep: 587 }, // Phase 2 -> 3
+        { time: 15000, beep: 659 }, // Phase 3 -> 4
+        { time: 20000, beep: 698 }, // Phase 4 -> 5
+        { time: 25000, beep: 880 }  // Phase 5 finish
+      ];
+
+      let step = 0;
+      interval = setInterval(() => {
+        step += 1;
+        if (step <= 4) {
+          setCurrentFrame(step);
+          playBeep(sequence[step - 1].beep, 'sine', 0.5);
+        } else {
+          setIsPlaying(false);
+          setCurrentFrame(0);
+          playBeep(987, 'triangle', 0.8); // Finished fanfare
+        }
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  // Preset themes configuration
+  const themesConfig = {
+    neon: 'from-[#0d1527] via-[#0c1e36] to-[#042f2e] text-white border-teal-500/30',
+    sunset: 'from-[#1e1014] via-[#3b1219] to-[#2d080e] text-white border-rose-500/30',
+    cosmos: 'from-[#0d091e] via-[#1a0f3c] to-[#08020f] text-white border-purple-500/30',
+    cyberpunk: 'from-[#0b0f19] via-[#111827] to-[#1e1b4b] text-white border-indigo-500/30'
+  };
+
+  const themeGlows = {
+    neon: 'bg-teal-500/10 shadow-[0_0_50px_rgba(20,184,166,0.15)]',
+    sunset: 'bg-rose-500/10 shadow-[0_0_50px_rgba(244,63,94,0.15)]',
+    cosmos: 'bg-purple-500/10 shadow-[0_0_50px_rgba(168,85,247,0.15)]',
+    cyberpunk: 'bg-indigo-500/10 shadow-[0_0_50px_rgba(99,102,241,0.15)]'
+  };
+
+  const themeAccents = {
+    neon: 'text-teal-400 border-teal-500/20 bg-teal-500/10',
+    sunset: 'text-rose-400 border-rose-500/20 bg-rose-500/10',
+    cosmos: 'text-purple-400 border-purple-500/20 bg-purple-500/10',
+    cyberpunk: 'text-indigo-400 border-indigo-500/20 bg-indigo-500/10'
+  };
+
+  const themeButtons = {
+    neon: 'from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white shadow-teal-500/20',
+    sunset: 'from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white shadow-rose-500/20',
+    cosmos: 'from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-purple-500/20',
+    cyberpunk: 'from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 2000);
+  };
+
+  // Copyable pre-designed Instagram/WhatsApp captions with hashtags
+  const defaultCaption = `💥 સ્ટુડન્ટ્સ અને પ્રોફેશનલ્સ માટે ધમાકેદાર ખુશખબર! 💥
+
+હોમવર્ક કરવા, પ્રોજેક્ટ બનાવવા કે કોડિંગ માટે અલગ-અલગ એપ્સ ડાઉનલોડ કરવાની કોઈ જરૂર નથી!
+
+મુલાકાત લો: 👉 www.${brandUrl} 👈
+
+આ એક જ વેબસાઈટ પર તમને મળશે:
+🧠 ધોરણ ૧ થી ૧૨ ના હોમવર્ક અને આસાઈનમેન્ટના ૧૦૦% સાચા જવાબો! (ફક્ત ફોટો પાડીને મોકલો!)
+💻 કોડિંગ કરવા માટે ઓનલાઇન કમ્પાઇલર અને પ્રોગ્રામિંગ સોલ્વર!
+💰 ફાઇનાન્સ અને ઇન્વોઇસ સ્પ્લિટર્સ!
+🎨 પ્રોફેશનલ કલર અને ઇમેજ પ્રોસેસિંગ ટૂલ્સ!
+
+🔥 ૧૦0% મફત, સુરક્ષિત અને સુપર ફાસ્ટ એઆઈ હબ! 
+
+અત્યારે જ વિઝીટ કરો અને તમારા મિત્રો સાથે શેર કરો! લિંક નીચે કોમેન્ટમાં / બાયોમાં છે. 👇
+#AISuperToolsHub #AISuperHub #StudentHacks #HomeworkHelp #GujaratTech #DhruvTarsariya`;
+
+  // Pre-designed 30-sec Video Script for Shorts/Reels
+  const videoScript = `🎬 30-SECOND REELS / SHORTS VIDEO SCRIPT
+
+[visual: Mobile screen recording showing Google Chrome opening 'www.${brandUrl}']
+🔊 VOICE OVER (Gujarati): "મિત્રો, શું તમે પણ હોમવર્ક, અઘરા દાખલા કે કોડિંગ એસાઈનમેન્ટથી કંટાળી ગયા છો?"
+
+[visual: Zoom in on "Universal Academic AI Hub", selecting Standard 10 and showing homework image upload]
+🔊 VOICE OVER: "તો આ જુઓ! આ વેબસાઈટ પર જઈને હોમવર્ક ના પ્રશ્નનો ફક્ત ફોટો અપલોડ કરો એટલે સેકન્ડોમાં મળશે સ્ટેપ-બાય-સ્ટેપ સાચો જવાબ!"
+
+[visual: Quick scroll showing 100+ other tools, like voice cloning, code compiler]
+🔊 VOICE OVER: "એટલું જ નહીં, અહીં ૧૦૦ થી પણ વધુ એઆઈ સાધનો એકદમ ફ્રી માં આપેલા છે!"
+
+[visual: Text overlay "www.${brandUrl}" flashing with a glowing border]
+🔊 VOICE OVER: "તો રાહ શેની જુઓ છો? હમણાં જ મુલાકાત લો www.${brandUrl} ની અને દોસ્તો સાથે શેર કરો!"`;
+
+  return (
+    <div className={`p-4 sm:p-6 space-y-6 ${appTheme === 'dark' ? 'text-white' : 'text-slate-900'} text-left`}>
+      {/* Description Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
+            Promo Video & Content Suite
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight">
+            {isGu ? 'સોશિયલ મીડિયા વીડિયો જાહેરાત અને પોસ્ટર જનરેટર' : 'Interactive Video Ad Creator & Promo Hub'}
+          </h2>
+          <p className="text-xs text-slate-400">
+            {isGu ? 'ધ્રુવભાઈ, તમારા સ્માર્ટફોનનો સ્ક્રીન રેકોર્ડર ચાલુ કરીને આ અદ્ભુત વીડિયો એનિમેશન સીધું રેકોર્ડ કરી લો!' : 'Generate, simulate, and auto-record a dynamic, high-converting video ad mockup directly in your browser.'}
+          </p>
+        </div>
+        
+        {/* Presets Selection Quick Action */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            onClick={() => applyPreset('school')}
+            className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg text-[10px] font-extrabold hover:bg-indigo-500/20 transition-all uppercase"
+          >
+            🏫 Homework Solver
+          </button>
+          <button 
+            onClick={() => applyPreset('developer')}
+            className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-[10px] font-extrabold hover:bg-blue-500/20 transition-all uppercase"
+          >
+            💻 Tech Compiler
+          </button>
+          <button 
+            onClick={() => applyPreset('general')}
+            className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-extrabold hover:bg-emerald-500/20 transition-all uppercase"
+          >
+            ⚡ Elite 100+ AI Hub
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs Menu */}
+      <div className="flex border-b border-slate-800 p-0.5 gap-1 self-start">
+        <button
+          onClick={() => setActiveTab('animator')}
+          className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${
+            activeTab === 'animator' 
+              ? 'bg-gradient-to-r from-teal-500 to-emerald-600 text-white shadow-md' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          🎬 Live Video Ad Simulator (REELS/SHORTS)
+        </button>
+        <button
+          onClick={() => setActiveTab('design')}
+          className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${
+            activeTab === 'design' 
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          🎨 Custom Graphic Creator
+        </button>
+        <button
+          onClick={() => setActiveTab('captions')}
+          className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${
+            activeTab === 'captions' 
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          ✍️ Captions & Hashtags
+        </button>
+        <button
+          onClick={() => setActiveTab('script')}
+          className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${
+            activeTab === 'script' 
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          📝 Text Script
+        </button>
+      </div>
+
+      {/* VIDEO ANIMATOR WORKSPACE */}
+      {activeTab === 'animator' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* Left panel: Info and Play Controllers */}
+          <div className="lg:col-span-5 space-y-4 bg-slate-900/40 border border-slate-800/60 p-5 rounded-2xl">
+            <div className="space-y-1.5">
+              <span className="text-[10px] bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-0.5 rounded font-black tracking-widest uppercase">
+                RECORDER MODE
+              </span>
+              <h3 className="text-base font-black tracking-tight text-white">
+                {isGu ? 'વિડીયો રેકોર્ડર ગાઇડ' : 'How to Record Your Ad:'}
+              </h3>
+            </div>
+
+            {/* Instruction bullets */}
+            <ul className="space-y-2.5 text-xs text-slate-300 font-medium">
+              <li className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0 font-bold text-[10px]">1</span>
+                <span>{isGu ? 'તમારા મોબાઈલ કે કમ્પ્યુટરનું **Screen Recorder** ચાલુ કરો.' : 'Start your phone or desktop screen recorder program.'}</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0 font-bold text-[10px]">2</span>
+                <span>{isGu ? 'નીચે આપેલું લીલા કલરનું **"▶️ START AD SIMULATION"** બટન દબાવો.' : 'Click the green "START AD SIMULATION" button below.'}</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0 font-bold text-[10px]">3</span>
+                <span>{isGu ? 'હવે સ્ક્રીન પર ૩૦ સેકન્ડ સુધી અદ્ભુત એનિમેશન્સ આપોઆપ ચાલશે. સાથે જ પીળા અક્ષરે ગુજરાતીમાં "બોલવાની સ્ક્રિપ્ટ" પણ નીચે દેખાશે, તે વિડીયોમાં રેકોર્ડ થશે!' : 'A 30-sec custom visual ad with animated tool slices and real-time typing will play on the simulated phone screen.'}</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shrink-0 font-bold text-[10px]">4</span>
+                <span>{isGu ? 'વિડીયો રેકોર્ડિંગ સેવ કરી લો, અને ઇન્સ્ટાગ્રામ કે યુટ્યુબમાં કોઈપણ સુંદર ટ્રેન્ડિંગ બેકગ્રાઉન્ડ મ્યુઝિક સાથે અપલોડ કરી દો! ધમાકેદાર વાયરલ એડ તૈયાર!' : 'Save the recording, trim any extra edges, and upload with background music!'}</span>
+              </li>
+            </ul>
+
+            {/* Interactive play actions */}
+            <div className="pt-4 border-t border-slate-800/60 space-y-3">
+              <button
+                onClick={() => setIsPlaying(true)}
+                disabled={isPlaying}
+                className={`w-full py-3.5 px-6 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                  isPlaying 
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50' 
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:scale-[1.01]'
+                }`}
+              >
+                <Play className="w-4 h-4" />
+                <span>{isPlaying ? (isGu ? 'વીડિયો રેકોર્ડિંગ મોડ ચાલુ છે...' : 'Recording simulation in progress...') : (isGu ? '▶️ START AD SIMULATION' : '▶️ START AD SIMULATION')}</span>
+              </button>
+
+              {/* Progress Tracker */}
+              {isPlaying && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-teal-400">
+                    <span>Current Scene Progress</span>
+                    <span>{currentFrame + 1} / 5 Scenes</span>
+                  </div>
+                  <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                    <div 
+                      className="bg-gradient-to-r from-teal-500 to-emerald-400 h-full transition-all duration-5000 ease-linear"
+                      style={{ width: `${(currentFrame + 1) * 20}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right panel: LIVE 30-SEC ANIMATED SMARTPHONE SIMULATOR */}
+          <div className="lg:col-span-7 flex flex-col items-center justify-center space-y-4">
+            
+            {/* Ad Frame Title wrapper */}
+            <div className="w-full flex justify-between items-center px-2">
+              <span className="text-xs font-black tracking-wider uppercase text-teal-400 flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full bg-red-500 ${isPlaying ? 'animate-ping' : ''}`} />
+                {isPlaying ? '🔴 SIMULATOR IS PLAYING (RECORD SCREEN)' : '📺 SMARTPHONE SIMULATOR'}
+              </span>
+              <span className="text-[10px] font-mono text-slate-500 font-bold uppercase">
+                {aspectRatio === '1' ? '1:1 Square Feed' : '9:16 Shorts Vertical'}
+              </span>
+            </div>
+
+            {/* Simulated Phone Frame with camera notch */}
+            <div className="relative bg-slate-950/40 p-4 border border-slate-800 rounded-[36px] w-full max-w-sm flex justify-center shadow-2xl">
+              
+              {/* Phone Camera Notch notch */}
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 w-28 h-5 bg-black rounded-full z-30 flex items-center justify-center">
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-800 mr-8" />
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-900/40" />
+              </div>
+
+              {/* Simulated Screen Body */}
+              <div 
+                className="w-full rounded-[26px] overflow-hidden bg-slate-950 border border-slate-800 relative flex flex-col justify-between transition-all duration-300"
+                style={{ aspectRatio: '9/16', minHeight: '500px' }}
+              >
+                {/* Visual Simulation Canvas */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#0a0f1d] via-[#050914] to-[#010204] z-0" />
+                <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none z-0" />
+
+                {/* Simulated Screen Topbar */}
+                <div className="flex justify-between items-center px-6 pt-7 pb-2 text-[9px] font-mono text-slate-500 tracking-wider z-10 font-bold border-b border-slate-900 bg-black/20">
+                  <span>AISuperHub Network</span>
+                  <span>12:20 PM</span>
+                  <span className="text-emerald-400">⚡ 5G READY</span>
+                </div>
+
+                {/* ================= SIMULATOR SLIDES ================= */}
+                <div className="flex-1 flex flex-col justify-center px-6 relative z-10">
+                  
+                  {/* PHASE 0: INTRO HEADING SLIDE */}
+                  {(!isPlaying || currentFrame === 0) && (
+                    <div className="space-y-5 text-center animate-fadeIn">
+                      <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-teal-500 to-indigo-500 flex items-center justify-center text-white text-3xl font-black mx-auto shadow-lg shadow-teal-500/20 border border-teal-400/30">
+                        ⚡
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-teal-400 font-black uppercase tracking-widest font-mono">aisuertoolshub.com</span>
+                        <h2 className="text-xl sm:text-2xl font-black leading-tight tracking-tight text-white">
+                          AI SUPER TOOLS HUB
+                        </h2>
+                      </div>
+                      <p className="text-xs text-slate-400 max-w-[240px] mx-auto font-bold leading-relaxed">
+                        {isGu ? 'સ્ટુડન્ટ્સ અને પ્રોફેશનલ્સ માટે ૧૦૦+ સુપર ફ્રી ટૂલ્સ!' : '100+ Premium AI Utilities for Education, Tech, & Business.'}
+                      </p>
+
+                      {/* Mock loading search bar animation */}
+                      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 max-w-[220px] mx-auto flex items-center gap-2.5">
+                        <span className="text-xs">🔍</span>
+                        <span className="text-[11px] font-mono text-emerald-400 font-extrabold animate-pulse">typing tools...</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PHASE 1: ACADEMIC HOMEWORK SOLVER PREVIEW */}
+                  {isPlaying && currentFrame === 1 && (
+                    <div className="space-y-4 text-left animate-fadeIn">
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase">
+                        🏫 Homework Solver AI
+                      </div>
+                      
+                      <h3 className="text-lg font-black text-white tracking-tight leading-snug">
+                        {isGu ? 'ગણિત, વિજ્ઞાનના અઘરા દાખલાઓનો ફોટો પાડો!' : 'Stuck with Complex Algebra or Physics?'}
+                      </h3>
+
+                      {/* Textbook mock container with a glowing scanning line */}
+                      <div className="bg-[#0f1424] border border-indigo-500/30 rounded-2xl p-3 space-y-2.5 relative overflow-hidden shadow-xl">
+                        {/* Laser line effect */}
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-teal-400 to-transparent shadow-[0_0_15px_#2dd4bf] animate-scanner pointer-events-none" />
+
+                        <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
+                          <span className="text-[8px] font-mono text-slate-500 font-extrabold">CAMERA_TEXTBOOK_CAPTURE.RAW</span>
+                          <span className="text-[8px] font-mono text-indigo-400 font-black">STD 10 MATHS</span>
+                        </div>
+
+                        <p className="text-xs font-mono font-bold text-slate-200">
+                          Question: Solve for x: 3x² + 7x - 6 = 0
+                        </p>
+
+                        <div className="border-t border-dashed border-slate-800/80 pt-2 space-y-1">
+                          <span className="text-[8px] uppercase tracking-widest text-emerald-400 font-black">✔ AI Explanations Ready:</span>
+                          <p className="text-[10px] text-slate-300 font-bold bg-slate-950/60 p-2 rounded-lg leading-relaxed">
+                            {isGu ? '૧. પહેલા અવયવો પાડો: (3x - 2)(x + 3) = 0\n૨. તેથી, સાચો જવાબ: x = 2/3 અથવા x = -3' : '1. Factor the quadratic: (3x-2)(x+3)=0\n2. Solve: x = 2/3 or x = -3'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PHASE 2: HIGH-TECH COMPILERS & CODES PREVIEW */}
+                  {isPlaying && currentFrame === 2 && (
+                    <div className="space-y-4 text-left animate-fadeIn">
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-black uppercase">
+                        💻 Live Code Sandbox
+                      </div>
+                      
+                      <h3 className="text-lg font-black text-white tracking-tight leading-snug">
+                        {isGu ? 'લાઇવ કોડિંગ અને પ્રોગ્રામિંગ કમ્પાઇલર' : 'Write & Run Code Directly on Your Phone'}
+                      </h3>
+
+                      {/* Mock editor coding interface */}
+                      <div className="bg-slate-900 border border-blue-500/20 rounded-2xl p-3.5 space-y-2 font-mono text-[10px] shadow-xl">
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2 text-slate-500 font-extrabold text-[8px]">
+                          <span>index.js</span>
+                          <span className="text-emerald-400 font-black">● LIVE</span>
+                        </div>
+
+                        <div className="space-y-0.5 font-bold">
+                          <p className="text-slate-500"><span className="text-blue-400">const</span> app = <span className="text-emerald-400">express</span>();</p>
+                          <p className="text-slate-500">app.<span className="text-purple-400">get</span>(<span className="text-yellow-400">"/api/health"</span>, (req, res) {"=>"} &#123;</p>
+                          <p className="text-emerald-400">  res.json(&#123; status: "SUPER_AI_OK" &#125;);</p>
+                          <p className="text-slate-500">&#125;);</p>
+                        </div>
+
+                        <div className="border-t border-slate-800 pt-2 flex items-center justify-between text-[8px] font-black uppercase text-emerald-400">
+                          <span>Console Output:</span>
+                          <span className="px-1 py-0.5 bg-emerald-500/10 rounded tracking-widest animate-pulse">BUILD_PASSED</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PHASE 3: 100+ OTHER TOOLS CAROUSEL PREVIEW */}
+                  {isPlaying && currentFrame === 3 && (
+                    <div className="space-y-4 text-left animate-fadeIn">
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase">
+                        ⚡ Elite 100+ Toolkit
+                      </div>
+                      
+                      <h3 className="text-lg font-black text-white tracking-tight leading-snug">
+                        {isGu ? 'હરએક કામ માટે સિક્યોર પાવરફુલ એઆઈ ટૂલ્સ' : 'Voice Cloners, PDF OCR, Invoice Splitters.'}
+                      </h3>
+
+                      {/* Stacked mini cards mockup */}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="bg-slate-900/60 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                          <span className="text-lg">🎙️</span>
+                          <span className="block text-[9px] font-black text-white">Voice Cloner</span>
+                          <span className="block text-[7px] text-slate-500 font-bold uppercase tracking-widest">14ms latency</span>
+                        </div>
+                        <div className="bg-slate-900/60 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                          <span className="text-lg">📄</span>
+                          <span className="block text-[9px] font-black text-white">PDF OCR Extractor</span>
+                          <span className="block text-[7px] text-slate-500 font-bold uppercase tracking-widest">99.8% precision</span>
+                        </div>
+                        <div className="bg-slate-900/60 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                          <span className="text-lg">💸</span>
+                          <span className="block text-[9px] font-black text-white">Invoice Splitter</span>
+                          <span className="block text-[7px] text-slate-500 font-bold uppercase tracking-widest">UPI payments</span>
+                        </div>
+                        <div className="bg-slate-900/60 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                          <span className="text-lg">🎨</span>
+                          <span className="block text-[9px] font-black text-white">Image Prompter</span>
+                          <span className="block text-[7px] text-slate-500 font-bold uppercase tracking-widest">Midjourney v6</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PHASE 4: FINAL CTA AND BRAND OUTRO SLIDE */}
+                  {isPlaying && currentFrame === 4 && (
+                    <div className="space-y-5 text-center animate-fadeIn">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-teal-500 to-indigo-500 flex items-center justify-center text-white text-2xl font-black mx-auto shadow-lg shadow-teal-500/20 border border-teal-400/30">
+                        ⚡
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-teal-400 font-black uppercase tracking-widest font-mono">100% SECURE & FREE</span>
+                        <h3 className="text-xl font-black text-white leading-tight">
+                          aisuertoolshub.com
+                        </h3>
+                      </div>
+
+                      {/* Mega Glow launch Button */}
+                      <div className="p-0.5 bg-gradient-to-r from-teal-400 via-indigo-500 to-rose-400 rounded-xl shadow-[0_0_30px_rgba(20,184,166,0.3)] animate-pulse max-w-[200px] mx-auto">
+                        <div className="bg-slate-950 text-[10px] text-white font-black uppercase tracking-widest py-2.5 px-4 rounded-[10px]">
+                          LAUNCH FREE AI NOW 🚀
+                        </div>
+                      </div>
+
+                      <span className="block text-[8px] text-slate-500 uppercase tracking-widest font-black">No installation Required • Chrome/Safari OK</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Simulated Screen Bottom navigation bar */}
+                <div className="pb-6 pt-2 px-6 flex justify-between items-center bg-black/40 border-t border-slate-900 z-10">
+                  <div className="flex flex-col items-start gap-0.5">
+                    <span className="text-[8px] font-mono text-slate-500 font-extrabold uppercase">POWERED BY</span>
+                    <span className="text-[10px] font-sans font-black text-white/80 tracking-tight">AI SUPER TOOLS HUB</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-extrabold text-teal-400">
+                    www.aisuertoolshub.com
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ================= LIVE GUJARATI SPEECH CUE BOX ================= */}
+            <div className="w-full max-w-sm bg-yellow-500/10 border-2 border-yellow-500/30 p-4 rounded-2xl text-left space-y-1.5 shadow-md">
+              <span className="text-[9px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded font-black tracking-widest uppercase font-mono">
+                🗣️ બોલવાની સ્ક્રિપ્ટ (SPEECH NARRATION CUE)
+              </span>
+              <p className="text-xs sm:text-sm font-extrabold text-yellow-300 leading-relaxed">
+                {currentFrame === 0 && '👉 "મિત્રો, શું તમે પણ હોમવર્ક, અઘરા દાખલા કે કોડિંગ એસાઈનમેન્ટથી કંટાળી ગયા છો?"'}
+                {currentFrame === 1 && '👉 "તો આ જુઓ! આ વેબસાઈટ પર જઈને હોમવર્ક ના પ્રશ્નનો ફક્ત ફોટો અપલોડ કરો એટલે સેકન્ડોમાં મળશે સ્ટેપ-બાય-સ્ટેપ સાચો જવાબ!"'}
+                {currentFrame === 2 && '👉 "અહીં તમે સીધું તમારા સ્માર્ટફોન પર જ ગમે તે પ્રોગ્રામિંગ લેન્ગ્વેજનો કોડ રન કરી શકો છો!"'}
+                {currentFrame === 3 && '👉 "એટલું જ નહીં, અહીં ૧૦૦ થી પણ વધુ પ્રીમિયમ એઆઈ સાધનો એકદમ ફ્રી માં આપેલા છે!"'}
+                {currentFrame === 4 && '👉 "તો રાહ શેની જુઓ છો? હમણાં જ ગુગલ પર સર્ચ કરો "aisuertoolshub.com" અને દોસ્તો સાથે શેર કરો!"'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DESIGN WORKSPACE */}
+      {activeTab === 'design' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* Left panel: Config controls */}
+          <div className="lg:col-span-5 space-y-4 bg-slate-900/40 border border-slate-800/60 p-4.5 rounded-2xl">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2 border-b border-slate-800 pb-1.5">
+              Graphic Properties
+            </h3>
+
+            {/* Inputs list */}
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">Brand Name</label>
+                <input 
+                  type="text" 
+                  value={brandName} 
+                  onChange={(e) => setBrandName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 font-bold text-slate-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">Brand URL</label>
+                <input 
+                  type="text" 
+                  value={brandUrl} 
+                  onChange={(e) => setBrandUrl(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 font-mono text-slate-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">Header Badge</label>
+                <input 
+                  type="text" 
+                  value={badgeText} 
+                  onChange={(e) => setBadgeText(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 font-bold text-slate-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">Main Heading</label>
+                <input 
+                  type="text" 
+                  value={primaryHeading} 
+                  onChange={(e) => setPrimaryHeading(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 font-bold text-slate-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">Subtitle Description</label>
+                <textarea 
+                  value={secondaryText} 
+                  onChange={(e) => setSecondaryText(e.target.value)}
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 font-semibold text-slate-200 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">CTA Button Text</label>
+                <input 
+                  type="text" 
+                  value={ctaText} 
+                  onChange={(e) => setCtaText(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl p-2.5 font-bold text-slate-200"
+                />
+              </div>
+
+              {/* Layout controls */}
+              <div className="grid grid-cols-2 gap-3.5 pt-2 border-t border-slate-800/40">
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">Aspect Ratio</label>
+                  <div className="flex bg-slate-950 p-1 border border-slate-800 rounded-xl">
+                    <button 
+                      onClick={() => setAspectRatio('1')} 
+                      className={`flex-1 text-center py-1.5 rounded-lg font-black transition-all ${aspectRatio === '1' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                    >
+                      Instagram Post (1:1)
+                    </button>
+                    <button 
+                      onClick={() => setAspectRatio('9-16')} 
+                      className={`flex-1 text-center py-1.5 rounded-lg font-black transition-all ${aspectRatio === '9-16' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                    >
+                      Shorts/Status (9:16)
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">Gradient Theme</label>
+                  <div className="grid grid-cols-4 gap-1.5 bg-slate-950 p-1 border border-slate-800 rounded-xl">
+                    {(['neon', 'sunset', 'cosmos', 'cyberpunk'] as const).map(themeName => (
+                      <button
+                        key={themeName}
+                        onClick={() => setGradientTheme(themeName)}
+                        title={themeName}
+                        className={`w-full h-8 rounded-lg border-2 transition-all ${
+                          themeName === 'neon' ? 'bg-teal-700' : themeName === 'sunset' ? 'bg-rose-700' : themeName === 'cosmos' ? 'bg-purple-700' : 'bg-indigo-700'
+                        } ${gradientTheme === themeName ? 'border-white scale-105 shadow-md' : 'border-transparent opacity-60'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right panel: LIVE RENDER GRAPHIC CANVAS VIEW */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black tracking-wider uppercase text-slate-400">
+                Live Interactive Poster Preview
+              </span>
+              <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-black tracking-widest animate-pulse uppercase font-mono">
+                Screenshot-Ready Layout
+              </span>
+            </div>
+
+            {/* Simulated Mobile/Screen Mockup Container */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-3xl p-5 flex justify-center items-center relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-full bg-grid-pattern opacity-10 pointer-events-none" />
+
+              {/* Outer Ad container */}
+              <div 
+                id="social-ad-flyer-canvas"
+                className={`w-full max-w-sm rounded-3xl overflow-hidden bg-gradient-to-b ${themesConfig[gradientTheme]} border p-6 flex flex-col justify-between relative transition-all duration-300 shadow-2xl`}
+                style={{ aspectRatio: aspectRatio === '1' ? '1/1' : '9/16', minHeight: aspectRatio === '1' ? '340px' : '520px' }}
+              >
+                {/* Decorative Neon Blurs */}
+                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-[60px] pointer-events-none ${themeGlows[gradientTheme]}`} />
+                <div className={`absolute bottom-0 left-0 w-32 h-32 rounded-full blur-[60px] pointer-events-none ${themeGlows[gradientTheme]}`} />
+
+                {/* Top layout: Badge + URL */}
+                <div className="flex items-start justify-between gap-2 z-10">
+                  <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[8px] font-black tracking-widest uppercase transition-all duration-300 ${themeAccents[gradientTheme]}`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                    {badgeText || 'FREE AI'}
+                  </div>
+                  <span className="text-[10px] font-mono font-extrabold text-white/50 tracking-wider">
+                    {brandUrl || 'aisuertoolshub.com'}
+                  </span>
+                </div>
+
+                {/* Center layout: Bold Typography & Visual Features */}
+                <div className="space-y-4 z-10 py-4 my-auto text-left">
+                  <h1 className="text-2xl sm:text-3xl font-black leading-tight tracking-tight text-white select-none">
+                    {primaryHeading || '100+ AI Tools'}
+                  </h1>
+                  <p className="text-xs text-white/80 font-bold leading-relaxed max-w-[280px]">
+                    {secondaryText || 'Syllabus solver, code compiler, color matrices.'}
+                  </p>
+
+                  {/* Floating abstract UI mock */}
+                  <div className="bg-white/5 border border-white/10 backdrop-blur-md rounded-2xl p-3.5 space-y-2.5 shadow-xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                      </div>
+                      <span className="text-[7px] font-mono text-white/40 tracking-widest font-black">AI_CORE_READY</span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-white/5 pt-2">
+                      <div className="space-y-0.5">
+                        <span className="block text-[8px] text-white/40 uppercase tracking-widest font-black">Accuracy Verified</span>
+                        <span className="block text-[11px] font-mono font-black text-emerald-400">100% Correct</span>
+                      </div>
+                      <div className="space-y-0.5 text-right">
+                        <span className="block text-[8px] text-white/40 uppercase tracking-widest font-black">Processing Speed</span>
+                        <span className="block text-[11px] font-mono font-black text-sky-400">14ms Latency</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom layout: Brand Name + Call to Action button */}
+                <div className="space-y-3 z-10 mt-auto">
+                  <button className={`w-full bg-gradient-to-r ${themeButtons[gradientTheme]} text-[10px] font-black uppercase tracking-widest py-3 px-5 rounded-xl shadow-lg transition-transform duration-100 active:scale-95`}>
+                    {ctaText || 'LAUNCH NOW'}
+                  </button>
+                  <div className="text-center">
+                    <span className="text-[9px] font-black text-white/30 tracking-widest uppercase">
+                      Designed by {brandName || 'AI Super Hub'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Instruction Callout for Mobile/Desktop users */}
+            <div className="bg-[#0b1021]/80 border border-slate-900 rounded-2xl p-4 space-y-3">
+              <div className="flex gap-2 text-amber-400">
+                <Camera className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="block text-xs font-black uppercase tracking-wider">{isGu ? 'તમારો અદ્ભુત સ્ક્રીનશોટ લો!' : 'How to save your custom graphic:'}</span>
+                  <p className="text-[10px] text-slate-400 leading-relaxed font-semibold">
+                    {isGu 
+                      ? 'તમારા સ્માર્ટફોનનું "Power Button + Volume Down" દબાવીને અથવા કમ્પ્યુટરમાં "PrtScn" દબાવીને આ સુંદર તૈયાર થયેલા પોસ્ટરનો સ્ક્રીનશોટ લઈ લો. પછી ક્રોપ (Crop) કરીને તરત જ ઇન્સ્ટાગ્રામ, વોટ્સએપ કે યુટ્યુબ પર અપલોડ કરો!'
+                      : 'Simply take a screenshot of the mockup above on your phone or PC, crop it neatly to the borders, and share it on your social media posts/status instantly!'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CAPTIONS HUB WORKSPACE */}
+      {activeTab === 'captions' && (
+        <div className="space-y-4 max-w-2xl bg-slate-900/40 border border-slate-800/60 p-5 rounded-2xl">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <span className="text-xs font-black tracking-wider uppercase text-slate-400">
+              High-Converting Viral Social Caption
+            </span>
+            <button
+              onClick={() => copyToClipboard(defaultCaption)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-xl text-xs font-bold hover:bg-indigo-600/20 transition-all"
+            >
+              {copiedText ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedText ? (isGu ? 'કોપી થઈ ગયું!' : 'Copied!') : (isGu ? 'કેપ્શન કોપી કરો' : 'Copy Caption')}</span>
+            </button>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 font-sans text-xs text-slate-300 leading-relaxed whitespace-pre-line font-medium select-all">
+            {defaultCaption}
+          </div>
+        </div>
+      )}
+
+      {/* SCRIPT HUB WORKSPACE */}
+      {activeTab === 'script' && (
+        <div className="space-y-4 max-w-2xl bg-slate-900/40 border border-slate-800/60 p-5 rounded-2xl">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <span className="text-xs font-black tracking-wider uppercase text-slate-400">
+              30-Second Shorts / Reels Video Script & Visual Directions
+            </span>
+            <button
+              onClick={() => copyToClipboard(videoScript)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 rounded-xl text-xs font-bold hover:bg-indigo-600/20 transition-all"
+            >
+              {copiedText ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedText ? (isGu ? 'કોપી થઈ ગયું!' : 'Copied!') : (isGu ? 'સ્ક્રિપ્ટ કોપી કરો' : 'Copy Script')}</span>
+            </button>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-line select-all">
+            {videoScript}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
