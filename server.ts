@@ -1078,6 +1078,62 @@ app.post('/api/tools/ocr', async (req, res) => {
   }
 });
 
+// Dynamic Multimodal Academic AI Hub Solver
+app.post('/api/tools/academic-solve', async (req, res) => {
+  try {
+    const { course, semester, question, base64Image, mimeType } = req.body;
+    if (!question && !base64Image) {
+      return res.status(400).json({ error: 'Please write a question or upload a photo of the homework.' });
+    }
+
+    const ai = getGemini();
+    const isSchool = course === 'School';
+    const levelLabel = isSchool ? `Standard/Class: ${semester}` : `Semester: ${semester}`;
+    const targetCourse = isSchool ? 'School Syllabus (Class 1 to 12)' : `${course} Degree Program`;
+
+    const systemInstruction = `You are the Elite Academic AI Hub Tutor & Solver, custom-tuned for Indian and global academic syllabi (including GSHSEB, CBSE, and University models like Veer Narmad South Gujarat University / Sutex BCA).
+The user is studying: ${targetCourse} -> ${levelLabel}.
+Deliver highly detailed, step-by-step textbook solutions, mathematical proofs, code block segments, or assignment answers. 
+Provide a fully structured, easily understandable, and beautifully formatted response in Markdown layout. Keep it clean and encouraging.
+If the question is in Gujarati or if Gujarati is the natural context, explain the steps beautifully in clear Gujarati!`;
+
+    let response;
+    
+    if (base64Image) {
+      const imagePart = {
+        inlineData: {
+          mimeType: mimeType || 'image/png',
+          data: base64Image,
+        },
+      };
+      
+      const textPart = {
+        text: `Here is a photo of my academic assignment/problem.
+Selected Level: ${targetCourse} (${levelLabel}).
+My specific written query: "${question || 'Solve and explain everything shown in this image step-by-step.'}".
+Analyze the image content, perform OCR and visual reasoning to identify the problem or homework question, and solve it completely with step-by-step explanations.`
+      };
+
+      response = await runGenerateWithFallback(ai, {
+        contents: { parts: [imagePart, textPart] },
+        config: { systemInstruction, temperature: 0.7 }
+      });
+    } else {
+      response = await runGenerateWithFallback(ai, {
+        contents: `Selected Level: ${targetCourse} (${levelLabel}).
+Written academic question: "${question}".
+Please solve and explain this question step-by-step. Include formulas, definitions, and code/example calculations if relevant.`,
+        config: { systemInstruction, temperature: 0.7 }
+      });
+    }
+
+    res.json({ output: response.text });
+  } catch (error: any) {
+    console.error('Academic solver error:', error);
+    res.status(500).json({ error: error.message || 'Failed to solve assignment. Please try again.' });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });

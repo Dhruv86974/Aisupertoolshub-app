@@ -156,7 +156,7 @@ const SOUND_PRESETS = [
 ];
 
 export interface AdsConfig {
-  activeMode: 'google' | 'custom' | 'none';
+  activeMode: 'google' | 'custom' | 'script' | 'none';
   customTitleEn: string;
   customTitleGu: string;
   customDescriptionEn: string;
@@ -165,7 +165,27 @@ export interface AdsConfig {
   customRedirectUrl: string;
   googleAdsenseClientId: string;
   googleAdsenseSlotId: string;
+  customScriptCode: string; // Dynamic HTML/JS Ad code (Adsterra, PropellerAds, etc.)
 }
+
+const CustomScriptAd = ({ scriptCode }: { scriptCode: string }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.innerHTML = '';
+      try {
+        const range = document.createRange();
+        const documentFragment = range.createContextualFragment(scriptCode || '');
+        containerRef.current.appendChild(documentFragment);
+      } catch (err) {
+        console.warn('[CustomAdScript] Failed to inject dynamic script:', err);
+      }
+    }
+  }, [scriptCode]);
+
+  return <div ref={containerRef} className="w-full flex justify-center items-center overflow-hidden min-h-[90px]" />;
+};
 
 const GoogleAdSenseAd = ({ clientId, slotId }: { clientId: string; slotId: string }) => {
   useEffect(() => {
@@ -202,6 +222,20 @@ const AdBanner = ({ config, theme, lang }: { config: AdsConfig; theme: 'dark' | 
           <GoogleAdSenseAd clientId={config.googleAdsenseClientId} slotId={config.googleAdsenseSlotId} />
           <div className="text-center mt-3 pt-2.5 border-t border-slate-800/25 w-full">
             <span className="text-[10px] font-mono text-slate-500 block">Publisher ID: {config.googleAdsenseClientId} • Ad Slot: {config.googleAdsenseSlotId}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (config.activeMode === 'script') {
+    return (
+      <div className={`my-6 p-4.5 rounded-3xl border ${theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-slate-50 border-slate-200'} text-center overflow-hidden relative shadow-sm`}>
+        <span className="text-[9px] font-black tracking-widest text-emerald-400 uppercase block mb-2">{isGu ? "પ્રાયોજિત સ્ક્રિપ્ટ એડ (ADSTERRA / ALTERNATIVE)" : "SPONSORED AD (ADSTERRA / SCRIPT)"}</span>
+        <div className="flex flex-col items-center justify-center min-h-[120px] bg-slate-950/20 rounded-2xl border border-dashed border-slate-800 p-4">
+          <CustomScriptAd scriptCode={config.customScriptCode} />
+          <div className="text-center mt-3 pt-2.5 border-t border-slate-800/25 w-full">
+            <span className="text-[10px] font-mono text-slate-500 block">{isGu ? "બાહ્ય સ્ક્રિપ્ટ લોડ થઈ ગઈ છે" : "External ad script rendered dynamically"}</span>
           </div>
         </div>
       </div>
@@ -389,7 +423,8 @@ export default function App() {
       customImageUrl: 'https://images.unsplash.com/photo-1542744094-3a31f103e35f?q=80&w=600&auto=format&fit=crop',
       customRedirectUrl: 'mailto:dhruvtarsariya3@gmail.com?subject=Advertise on AI Super Tools Hub',
       googleAdsenseClientId: 'ca-pub-1234567890123456',
-      googleAdsenseSlotId: '1234567890'
+      googleAdsenseSlotId: '1234567890',
+      customScriptCode: '<!-- Paste Adsterra banner or native script here -->'
     };
   });
 
@@ -1143,6 +1178,92 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('hub_academic_semester', String(academicSemester));
   }, [academicSemester]);
+
+  // --- Dynamic Academic Solver Local Workspace States ---
+  const [academicQuestion, setAcademicQuestion] = useState('');
+  const [academicImagePreview, setAcademicImagePreview] = useState<string | null>(null);
+  const [academicRawBase64, setAcademicRawBase64] = useState<string | null>(null);
+  const [academicMimeType, setAcademicMimeType] = useState<string | null>(null);
+  const [academicLoading, setAcademicLoading] = useState(false);
+  const [academicResponse, setAcademicResponse] = useState<string | null>(null);
+  const [isSpeakingAcademic, setIsSpeakingAcademic] = useState(false);
+
+  const handleAcademicFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAcademicMimeType(file.type);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAcademicImagePreview(reader.result as string);
+        const base64Str = (reader.result as string).split(',')[1];
+        setAcademicRawBase64(base64Str);
+      };
+      reader.readAsDataURL(file);
+      playSynthSound('click');
+    }
+  };
+
+  const removeAcademicFile = () => {
+    setAcademicImagePreview(null);
+    setAcademicRawBase64(null);
+    setAcademicMimeType(null);
+    playSynthSound('toggle');
+  };
+
+  const speakAcademicResponse = () => {
+    if (!academicResponse) return;
+    if (isSpeakingAcademic) {
+      window.speechSynthesis.cancel();
+      setIsSpeakingAcademic(false);
+      return;
+    }
+    const cleanText = academicResponse.replace(/[*#`_-]/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    if (lang === 'gu' || /[અ-હ]/.test(academicResponse)) {
+      utterance.lang = 'gu-IN';
+    } else {
+      utterance.lang = 'en-IN';
+    }
+    utterance.onend = () => setIsSpeakingAcademic(false);
+    utterance.onerror = () => setIsSpeakingAcademic(false);
+    setIsSpeakingAcademic(true);
+    window.speechSynthesis.speak(utterance);
+    playSynthSound('click');
+  };
+
+  const solveAcademicQuestion = async () => {
+    if (!academicQuestion.trim() && !academicRawBase64) {
+      showToast(lang === 'gu' ? 'કૃપા કરીને પ્રશ્ન લખો અથવા હોમવર્કનો ફોટો અપલોડ કરો!' : 'Please type a question or upload a photo of the homework!', 'error');
+      return;
+    }
+    setAcademicLoading(true);
+    setAcademicResponse(null);
+    playSynthSound('chime');
+    
+    try {
+      const response = await fetch('/api/tools/academic-solve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          course: academicCourse,
+          semester: academicSemester,
+          question: academicQuestion,
+          base64Image: academicRawBase64,
+          mimeType: academicMimeType,
+        }),
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      setAcademicResponse(data.output);
+      showToast(lang === 'gu' ? 'AI સોલ્યુશન સફળતાપૂર્વક તૈયાર છે! 🧠' : 'AI Solution Generated Successfully! 🧠', 'success');
+      playSynthSound('success');
+    } catch (err: any) {
+      console.error('Academic solve error:', err);
+      showToast(err.message || 'Error generating academic solution', 'error');
+    } finally {
+      setAcademicLoading(false);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<ToolCategory>('all');
@@ -2619,8 +2740,8 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Bottom dynamic action bar */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-3 border-t border-indigo-500/10">
+                {/* Bottom dynamic action bar with live text + photo inputs */}
+                <div className="space-y-4 pt-4 border-t border-indigo-500/10">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[8px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-black uppercase tracking-widest font-mono animate-pulse">
@@ -2636,24 +2757,180 @@ export default function App() {
                     <p className={`text-[11px] ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'} leading-relaxed font-semibold`}>
                       {lang === 'gu' 
                         ? (academicCourse === 'School'
-                            ? `નમસ્તે ધ્રુવ! ધોરણ-${academicSemester} ના ગણિત, વિજ્ઞાન, અંગ્રેજી, સામાજિક વિજ્ઞાન અને તમામ હોમવર્ક આસાઈનમેન્ટ ના સાચા જવાબો મેળવો.`
+                            ? `નમસ્તે ધ્રુવ! ધોરણ-${academicSemester} ના ગણિત, વિજ્ઞાન, અંગ્રેજી, સામાજિક વિજ્ઞાન અને તમામ હોમવર્ક આસાઈનમેન્ટ ના સાચા જવાબો મેળવો. તમે પ્રશ્ન લખી શકો છો અથવા તેનો ફોટો પણ અપલોડ કરી શકો છો.`
                             : `નમસ્તે ધ્રુવ! આ પ્લેટફોર્મ સેમેસ્ટર-${academicSemester} ના ${academicCourse} ના સંપૂર્ણ અભ્યાસક્રમ માટે ઓપ્ટિમાઇઝ કરેલ છે. ટેક્સ્ટબુકના જવાબો, આસાઈનમેન્ટ અને નોટ્સ મેળવો.`)
                         : (academicCourse === 'School'
-                            ? `Welcome, Dhruv! Get step-by-step textbook solutions and verified assignment answers for Standard ${academicSemester} (Class 1-12) subjects.`
+                            ? `Welcome, Dhruv! Get step-by-step textbook solutions and verified assignment answers for Standard ${academicSemester} (Class 1-12) subjects. You can type your question or send a photo of it.`
                             : `Welcome, Dhruv! Your AI Companion is auto-tuned for ${academicCourse} Semester-${academicSemester} syllabus. Get textbook proofs, customized assignments, and code/finance solvers.`)
                       }
                     </p>
                   </div>
 
-                  <button 
-                    onClick={() => {
-                      setSelectedToolId('sutex-bca-assistant');
-                      playSynthSound('chime');
-                    }}
-                    className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-[10px] font-black uppercase tracking-wider py-3 px-5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-600/20 cursor-pointer text-center whitespace-nowrap self-stretch sm:self-auto"
-                  >
-                    {lang === 'gu' ? 'આસાઈનમેન્ટ AI શરૂ કરો 🚀' : 'Launch Assignment AI 🚀'}
-                  </button>
+                  {/* Input form section */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    {/* Text Input area */}
+                    <div className="lg:col-span-8 space-y-1">
+                      <label className="text-[10px] font-black text-indigo-400 uppercase tracking-wider block">
+                        {lang === 'gu' ? 'તમારો પ્રશ્ન / હોમવર્ક અહીં લખો' : 'Type your Question / Homework'}
+                      </label>
+                      <textarea
+                        value={academicQuestion}
+                        onChange={(e) => setAcademicQuestion(e.target.value)}
+                        placeholder={
+                          lang === 'gu' 
+                            ? `ધોરણ-${academicSemester} નો કોઈપણ હોમવર્કનો પ્રશ્ન અહીં લખો... (દા.ત. "ગણિત પ્રકરણ ૨ દાખલો ૫" અથવા "પ્રકાશનું પરાવર્તન સમજાવો")`
+                            : `Type any homework problem for ${academicCourse === 'School' ? `Std-${academicSemester}` : `${academicCourse} Sem-${academicSemester}`}...`
+                        }
+                        className={`w-full h-24 p-3 text-xs font-semibold rounded-xl border outline-none resize-none transition-all duration-200 ${
+                          theme === 'dark'
+                            ? 'bg-slate-950/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20'
+                            : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/10'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Multimodal Photo Attachment Area */}
+                    <div className="lg:col-span-4 space-y-1">
+                      <label className="text-[10px] font-black text-indigo-400 uppercase tracking-wider block">
+                        {lang === 'gu' ? 'હોમવર્કનો ફોટો જોડો 📸' : 'Attach Homework Photo 📸'}
+                      </label>
+                      <div className="relative h-24 rounded-xl border border-dashed flex flex-col items-center justify-center overflow-hidden transition-all duration-200 bg-indigo-500/[0.02] hover:bg-indigo-500/[0.05] border-indigo-500/20">
+                        {academicImagePreview ? (
+                          <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-slate-950/80">
+                            <img 
+                              src={academicImagePreview} 
+                              alt="Homework Photo Preview" 
+                              className="w-full h-full object-contain"
+                              referrerPolicy="no-referrer"
+                            />
+                            <button
+                              type="button"
+                              onClick={removeAcademicFile}
+                              className="absolute top-1.5 right-1.5 p-1 rounded-lg bg-red-600/90 hover:bg-red-700 text-white transition-all shadow-md"
+                              title="Remove Photo"
+                            >
+                              <Icons.Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-2 text-center">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleAcademicFileChange}
+                              className="hidden"
+                            />
+                            <Icons.Camera className="w-5 h-5 text-indigo-400 mb-1 animate-pulse" />
+                            <span className={`text-[10px] font-black ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
+                              {lang === 'gu' ? '📷 ફોટો અપલોડ કરો' : '📷 Upload Photo'}
+                            </span>
+                            <span className="text-[8px] text-slate-500 block mt-0.5">
+                              {lang === 'gu' ? '(દાખલો કે લખાણનો ફોટો મોકલો)' : '(JPEG, PNG up to 10MB)'}
+                            </span>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div className="text-[9px] text-slate-400 font-bold">
+                      {academicImagePreview && (
+                        <span className="flex items-center gap-1.5 text-emerald-400">
+                          <Icons.Check className="w-3.5 h-3.5" />
+                          {lang === 'gu' ? 'ફોટો સફળતાપૂર્વક જોડાયેલ છે!' : 'Homework image attached successfully!'}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      {academicResponse && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(academicResponse);
+                            showToast(lang === 'gu' ? 'જવાબ કોપી થઈ ગયો છે! 📋' : 'Answer copied to clipboard! 📋', 'success');
+                            playSynthSound('success');
+                          }}
+                          className={`flex items-center justify-center gap-1.5 px-3 py-2 text-[10px] font-bold rounded-xl border transition-all ${
+                            theme === 'dark' 
+                              ? 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700' 
+                              : 'bg-white border-slate-200 text-slate-700 hover:text-indigo-600 hover:border-indigo-200'
+                          }`}
+                        >
+                          <Icons.Copy className="w-3.5 h-3.5" />
+                          {lang === 'gu' ? 'જવાબ કોપી કરો' : 'Copy Solution'}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={solveAcademicQuestion}
+                        disabled={academicLoading}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-[10px] font-black uppercase tracking-wider py-2.5 px-5 rounded-xl transition-all duration-150 shadow-md shadow-indigo-600/20 cursor-pointer disabled:opacity-50"
+                      >
+                        {academicLoading ? (
+                          <>
+                            <Icons.RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            {lang === 'gu' ? 'AI સોલ્યુશન શોધી રહ્યું છે...' : 'AI Solving step-by-step...'}
+                          </>
+                        ) : (
+                          <>
+                            <Icons.Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                            {lang === 'gu' ? 'AI સોલ્યુશન મેળવો 🧠' : 'Solve & Explain with AI 🧠'}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Solution Output Area */}
+                  {academicResponse && (
+                    <div className={`mt-4 rounded-2xl border p-4 space-y-3 animate-fadeIn text-left ${
+                      theme === 'dark' 
+                        ? 'bg-slate-950/80 border-indigo-950/50' 
+                        : 'bg-indigo-50/30 border-indigo-100'
+                    }`}>
+                      <div className="flex items-center justify-between border-b border-indigo-500/10 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+                          <h4 className={`text-xs font-black uppercase tracking-wider ${theme === 'dark' ? 'text-indigo-300' : 'text-indigo-700'}`}>
+                            {lang === 'gu' ? '🧠 AI એજ્યુકેશનલ સોલ્યુશન' : '🧠 AI Verified Solution'}
+                          </h4>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={speakAcademicResponse}
+                            className={`p-1.5 rounded-lg border transition-all ${
+                              theme === 'dark'
+                                ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                                : 'bg-white border-slate-200 text-slate-600 hover:text-indigo-600'
+                            }`}
+                            title={isSpeakingAcademic ? "Stop Reading" : "Read Aloud"}
+                          >
+                            {isSpeakingAcademic ? (
+                              <Icons.Square className="w-3.5 h-3.5 text-red-500 fill-red-500" />
+                            ) : (
+                              <Icons.Volume2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className={`text-[12px] leading-relaxed font-semibold font-sans whitespace-pre-wrap ${
+                        theme === 'dark' ? 'text-slate-200' : 'text-slate-800'
+                      }`}>
+                        {academicResponse}
+                      </div>
+
+                      <div className="text-[9px] text-slate-500 font-bold border-t border-indigo-500/10 pt-2.5">
+                        {lang === 'gu' 
+                          ? '* આ સોલ્યુશન સત્તાવાર પાઠ્યપુસ્તકના અભ્યાસક્રમને સુસંગત ગુગલ AI દ્વારા બનાવવામાં આવ્યું છે.'
+                          : '* This solution was generated by Google AI tuned specifically for academic syllabi proofs.'
+                        }
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -4630,8 +4907,8 @@ export default function App() {
                   <label className="text-[10px] font-black tracking-wider uppercase text-slate-500 block">
                     {isGu ? "સક્રિય જાહેરાત મોડ" : "Active Ad Mode"}
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['custom', 'google', 'none'] as const).map(mode => (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(['custom', 'google', 'script', 'none'] as const).map(mode => (
                       <button
                         key={mode}
                         type="button"
@@ -4644,13 +4921,39 @@ export default function App() {
                             : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-600 shadow-sm'
                         }`}
                       >
-                        {mode === 'custom' ? (isGu ? 'કસ્ટમ બેનર' : 'Custom Banner') : mode === 'google' ? 'Google AdSense' : (isGu ? 'બંધ કરો' : 'No Ads')}
+                        {mode === 'custom' 
+                          ? (isGu ? 'કસ્ટમ બેનર' : 'Custom Banner') 
+                          : mode === 'google' 
+                          ? 'Google AdSense' 
+                          : mode === 'script' 
+                          ? (isGu ? 'કસ્ટમ સ્ક્રિપ્ટ' : 'Script (Adsterra)') 
+                          : (isGu ? 'બંધ કરો' : 'No Ads')}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Conditional Form Inputs */}
+                {adsConfig.activeMode === 'script' && (
+                  <div className="space-y-1.5 pt-2 animate-in fade-in duration-200">
+                    <label className="text-[10px] font-black tracking-wider uppercase text-slate-500 block">
+                      Custom HTML/Script Code (Paste your Adsterra / PropellerAds script code here)
+                    </label>
+                    <textarea
+                      value={adsConfig.customScriptCode}
+                      onChange={(e) => setAdsConfig(prev => ({ ...prev, customScriptCode: e.target.value }))}
+                      placeholder="e.g., <script type='text/javascript'>...</script> or <iframe ...></iframe>"
+                      rows={5}
+                      className={`w-full text-xs font-mono font-semibold p-2.5 rounded-xl border focus:outline-none focus:border-indigo-500 ${
+                        theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                    />
+                    <p className="text-[9px] text-slate-500 leading-normal font-semibold">
+                      This script gets injected directly inside the Ad container slots on your live website. Supports responsive banners, native widgets, or third-party ad tags.
+                    </p>
+                  </div>
+                )}
+
                 {adsConfig.activeMode === 'google' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 animate-in fade-in duration-200">
                     <div className="space-y-1.5">
