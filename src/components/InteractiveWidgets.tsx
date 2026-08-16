@@ -5048,7 +5048,218 @@ function SocialMediaBuilderWidget({
   const [gradientTheme, setGradientTheme] = useState<'neon' | 'sunset' | 'cosmos' | 'cyberpunk'>('neon');
   const [badgeText, setBadgeText] = useState('100% SECURE & FREE');
   const [copiedText, setCopiedText] = useState(false);
-  const [activeTab, setActiveTab] = useState<'design' | 'animator' | 'captions' | 'script'>('animator');
+  const [activeTab, setActiveTab] = useState<'design' | 'animator' | 'captions' | 'script' | 'merger'>('animator');
+
+  // Video Merger States
+  const [video1File, setVideo1File] = useState<File | null>(null);
+  const [video2File, setVideo2File] = useState<File | null>(null);
+  const [video1Url, setVideo1Url] = useState<string>('');
+  const [video2Url, setVideo2Url] = useState<string>('');
+  const [isMerging, setIsMerging] = useState(false);
+  const [mergeProgress, setMergeProgress] = useState(0);
+  const [mergeStatus, setMergeStatus] = useState('');
+  const [mergedVideoUrl, setMergedVideoUrl] = useState<string>('');
+
+  const video1Ref = useRef<HTMLVideoElement | null>(null);
+  const video2Ref = useRef<HTMLVideoElement | null>(null);
+  const mergerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (video1Url) URL.revokeObjectURL(video1Url);
+      if (video2Url) URL.revokeObjectURL(video2Url);
+      if (mergedVideoUrl) URL.revokeObjectURL(mergedVideoUrl);
+    };
+  }, [video1Url, video2Url, mergedVideoUrl]);
+
+  const handleVideo1Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVideo1File(file);
+      if (video1Url) URL.revokeObjectURL(video1Url);
+      setVideo1Url(URL.createObjectURL(file));
+      setMergedVideoUrl('');
+      setMergeProgress(0);
+      setMergeStatus('');
+    }
+  };
+
+  const handleVideo2Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setVideo2File(file);
+      if (video2Url) URL.revokeObjectURL(video2Url);
+      setVideo2Url(URL.createObjectURL(file));
+      setMergedVideoUrl('');
+      setMergeProgress(0);
+      setMergeStatus('');
+    }
+  };
+
+  const mergeVideos = async () => {
+    if (!video1Url || !video2Url) {
+      alert(isGu ? 'કૃપા કરીને બન્ને વીડિયો ફાઈલ અપલોડ કરો!' : 'Please upload both video files first!');
+      return;
+    }
+
+    const v1 = video1Ref.current;
+    const v2 = video2Ref.current;
+    const canvas = mergerCanvasRef.current;
+
+    if (!v1 || !v2 || !canvas) {
+      alert('Internal Error: Video elements or canvas not ready.');
+      return;
+    }
+
+    setIsMerging(true);
+    setMergeProgress(5);
+    setMergeStatus(isGu ? 'વીડિયો પ્રોસેસિંગ શરૂ થઈ રહ્યું છે...' : 'Starting video merger process...');
+
+    try {
+      // Create audio context to merge audio tracks
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      const audioCtx = new AudioCtxClass();
+      const dest = audioCtx.createMediaStreamDestination();
+
+      let hasAudio = false;
+      try {
+        const source1 = audioCtx.createMediaElementSource(v1);
+        const source2 = audioCtx.createMediaElementSource(v2);
+        source1.connect(audioCtx.destination);
+        source2.connect(audioCtx.destination);
+        source1.connect(dest);
+        source2.connect(dest);
+        hasAudio = true;
+      } catch (audioErr) {
+        console.warn("Audio Context linking skipped or already bound:", audioErr);
+      }
+
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+
+      // Determine canvas size (use larger or fallback to 720x1280)
+      const width = v1.videoWidth || 720;
+      const height = v1.videoHeight || 1280;
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get 2D context');
+
+      // Capture canvas stream at 30fps
+      const canvasStream = canvas.captureStream(30);
+      
+      if (hasAudio) {
+        const audioTracks = dest.stream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          canvasStream.addTrack(audioTracks[0]);
+        }
+      }
+
+      let mimeType = 'video/webm;codecs=vp9';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm;codecs=vp8';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm';
+      }
+
+      const chunks: Blob[] = [];
+      const recorder = new MediaRecorder(canvasStream, { mimeType });
+
+      recorder.ondataavailable = (evt) => {
+        if (evt.data && evt.data.size > 0) {
+          chunks.push(evt.data);
+        }
+      };
+
+      const recordPromise = new Promise<Blob>((resolve) => {
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          resolve(blob);
+        };
+      });
+
+      const d1 = v1.duration || 15;
+      const d2 = v2.duration || 15;
+      const totalDuration = d1 + d2;
+
+      recorder.start();
+
+      v1.currentTime = 0;
+      v1.muted = !hasAudio;
+      v2.muted = !hasAudio;
+      
+      setMergeStatus(isGu ? 'વીડિયો ભાગ ૧ પ્રોસેસ થઈ રહ્યો છે... 🎬' : 'Processing Video Part 1... 🎬');
+      await v1.play();
+
+      let animationFrameId: number;
+      let currentActiveVideo = v1;
+
+      const renderLoop = () => {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(currentActiveVideo, 0, 0, width, height);
+
+        let elapsed = 0;
+        if (currentActiveVideo === v1) {
+          elapsed = v1.currentTime;
+        } else {
+          elapsed = d1 + v2.currentTime;
+        }
+        
+        const pct = Math.min(Math.round((elapsed / totalDuration) * 95), 95);
+        setMergeProgress(pct);
+
+        animationFrameId = requestAnimationFrame(renderLoop);
+      };
+
+      renderLoop();
+
+      await new Promise<void>((resolve) => {
+        v1.onended = () => {
+          v1.pause();
+          resolve();
+        };
+      });
+
+      currentActiveVideo = v2;
+      v2.currentTime = 0;
+      setMergeStatus(isGu ? 'વીડિયો ભાગ ૨ પ્રોસેસ થઈ રહ્યો છે... 🎬' : 'Processing Video Part 2... 🎬');
+      await v2.play();
+
+      await new Promise<void>((resolve) => {
+        v2.onended = () => {
+          v2.pause();
+          resolve();
+        };
+      });
+
+      cancelAnimationFrame(animationFrameId);
+      setMergeStatus(isGu ? 'વીડિયો રેન્ડરિંગ પૂર્ણ થઈ રહ્યું છે...' : 'Finishing video render...');
+      recorder.stop();
+
+      const finalBlob = await recordPromise;
+      const finalUrl = URL.createObjectURL(finalBlob);
+      setMergedVideoUrl(finalUrl);
+      setMergeProgress(100);
+      setMergeStatus(isGu ? 'વીડિયો સફળતાપૂર્વક જોડાઈ ગયો છે! 🥳' : 'Videos successfully combined! 🥳');
+      setIsMerging(false);
+      
+      const a = document.createElement('a');
+      a.href = finalUrl;
+      a.download = 'aisuertoolshub_combined_ad.webm';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+    } catch (err: any) {
+      console.error(err);
+      setMergeStatus(isGu ? `પ્રોસેસ કરવામાં ભૂલ આવી: ${err.message || err}` : `Error merging: ${err.message || err}`);
+      setIsMerging(false);
+    }
+  };
 
   // Video Animator States
   const [isPlaying, setIsPlaying] = useState(false);
@@ -5278,6 +5489,16 @@ function SocialMediaBuilderWidget({
           }`}
         >
           📝 Text Script
+        </button>
+        <button
+          onClick={() => setActiveTab('merger')}
+          className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${
+            activeTab === 'merger' 
+              ? 'bg-gradient-to-r from-teal-500 to-indigo-600 text-white shadow-md' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          🎞️ FREE Video Merger (વીડિયો ભેગો કરો)
         </button>
       </div>
 
@@ -5828,6 +6049,189 @@ function SocialMediaBuilderWidget({
 
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-line select-all">
             {videoScript}
+          </div>
+        </div>
+      )}
+
+      {/* VIDEO MERGER WORKSPACE */}
+      {activeTab === 'merger' && (
+        <div className="space-y-6 max-w-4xl">
+          <div className="bg-slate-900/40 border border-slate-800/60 p-5 rounded-2xl space-y-4">
+            <div className="border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-black text-slate-200 uppercase tracking-wider">
+                {isGu ? '🎞️ ઓનલાઇન વિડીયો મર્જર (બે વિડીયો ભેગા કરો)' : '🎞️ Browser-Based Online Video Merger'}
+              </h3>
+              <p className="text-[11px] text-slate-400 leading-relaxed mt-1">
+                {isGu 
+                  ? 'ધ્રુવભાઈ, તમારા સ્ટીવ એઆઈ (Steve AI) અથવા ગેલેરી માંથી ડાઉનલોડ કરેલા બન્ને વીડિયો ભાગ અહીં અપલોડ કરો. આ ટૂલ બન્ને વીડિયો અને ઓડિયોને ઓટોમેટિક જોડીને પ્રોફેશનલ સિંગલ એડ વિડીયો ડાઉનલોડ કરી આપશે.' 
+                  : 'Select two video files generated from your AI video tools. This widget will merge them sequentially with their audio tracks and auto-download the final unified ad.'}
+              </p>
+            </div>
+
+            {/* Hidden canvas for rendering */}
+            <canvas ref={mergerCanvasRef} className="hidden" />
+
+            {/* File Pickers Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Video 1 input */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-3">
+                <span className="block text-[10px] text-teal-400 font-extrabold uppercase tracking-widest">
+                  {isGu ? '૧. પ્રથમ વિડીયો (પ્રસ્તાવના / Intro Part)' : '1. FIRST VIDEO (INTRO PART)'}
+                </span>
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-800 hover:border-teal-500/50 rounded-xl p-4 cursor-pointer transition-all bg-black/20 group">
+                  <UploadCloud className="w-8 h-8 text-slate-500 group-hover:text-teal-400 transition-colors mb-2" />
+                  <span className="text-xs font-bold text-slate-300 text-center">
+                    {video1File ? video1File.name : (isGu ? 'પહેલો વિડીયો ફાઈલ પસંદ કરો 📂' : 'Select Video File 📂')}
+                  </span>
+                  <span className="text-[9px] text-slate-500 mt-1">MP4, WebM formats</span>
+                  <input type="file" accept="video/*" onChange={handleVideo1Change} className="hidden" />
+                </label>
+                {video1Url && (
+                  <div className="rounded-lg overflow-hidden border border-slate-800 bg-black aspect-video max-h-32">
+                    <video ref={video1Ref} src={video1Url} controls muted className="w-full h-full object-contain" />
+                  </div>
+                )}
+              </div>
+
+              {/* Video 2 input */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-3">
+                <span className="block text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest">
+                  {isGu ? '૨. બીજો વિડીયો (મેઈન ડેમો / Demo Part)' : '2. SECOND VIDEO (DEMO PART)'}
+                </span>
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-xl p-4 cursor-pointer transition-all bg-black/20 group">
+                  <UploadCloud className="w-8 h-8 text-slate-500 group-hover:text-indigo-400 transition-colors mb-2" />
+                  <span className="text-xs font-bold text-slate-300 text-center">
+                    {video2File ? video2File.name : (isGu ? 'બીજો વિડીયો ફાઈલ પસંદ કરો 📂' : 'Select Video File 📂')}
+                  </span>
+                  <span className="text-[9px] text-slate-500 mt-1">MP4, WebM formats</span>
+                  <input type="file" accept="video/*" onChange={handleVideo2Change} className="hidden" />
+                </label>
+                {video2Url && (
+                  <div className="rounded-lg overflow-hidden border border-slate-800 bg-black aspect-video max-h-32">
+                    <video ref={video2Ref} src={video2Url} controls muted className="w-full h-full object-contain" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Merge Actions & Progress */}
+            {video1Url && video2Url && (
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-4">
+                <button
+                  disabled={isMerging}
+                  onClick={mergeVideos}
+                  className={`w-full py-3 px-5 rounded-xl font-black tracking-wider uppercase text-xs shadow-lg transition-all duration-200 transform active:scale-95 flex items-center justify-center gap-2 ${
+                    isMerging 
+                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
+                      : 'bg-gradient-to-r from-teal-500 via-indigo-600 to-purple-600 text-white hover:opacity-95'
+                  }`}
+                >
+                  <span>{isMerging ? (isGu ? 'કમ્બાઈન થઈ રહ્યું છે... ⚙️' : 'MERGING VIDEOS... ⚙️') : (isGu ? '🚀 બન્ને વિડીયો જોડીને પ્રોફેશનલ એડ બનાવો' : '🚀 COMBINE & MERGE VIDEOS NOW')}</span>
+                </button>
+
+                {isMerging && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-300">{mergeStatus}</span>
+                      <span className="font-mono font-bold text-teal-400">{mergeProgress}%</span>
+                    </div>
+                    <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+                      <div className="bg-gradient-to-r from-teal-500 to-indigo-500 h-full transition-all duration-150" style={{ width: `${mergeProgress}%` }} />
+                    </div>
+                  </div>
+                )}
+
+                {mergedVideoUrl && !isMerging && (
+                  <div className="space-y-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between gap-4">
+                    <div className="space-y-0.5 text-left">
+                      <span className="block text-xs font-black text-emerald-400 uppercase tracking-wider">{isGu ? 'સફળતાપૂર્વક કમ્બાઈન થઈ ગયું! 🥳' : 'COMBINE COMPLETED! 🥳'}</span>
+                      <p className="text-[10px] text-slate-400 font-semibold">{isGu ? 'વીડિયો ઓટોમેટિક ડાઉનલોડ થઈ ગયો છે. જો ન થયો હોય તો બાજુના બટન પર ક્લિક કરો.' : 'Download has been triggered automatically. Click download manually if needed.'}</p>
+                    </div>
+                    <a
+                      href={mergedVideoUrl}
+                      download="aisuertoolshub_combined_ad.webm"
+                      className="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-500 rounded-lg text-xs font-black tracking-wider uppercase whitespace-nowrap transition-colors flex items-center gap-1.5"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>{isGu ? 'ડાઉનલોડ કરો' : 'DOWNLOAD'}</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* INSTAGRAM AD PUBLISHING TUTORIAL GUIDE */}
+          <div className="bg-[#0b1021]/80 border border-slate-900 p-6 rounded-2xl space-y-4 text-left shadow-2xl">
+            <div className="flex items-center gap-2 border-b border-slate-850 pb-3 text-indigo-400">
+              <Camera className="w-5 h-5 shrink-0" />
+              <h4 className="text-sm font-black uppercase tracking-wider">
+                {isGu ? '📱 ઇન્સ્ટાગ્રામ પર ઓટોમેટિક "SPONSORED" જાહેરાત કેવી રીતે સેટ કરવી?' : '📱 How to Setup Automated "SPONSORED" Ads on Instagram?'}
+              </h4>
+            </div>
+
+            <div className="space-y-4 text-xs sm:text-sm font-semibold leading-relaxed text-slate-300">
+              <div className="space-y-2">
+                <span className="text-teal-400 font-black block tracking-wide uppercase text-[11px]">{isGu ? 'પગલું ૧: વિડીયો સેવ કરો' : 'STEP 1: SAVE THE VIDEO'}</span>
+                <p className="text-xs text-slate-400 pl-3">
+                  {isGu 
+                    ? 'તમારા આ કમ્બાઈન થયેલા વિડીયોને તમારા સ્માર્ટફોન ની ગેલેરીમાં સાચવો (ડાઉનલોડ કરો).' 
+                    : 'Download the combined WebM/MP4 video file directly to your smartphone device.'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-teal-400 font-black block tracking-wide uppercase text-[11px]">{isGu ? 'પગલું ૨: ઇન્સ્ટાગ્રામ એકાઉન્ટ પ્રોફેશનલ બનાવો' : 'STEP 2: SWITCH TO PROFESSIONAL ACCOUNT'}</span>
+                <p className="text-xs text-slate-400 pl-3">
+                  {isGu 
+                    ? 'તમારા ઇન્સ્ટાગ્રામ સેટિંગ્સમાં જઈને "Switch to Professional / Creator Account" કરો. તે ફ્રી છે અને આ સેટિંગથી જ જાહેરાત મૂકવાના ફીચર્સ ચાલુ થાય છે.' 
+                    : 'Open Instagram -> Settings -> Account Type -> Switch to Creator/Professional Account. This is completely free and unlocks sponsored ad boosting features.'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-teal-400 font-black block tracking-wide uppercase text-[11px]">{isGu ? 'પગલું ૩: રીલ તરીકે વિડીયો અપલોડ કરો' : 'STEP 3: UPLOAD THE VIDEO AS A REEL'}</span>
+                <p className="text-xs text-slate-400 pl-3">
+                  {isGu 
+                    ? 'આ વિડીયોને તમારા ઇન્સ્ટાગ્રામ પ્રોફાઇલ પર Reel તરીકે પોસ્ટ કરો. કેપ્શન માટે બાજુના "Captions & Hashtags" ટેબ માંથી ગુજરાતી કેપ્શન કોપી કરીને મુકો.' 
+                    : 'Upload your video as a normal Reel. Copy the highly engaging captions and hashtags from our "Captions & Hashtags" tab and paste them.'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-teal-400 font-black block tracking-wide uppercase text-[11px]">{isGu ? 'પગલું ૪: "BOOST REEL" બટન દબાવો' : 'STEP 4: CLICK "BOOST REEL"'}</span>
+                <p className="text-xs text-slate-400 pl-3">
+                  {isGu 
+                    ? 'રીલ અપલોડ થયા પછી તેની નીચે બ્લુ કલરનું "Boost Reel" અથવા "Boost Post" બટન દેખાશે, તેના પર ટચ કરો.' 
+                    : 'Once published, click the blue "Boost Reel" or "Boost Post" button displayed on your posted video.'}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-teal-400 font-black block tracking-wide uppercase text-[11px]">{isGu ? 'પગલું ૫: એડ સેટિંગ્સ કન્ફિગર કરો' : 'STEP 5: CONFIGURE AD TARGETS'}</span>
+                <ul className="list-disc pl-7 text-xs text-slate-400 space-y-1">
+                  <li><strong>{isGu ? 'ગોલ (Goal):' : 'Goal:'}</strong> {isGu ? '"More Website Visits" પસંદ કરો અને લિંકમાં https://aisuertoolshub.com લખો.' : 'Select "More Website Visits" and input your website URL.'}</li>
+                  <li><strong>{isGu ? 'બટન (Action Button):' : 'Action Button:'}</strong> {isGu ? '"Learn More" સિલેક્ટ કરો.' : 'Choose "Learn More" or "Watch Now".'}</li>
+                  <li><strong>{isGu ? 'પ્રેક્ષકો (Audience ટાર્ગેટ):' : 'Audience:'}</strong> {isGu ? '"Create Your Own" પર જઈને આ ટાર્ગેટ સેટ કરો:' : 'Create custom audience parameters:'}
+                    <ul className="list-circle pl-5 mt-1 space-y-0.5">
+                      <li>{isGu ? '📍 લોકેશન: "Gujarat" (તમારી એડ સસ્તી ચાલશે)' : '📍 Location: "Gujarat" (highly localized budget efficiency)'}</li>
+                      <li>{isGu ? '👶 ઉંમર: "13 to 25 years" (ખાસ સ્ટુડન્ટ્સ માટે)' : '👶 Age: "13 to 25 years" (capturing student traffic)'}</li>
+                      <li>{isGu ? '🎯 ઇન્ટરેસ્ટ (Interests): Education, Math, Coding, Schools' : '🎯 Interests: Education, Mathematics, Computer programming, Schools'}</li>
+                    </ul>
+                  </li>
+                  <li><strong>{isGu ? 'બજેટ (Budget):' : 'Budget:'}</strong> {isGu ? 'રોજના ₹૧૦૦ થી ₹૧૫૦ સેટ કરો. સમયગાળો ૫ દિવસ રાખવો.' : 'Set ₹100 to ₹150 daily budget for 5 days.'}</li>
+                </ul>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-teal-400 font-black block tracking-wide uppercase text-[11px]">{isGu ? 'પગલું ૬: પેમેન્ટ કરો અને એડ પબ્લિશ કરો' : 'STEP 6: COMPLETE PAYMENT'}</span>
+                <p className="text-xs text-slate-400 pl-3">
+                  {isGu 
+                    ? 'તમારા ફોનમાંથી જ Google Pay, PhonePe, Paytm કે UPI દ્વારા ₹૫૦૦ એડ કરો અને "Boost" પર ક્લિક કરો. ઇન્સ્ટાગ્રામ ટીમ ૧-૨ કલાકમાં રિવ્યૂ કરીને જાહેરાત આખા ગુજરાતના સ્ટુડન્ટ્સના મોબાઇલ ફોનમાં Sponsored તરીકે બતાવવા લાગશે!' 
+                    : 'Add funds securely via UPI (GPay/PhonePe), Paytm, or card, and confirm the Boost. Instagram will review and deploy your ad within 1-2 hours!'}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}
