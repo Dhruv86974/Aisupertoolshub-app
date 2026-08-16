@@ -411,7 +411,12 @@ export default function App() {
     const saved = localStorage.getItem('hub_ads_config');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Automatically migrate placeholder ID to your real verified AdSense ID!
+        if (parsed.googleAdsenseClientId === 'ca-pub-1234567890123456' || !parsed.googleAdsenseClientId) {
+          parsed.googleAdsenseClientId = 'ca-pub-7594598332182178';
+        }
+        return parsed;
       } catch (e) {}
     }
     return {
@@ -422,7 +427,7 @@ export default function App() {
       customDescriptionGu: 'ગુજરાતી યુઝર્સ અને ડેવલપર્સ સુધી ડાયરેક્ટ પહોંચો. તમારી લિંક સેટ કરવા માટે ક્લિક કરો!',
       customImageUrl: 'https://images.unsplash.com/photo-1542744094-3a31f103e35f?q=80&w=600&auto=format&fit=crop',
       customRedirectUrl: 'mailto:dhruvtarsariya3@gmail.com?subject=Advertise on AI Super Tools Hub',
-      googleAdsenseClientId: 'ca-pub-1234567890123456',
+      googleAdsenseClientId: 'ca-pub-7594598332182178',
       googleAdsenseSlotId: '1234567890',
       customScriptCode: '<!-- Paste Adsterra banner or native script here -->'
     };
