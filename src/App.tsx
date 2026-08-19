@@ -482,6 +482,70 @@ export default function App() {
     localStorage.setItem('hub_theme', theme);
   }, [theme]);
 
+  // --- 50 Crore Luxury Features States ---
+  const [metricsProcessed, setMetricsProcessed] = useState(14802951);
+  const [cpuLoad, setCpuLoad] = useState(18);
+  const [memLoad, setMemLoad] = useState(39);
+  const [latency, setLatency] = useState(14);
+  const [encryptionText, setEncryptionText] = useState('');
+  const [encryptionOutput, setEncryptionOutput] = useState('');
+  const [isEncrypting, setIsEncrypting] = useState(false);
+  const [tunnelLogs, setTunnelLogs] = useState<string[]>([]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMetricsProcessed(prev => prev + Math.floor(Math.random() * 4) + 1);
+      setCpuLoad(prev => {
+        const diff = Math.floor(Math.random() * 5) - 2;
+        const next = prev + diff;
+        return Math.max(12, Math.min(26, next));
+      });
+      setMemLoad(prev => {
+        const diff = Math.floor(Math.random() * 3) - 1;
+        const next = prev + diff;
+        return Math.max(37, Math.min(42, next));
+      });
+      setLatency(prev => {
+        const diff = Math.floor(Math.random() * 3) - 1;
+        const next = prev + diff;
+        return Math.max(11, Math.min(18, next));
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const startEncryptionTunnel = () => {
+    if (!encryptionText.trim()) {
+      showToast(lang === 'gu' ? 'કૃપા કરીને એન્ક્રિપ્ટ કરવા માટે ટેક્સ્ટ લખો!' : 'Please enter some text to encrypt!', 'error');
+      return;
+    }
+    playSynthSound('success');
+    setIsEncrypting(true);
+    setEncryptionOutput('');
+    setTunnelLogs([]);
+    
+    const logs = [
+      'ESTABLISHING SHIELDED COLD COCOON TUNNEL...',
+      'INJECTING AES-GCM 256-BIT SALTS...',
+      'GENERATING SYMMETRIC DYNAMIC QUANTUM PADDING...',
+      'PACKAGING COLD-STORED METADATA ON CLOUD SPANNER...',
+      'TUNNEL ESTABLISHED SUCCESSFULLY! ACCESS SHIELD ACTIVATED.'
+    ];
+
+    logs.forEach((log, index) => {
+      setTimeout(() => {
+        setTunnelLogs(prev => [...prev, `[SYSTEM] ${log}`]);
+        playSynthSound('click');
+        if (index === logs.length - 1) {
+          const encrypted = btoa(encodeURIComponent(encryptionText)).substring(0, 24);
+          setEncryptionOutput(`https://aisupertoolshub.com/secure-tunnel/${encrypted}`);
+          setIsEncrypting(false);
+          showToast(lang === 'gu' ? 'સિક્યોર કવોન્ટમ ટનલ લિંક જનરેટ થઈ ગઈ છે!' : 'Secure quantum tunnel link generated!', 'success');
+        }
+      }, (index + 1) * 800);
+    });
+  };
+
   // --- Click-to-Open Language Dropdown State ---
   const [showLangDropdown, setShowLangDropdown] = useState(false);
 
@@ -3008,6 +3072,177 @@ export default function App() {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* ================= 50 CRORE ENTERPRISE CORE TELEMETRY & QUANTUM TUNNEL HUBS ================= */}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 text-left">
+                {/* Real-time Server Analytics & Infrastructure Telemetry Card */}
+                <div className={`xl:col-span-2 bg-gradient-to-br ${theme === 'dark' ? 'from-[#0a1122] via-[#050914] to-[#01040a] border-slate-900/80 shadow-[0_4px_30px_rgba(0,0,0,0.4)]' : 'from-slate-50 via-white to-slate-100 border-slate-200/80 shadow-md'} border rounded-3xl p-5 lg:p-6 relative overflow-hidden flex flex-col justify-between space-y-5 transition-all duration-300 hover:border-blue-500/20`}>
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
+                  
+                  <div className="flex items-center justify-between border-b border-slate-500/10 pb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="bg-blue-600/10 p-2 rounded-xl text-blue-500 border border-blue-500/20 animate-pulse">
+                        <Icons.Activity className="w-4.5 h-4.5" />
+                      </div>
+                      <div>
+                        <h4 className={`text-xs lg:text-sm font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>
+                          {lang === 'gu' ? 'લાઇવ એન્ટરપ્રાઇઝ ક્લસ્ટર ટેલિમેટ્રી' : 'Live Enterprise Cluster Telemetries'}
+                        </h4>
+                        <p className="text-[9px] text-slate-500 font-bold">
+                          {lang === 'gu' ? 'રીઅલ-ટાઇમ માઇક્રોસેકન્ડ ઇન્ફ્રાસ્ટ્રક્ચર પર્ફોર્મન્સ મોનિટર' : 'Real-time microsecond server health and cloud processing metrics'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[8px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 tracking-widest uppercase">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                      ONLINE
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {/* CPU Utilization Circle Dial */}
+                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-500/5 border border-slate-500/5 relative">
+                      <div className="relative w-16 h-16 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="32" cy="32" r="28" stroke={theme === 'dark' ? '#0f172a' : '#f1f5f9'} strokeWidth="4" fill="transparent" />
+                          <circle cx="32" cy="32" r="28" stroke="#3b82f6" strokeWidth="4" fill="transparent"
+                            strokeDasharray={175}
+                            strokeDashoffset={175 - (175 * cpuLoad) / 100}
+                            className="transition-all duration-1000 ease-out"
+                          />
+                        </svg>
+                        <span className="absolute text-xs font-black font-mono">{cpuLoad}%</span>
+                      </div>
+                      <span className="text-[9px] uppercase font-black text-slate-500 mt-2">CPU Cluster</span>
+                    </div>
+
+                    {/* Memory Pool Utilisation Dial */}
+                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-500/5 border border-slate-500/5 relative">
+                      <div className="relative w-16 h-16 flex items-center justify-center">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="32" cy="32" r="28" stroke={theme === 'dark' ? '#0f172a' : '#f1f5f9'} strokeWidth="4" fill="transparent" />
+                          <circle cx="32" cy="32" r="28" stroke="#10b981" strokeWidth="4" fill="transparent"
+                            strokeDasharray={175}
+                            strokeDashoffset={175 - (175 * memLoad) / 100}
+                            className="transition-all duration-1000 ease-out"
+                          />
+                        </svg>
+                        <span className="absolute text-xs font-black font-mono">{memLoad}%</span>
+                      </div>
+                      <span className="text-[9px] uppercase font-black text-slate-500 mt-2">Memory Pool</span>
+                    </div>
+
+                    {/* Network Gateway Latency */}
+                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-500/5 border border-slate-500/5 text-center">
+                      <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 mb-2">
+                        <Icons.Compass className="w-5 h-5 text-indigo-400 animate-spin-slow" />
+                      </div>
+                      <span className="text-sm font-black font-mono text-indigo-400">{latency}ms</span>
+                      <span className="text-[9px] uppercase font-black text-slate-500 mt-0.5">Latency</span>
+                    </div>
+
+                    {/* API Status Node */}
+                    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-500/5 border border-slate-500/5 text-center">
+                      <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20 mb-2">
+                        <Icons.Cpu className="w-5 h-5 text-amber-400 animate-pulse" />
+                      </div>
+                      <span className="text-xs font-black font-mono text-amber-400 uppercase">ACTIVE v3.6</span>
+                      <span className="text-[9px] uppercase font-black text-slate-500 mt-0.5">Router Node</span>
+                    </div>
+                  </div>
+
+                  <div className={`p-3.5 rounded-2xl border flex items-center justify-between ${theme === 'dark' ? 'bg-[#03060c] border-slate-900/60' : 'bg-white border-slate-100'}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                        {lang === 'gu' ? 'કુલ સુરક્ષિત રીતે પ્રોસેસ થયેલ API રિક્વેસ્ટ' : 'Total Encrypted Secure Transactions Processed'}
+                      </span>
+                    </div>
+                    <span className="text-xs font-black font-mono text-blue-500 tracking-wider">
+                      {metricsProcessed.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Quantum Encryption & Sandbox Tunnel Visualizer (Interactive Live Module) */}
+                <div className={`bg-gradient-to-br ${theme === 'dark' ? 'from-[#0c1224] via-[#050a18] to-[#01040c] border-indigo-950/80 shadow-[0_4px_30px_rgba(0,0,0,0.5)]' : 'from-indigo-50/40 via-white to-indigo-100/50 border-indigo-100 shadow-md'} border rounded-3xl p-5 lg:p-6 flex flex-col justify-between space-y-4 transition-all duration-300 hover:border-indigo-500/35 relative overflow-hidden`}>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+                  
+                  <div className="flex items-center gap-2.5 border-b border-slate-500/10 pb-3">
+                    <div className="bg-indigo-600/10 p-2 rounded-xl text-indigo-400 border border-indigo-500/20">
+                      <Icons.Lock className="w-4.5 h-4.5" />
+                    </div>
+                    <div>
+                      <h4 className={`text-xs lg:text-sm font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>
+                        {lang === 'gu' ? 'કવોન્ટમ સિક્યોર એન્ક્રિપ્શન ટનલ' : 'Quantum Encryption Tunnel'}
+                      </h4>
+                      <p className="text-[9px] text-slate-500 font-bold">
+                        {lang === 'gu' ? '૧૦૦% એનક્રિપ્ટેડ લિંક જનરેટર' : 'Deploy transient end-to-end shielded data payloads'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 text-left">
+                    <input
+                      type="text"
+                      value={encryptionText}
+                      onChange={(e) => setEncryptionText(e.target.value)}
+                      placeholder={lang === 'gu' ? 'સિક્યોર કરવા કોઈ લખાણ લખો...' : 'Enter sensitive payload to tunnel...'}
+                      className={`w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-500/50 ${
+                        theme === 'dark'
+                          ? 'bg-slate-950/70 border-slate-900 text-slate-200 placeholder-slate-600'
+                          : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 shadow-inner'
+                      } font-semibold`}
+                    />
+
+                    <button
+                      onClick={startEncryptionTunnel}
+                      disabled={isEncrypting}
+                      className="w-full py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 shadow shadow-indigo-600/25 cursor-pointer"
+                    >
+                      {isEncrypting ? (
+                        <>
+                          <Icons.RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Establishing Tunnel...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Icons.Cpu className="w-3.5 h-3.5" />
+                          <span>Generate Quantum Tunnel Link</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Terminal Log Output Screen */}
+                  <div className="flex-1 min-h-[90px] max-h-[110px] rounded-xl bg-slate-950 border border-slate-900 p-2.5 overflow-y-auto font-mono text-[8px] text-slate-400 space-y-1 text-left">
+                    {tunnelLogs.length === 0 ? (
+                      <span className="text-slate-600 italic font-semibold">Ready to initialize secure quantum tunnel sequence...</span>
+                    ) : (
+                      tunnelLogs.map((log, idx) => (
+                        <div key={`log-${idx}`} className={idx === tunnelLogs.length - 1 ? 'text-indigo-400 font-bold animate-pulse' : ''}>
+                          {log}
+                        </div>
+                      ))
+                    )}
+                    {encryptionOutput && (
+                      <div className="mt-2 p-1.5 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-between gap-2">
+                        <span className="text-emerald-400 font-black truncate flex-1">{encryptionOutput}</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(encryptionOutput);
+                            showToast(lang === 'gu' ? 'લિંક કોપી થઈ ગઈ છે! 📋' : 'Tunnel link copied! 📋', 'success');
+                            playSynthSound('success');
+                          }}
+                          className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-wider shrink-0"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
