@@ -15,6 +15,7 @@ import GlobalOperationsHub from './components/GlobalOperationsHub';
 import { doc, setDoc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, executeResilientDbOp, auth } from './firebase';
 import { signOut } from 'firebase/auth';
+import { AI_TOOLS_DIRECTORY, AI_RESOURCES_LIBRARY, ToolProfile } from './aiToolsDirectory';
 
 // --- Global Procedural Synthesizer for Immersive Micro-Sounds ---
 const playSynthSound = (type: 'click' | 'success' | 'rate' | 'chime' | 'laser' | 'toggle') => {
@@ -544,6 +545,43 @@ export default function App() {
         }
       }, (index + 1) * 800);
     });
+  };
+
+  // --- 50 Crore AI Discovery & Directory Hub States ---
+  const [mainDashboardView, setMainDashboardView] = useState<'workspace' | 'discovery'>('workspace');
+  const [selectedDirectoryTool, setSelectedDirectoryTool] = useState<ToolProfile | null>(null);
+  const [activeDiscoveryUseCase, setActiveDiscoveryUseCase] = useState<string | null>(null);
+  
+  // AI Tool Finder States
+  const [finderQuery, setFinderQuery] = useState('');
+  const [finderResults, setFinderResults] = useState<ToolProfile[]>([]);
+  const [isSearchingFinder, setIsSearchingFinder] = useState(false);
+
+  const runAIToolFinder = () => {
+    if (!finderQuery.trim()) {
+      showToast(lang === 'gu' ? 'કૃપા કરીને કંઈક સર્ચ કરો!' : 'Please enter a search query!', 'error');
+      return;
+    }
+    setIsSearchingFinder(true);
+    playSynthSound('laser');
+    
+    // Simulate smart AI search through our directory
+    setTimeout(() => {
+      const q = finderQuery.toLowerCase();
+      // Match categories, tags, descriptions, or names
+      const matched = AI_TOOLS_DIRECTORY.filter(tool => 
+        tool.name.toLowerCase().includes(q) ||
+        tool.shortDesc.toLowerCase().includes(q) ||
+        tool.description.toLowerCase().includes(q) ||
+        tool.tags.some(tag => q.includes(tag) || tag.includes(q))
+      ).slice(0, 5);
+      
+      // If none matched, fallback to general ones
+      setFinderResults(matched.length > 0 ? matched : AI_TOOLS_DIRECTORY.slice(0, 5));
+      setIsSearchingFinder(false);
+      playSynthSound('success');
+      showToast(lang === 'gu' ? 'તમારા માટે શ્રેષ્ઠ ટૂલ્સ મળી ગયા છે!' : 'Found the best tools matching your request!', 'success');
+    }, 1200);
   };
 
   // --- Click-to-Open Language Dropdown State ---
@@ -2790,8 +2828,45 @@ export default function App() {
                 </div>
               </div>
 
-              {/* LIVE DYNAMIC ADVERTISEMENT HUB SLOT */}
-              <AdBanner config={adsConfig} theme={theme} lang={lang} />
+              {/* ================= 50 CRORE MASTER VIEW TABS SWITCHER ================= */}
+              <div className={`p-1.5 rounded-2xl border flex items-center gap-2 ${
+                theme === 'dark' ? 'bg-[#090d16] border-slate-900 shadow-lg' : 'bg-white border-slate-200 shadow-md'
+              }`}>
+                <button
+                  onClick={() => {
+                    setMainDashboardView('workspace');
+                    playSynthSound('toggle');
+                  }}
+                  className={`flex-1 py-3 text-xs font-black rounded-xl uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200 ${
+                    mainDashboardView === 'workspace'
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-500/5'
+                  }`}
+                >
+                  <Icons.Cpu className="w-4 h-4" />
+                  <span>{lang === 'gu' ? '🛠️ એક્ટિવ એઆઈ સ્માર્ટ સાધનો' : '🛠️ Active AI Smart Workspace'}</span>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setMainDashboardView('discovery');
+                    playSynthSound('toggle');
+                  }}
+                  className={`flex-1 py-3 text-xs font-black rounded-xl uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-200 ${
+                    mainDashboardView === 'discovery'
+                      ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-600/25'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-500/5'
+                  }`}
+                >
+                  <Icons.Compass className="w-4 h-4 text-indigo-400" />
+                  <span>{lang === 'gu' ? '🚀 એઆઈ સર્ચ અને ડિરેક્ટરી હબ (PRO)' : '🚀 AI Search & Discovery Hub (PRO)'}</span>
+                </button>
+              </div>
+
+              {mainDashboardView === 'workspace' ? (
+                <>
+                  {/* LIVE DYNAMIC ADVERTISEMENT HUB SLOT */}
+                  <AdBanner config={adsConfig} theme={theme} lang={lang} />
 
               {/* UNIVERSAL ACADEMIC AI HUB WORKSPACE (SCHOOL STD 1-12, BCA, BCOM, BBA, BA, BSC) */}
               <div className={`bg-gradient-to-br ${theme === 'dark' ? 'from-[#0b1021] via-[#0e1630] to-[#0b1021] border-indigo-900/40' : 'from-indigo-50/80 via-blue-50/70 to-indigo-50/80 border-indigo-200 shadow-sm'} border rounded-3xl p-5 lg:p-6 space-y-5 text-left relative overflow-hidden transition-all duration-300 hover:shadow-indigo-500/5 hover:border-indigo-500/30`}>
@@ -4107,6 +4182,322 @@ export default function App() {
                     >
                       <X className="w-4 h-4" />
                     </button>
+                  </div>
+                </div>
+              )}
+                </>
+              ) : (
+                <div className="space-y-8 animate-fadeIn text-left">
+                  {/* USP Use-Case Selector & Hero Header */}
+                  <div className={`p-6 lg:p-8 rounded-3xl border relative overflow-hidden ${
+                    theme === 'dark' ? 'bg-gradient-to-br from-[#0c1222] via-[#050812] to-[#01040a] border-slate-900 shadow-xl' : 'bg-gradient-to-br from-indigo-50/40 via-white to-blue-50/50 border-slate-200 shadow-md'
+                  }`}>
+                    <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-blue-600/10 to-transparent rounded-full blur-[100px] pointer-events-none" />
+                    
+                    <div className="max-w-2xl space-y-4">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
+                        <Icons.Compass className="w-3.5 h-3.5 animate-spin-slow" />
+                        <span>INTELLIGENT SEO DIRECTORY</span>
+                      </div>
+                      <h2 className={`text-xl lg:text-3xl font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                        {lang === 'gu' 
+                          ? 'તમારા કામ માટે શ્રેષ્ઠ AI સાધનો શોધો — સેકન્ડોમાં 🚀' 
+                          : 'Find the absolute best AI tools for your workflow — in seconds 🚀'}
+                      </h2>
+                      <p className={`text-xs lg:text-sm leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} font-semibold`}>
+                        {lang === 'gu'
+                          ? 'સંપૂર્ણ વ્યાવસાયિક વિશ્લેષણ, રેટિંગ્સ, વાસ્તવિક ફાયદા-ગેરફાયદા (Pros & Cons) અને વૈકલ્પિક સાધનોની સરખામણી સાથેનું વૈશ્વિક AI રિસોર્સ કેન્દ્ર.'
+                          : 'Comprehensive professional auditing, verified scoring, authentic pros & cons list, alternatives comparisons, and premium prompt templates.'}
+                      </p>
+                    </div>
+
+                    {/* Use-case Based Tags Quick Filters */}
+                    <div className="mt-6 border-t border-slate-500/10 pt-6">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-3 font-mono">
+                        {lang === 'gu' ? 'શ્રેણી પ્રમાણે શોધો (Use-case SEO Pages):' : 'Select Curated Use-case Directories:'}
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { key: 'students', label: lang === 'gu' ? '🎓 વિદ્યાર્થીઓ માટે' : '🎓 Best for Students' },
+                          { key: 'business', label: lang === 'gu' ? '👔 બિઝનેસ માટે' : '👔 Best for Business' },
+                          { key: 'youtube', label: lang === 'gu' ? '📹 યૂટ્યૂબ માટે' : '📹 Best for YouTube' },
+                          { key: 'instagram', label: lang === 'gu' ? '📸 ઇન્સ્ટાગ્રામ રીલ્સ' : '📸 Best for Instagram' },
+                          { key: 'coding', label: lang === 'gu' ? '💻 કોડિંગ માટે' : '💻 Best for Coding' },
+                          { key: 'free', label: lang === 'gu' ? '🎁 મફત સાધનો' : '🎁 Best Free AI Tools' },
+                          { key: 'under10', label: lang === 'gu' ? '💎 બજેટ ફ્રેન્ડલી (<$10)' : '💎 Best Under $10' },
+                          { key: 'chatgpt-alt', label: lang === 'gu' ? '🤖 ચેટજીપીટી વિકલ્પો' : '🤖 ChatGPT Alternatives' }
+                        ].map((useCase) => (
+                          <button
+                            key={useCase.key}
+                            onClick={() => {
+                              setActiveDiscoveryUseCase(activeDiscoveryUseCase === useCase.key ? null : useCase.key);
+                              playSynthSound('click');
+                            }}
+                            className={`px-3.5 py-2 text-[11px] font-black rounded-xl transition-all duration-200 border cursor-pointer ${
+                              activeDiscoveryUseCase === useCase.key
+                                ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white border-indigo-500 shadow shadow-indigo-600/25 scale-105'
+                                : `${theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-400 hover:text-slate-200 hover:border-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`
+                            }`}
+                          >
+                            {useCase.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 🤖 2. AI TOOL FINDER WIDGET */}
+                  <div className={`p-6 rounded-3xl border relative overflow-hidden ${
+                    theme === 'dark' ? 'bg-gradient-to-br from-[#080d19] to-[#02050c] border-indigo-950/40 shadow-lg' : 'bg-gradient-to-br from-indigo-50/20 via-white to-blue-50/10 border-indigo-100 shadow-sm'
+                  }`}>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="flex items-center gap-2.5 mb-4">
+                      <div className="bg-indigo-600/10 p-2.5 rounded-xl text-indigo-400 border border-indigo-500/20">
+                        <Icons.Sparkles className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <div>
+                        <h3 className={`text-sm lg:text-base font-black ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'} uppercase tracking-tight`}>
+                          {lang === 'gu' ? '🤖 બુદ્ધિશાળી "AI Tool Finder"' : '🤖 Intelligent "AI Tool Finder" engine'}
+                        </h3>
+                        <p className="text-[10px] text-slate-500 font-bold">
+                          {lang === 'gu' ? 'તમારો ઉપયોગ લખો (દા.ત. "મારે ઇન્સ્ટાગ્રામ રીલ્સ માટે વિડીયો બનાવવો છે") અને શ્રેષ્ઠ સાધનો મેળવો' : 'Describe your specific project goal to instantly deploy the top 5 match-graded solutions'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <input
+                        type="text"
+                        value={finderQuery}
+                        onChange={(e) => setFinderQuery(e.target.value)}
+                        placeholder={lang === 'gu' ? 'તમારો પ્રોજેક્ટ ગોલ લખો (e.g. મારે Instagram reels માટે video બનાવવો છે)' : 'e.g., I need a high-end tool to write python backend and generate slides...'}
+                        className={`flex-1 px-4 py-3 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-500/50 ${
+                          theme === 'dark'
+                            ? 'bg-slate-950/80 border-slate-900 text-slate-200 placeholder-slate-650'
+                            : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 shadow-inner'
+                        } font-semibold`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') runAIToolFinder();
+                        }}
+                      />
+
+                      <button
+                        onClick={runAIToolFinder}
+                        disabled={isSearchingFinder}
+                        className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow shadow-indigo-600/25 cursor-pointer shrink-0"
+                      >
+                        {isSearchingFinder ? (
+                          <>
+                            <Icons.RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Auditing databases...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Icons.Search className="w-4 h-4" />
+                            <span>{lang === 'gu' ? 'શોધો' : 'Match tools'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* AI Tool Finder Dynamic Interactive Output Results */}
+                    {finderResults.length > 0 && (
+                      <div className="mt-6 border-t border-slate-500/10 pt-5 space-y-4 animate-fadeIn">
+                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block flex items-center gap-1.5 font-mono">
+                          <Icons.CheckCircle className="w-4 h-4 text-emerald-400" />
+                          <span>FOUND 5 MATCH-GRADED AI WORKFLOW SOLUTIONS:</span>
+                        </span>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                          {finderResults.map((tool) => (
+                            <div 
+                              key={`finder-${tool.id}`}
+                              onClick={() => {
+                                setSelectedDirectoryTool(tool);
+                                playSynthSound('click');
+                              }}
+                              className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 hover:scale-[1.02] flex flex-col justify-between space-y-3 ${
+                                theme === 'dark' 
+                                  ? 'bg-[#050810]/95 border-slate-900 hover:border-indigo-500/20 shadow-md shadow-black/40' 
+                                  : 'bg-white border-slate-200 hover:border-indigo-200 shadow-sm'
+                              }`}
+                            >
+                              <div className="space-y-2 text-left">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xl">{tool.logo}</span>
+                                  <span className="text-[9px] font-black font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                    {tool.score}/10
+                                  </span>
+                                </div>
+                                <h4 className={`text-xs font-black truncate ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{tool.name}</h4>
+                                <p className="text-[10px] text-slate-500 font-bold line-clamp-2 leading-relaxed">{tool.shortDesc}</p>
+                              </div>
+
+                              <div className="space-y-2 border-t border-slate-500/10 pt-2.5 text-left">
+                                <div className="flex items-center justify-between text-[9px] font-extrabold text-slate-400 font-mono uppercase">
+                                  <span>Cost:</span>
+                                  <span className={tool.isFree ? 'text-emerald-400' : 'text-amber-400'}>
+                                    {tool.isFree ? 'FREE PLAN' : 'PREMIUM'}
+                                  </span>
+                                </div>
+                                <button
+                                  className="w-full py-1.5 bg-indigo-500/10 hover:bg-indigo-600 hover:text-white text-[8px] font-black uppercase tracking-widest text-indigo-400 rounded-lg transition-all border border-indigo-500/20 text-center"
+                                >
+                                  View Audit Profile
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 🏆 4. RANKING SYSTEM & DIRECTORY LISTINGS */}
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    {/* Primary Tool Directory (Left Columns) */}
+                    <div className="xl:col-span-2 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-1.5 font-mono">
+                          <Icons.Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                          <span>{activeDiscoveryUseCase ? `Curated: ${activeDiscoveryUseCase.replace('-', ' ')}` : 'TOP DIRECTORY RANKINGS'}</span>
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-500 font-mono">Showing {AI_TOOLS_DIRECTORY.filter(t => !activeDiscoveryUseCase || t.category === activeDiscoveryUseCase || t.tags.includes(activeDiscoveryUseCase)).length} Verified Tools</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        {AI_TOOLS_DIRECTORY
+                          .filter(tool => !activeDiscoveryUseCase || tool.category === activeDiscoveryUseCase || tool.tags.includes(activeDiscoveryUseCase))
+                          .map((tool) => (
+                            <div
+                              key={`dir-${tool.id}`}
+                              onClick={() => {
+                                setSelectedDirectoryTool(tool);
+                                playSynthSound('click');
+                              }}
+                              className={`group p-5 rounded-2xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] flex flex-col justify-between space-y-4 text-left relative overflow-hidden ${
+                                theme === 'dark' 
+                                  ? 'bg-gradient-to-b from-[#090d16]/90 to-[#04060c]/95 hover:from-[#0d1527] hover:to-[#080d1a] border-slate-900/80 hover:border-blue-500/30 text-slate-100 shadow-xl' 
+                                  : 'bg-gradient-to-b from-white to-slate-50/60 hover:from-white hover:to-slate-50 border-slate-200/80 hover:border-blue-500/30 text-slate-800 shadow-md'
+                              }`}
+                            >
+                              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent group-hover:via-blue-500/40 transition-all duration-300" />
+                              
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center text-xl shadow-inner">
+                                    {tool.logo}
+                                  </div>
+                                  <div className="flex flex-col items-end">
+                                    <span className="text-[10px] font-black font-mono text-blue-500">{tool.score}/10</span>
+                                    <span className="text-[8px] text-slate-500 font-black tracking-widest uppercase font-mono mt-0.5">SUPER SCORE</span>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h3 className={`text-sm font-extrabold ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'} tracking-wide`}>
+                                    {tool.name}
+                                  </h3>
+                                  <p className="text-[10px] text-slate-500 font-extrabold font-mono uppercase mt-1">Best For: {tool.bestFor}</p>
+                                </div>
+
+                                <p className={`text-[11px] ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} font-semibold leading-relaxed line-clamp-3`}>
+                                  {tool.description}
+                                </p>
+                              </div>
+
+                              <div className="border-t border-slate-500/10 pt-3.5 flex items-center justify-between text-[10px] font-bold">
+                                <span className={tool.isFree ? 'text-emerald-400 font-black font-mono' : 'text-amber-400 font-black font-mono'}>
+                                  {tool.isFree ? 'FREE PLAN + PAID' : 'COMMERCIAL LICENSE'}
+                                </span>
+                                <span className="text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-300 flex items-center gap-0.5 uppercase tracking-wider text-[9px] font-black">
+                                  <span>Read Audit</span>
+                                  <Icons.ChevronRight className="w-3.5 h-3.5" />
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* 🎁 6. FREE AI RESOURCES LIBRARY & COMPARISONS */}
+                    <div className="space-y-6">
+                      {/* Trending, New, Hidden Gems Sections ( 🔥 5. Trending AI Section ) */}
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-1.5 font-mono">
+                          <Icons.Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                          <span>PLATFORM HOT SPOTS 2026</span>
+                        </span>
+
+                        <div className={`p-4 rounded-2xl border space-y-4 ${
+                          theme === 'dark' ? 'bg-[#090d16]/90 border-slate-900' : 'bg-white border-slate-200'
+                        }`}>
+                          {[
+                            { badge: "🔥 TRENDING", label: "Cursor IDE & ElevenLabs", color: "text-orange-500 bg-orange-500/10 border-orange-500/25" },
+                            { badge: "🆕 NEW AI", label: "Claude Projects & Artifacts", color: "text-blue-500 bg-blue-500/10 border-blue-500/25" },
+                            { badge: "📈 POPULAR", label: "Perplexity citation search", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/25" },
+                            { badge: "💎 HIDDEN GEM", label: "Gamma instant webpage builder", color: "text-amber-500 bg-amber-500/10 border-amber-500/25" }
+                          ].map((spot, idx) => (
+                            <div key={`spot-${idx}`} className="flex items-center justify-between border-b border-slate-500/5 pb-2.5 last:border-b-0 last:pb-0">
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider border ${spot.color}`}>
+                                {spot.badge}
+                              </span>
+                              <span className={`text-[10px] font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
+                                {spot.label}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Prompts and Templates Library */}
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-1.5 font-mono">
+                          <Icons.Gift className="w-4 h-4 text-indigo-400" />
+                          <span>🎁 FREE AI PROMPT TEMPLATES</span>
+                        </span>
+
+                        <div className="space-y-3.5">
+                          {AI_RESOURCES_LIBRARY.map((category) => (
+                            <div 
+                              key={`resource-${category.title}`}
+                              className={`p-4 rounded-2xl border space-y-3 ${
+                                theme === 'dark' ? 'bg-[#090d16]/90 border-slate-900' : 'bg-white border-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 border-b border-slate-500/5 pb-2">
+                                <span className="text-sm">{category.icon}</span>
+                                <h4 className={`text-xs font-black uppercase ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
+                                  {category.title}
+                                </h4>
+                              </div>
+
+                              <div className="space-y-2.5">
+                                {category.items.map((item, iIdx) => (
+                                  <div key={`item-${iIdx}`} className="space-y-1.5 text-left">
+                                    <div className="flex items-center justify-between">
+                                      <span className={`text-[10px] font-extrabold ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>{item.name}</span>
+                                      <button
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(item.prompt);
+                                          showToast(lang === 'gu' ? 'પ્રોમ્પ્ટ કોપી થઈ ગયો છે! 📋' : 'Prompt copied to clipboard! 📋', 'success');
+                                          playSynthSound('success');
+                                        }}
+                                        className="text-[8px] uppercase tracking-wider font-black px-1.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/10 rounded hover:bg-blue-600 hover:text-white transition-all"
+                                      >
+                                        Copy
+                                      </button>
+                                    </div>
+                                    <p className="text-[9px] text-slate-500 italic leading-relaxed truncate font-semibold">"{item.prompt}"</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -5946,6 +6337,231 @@ export default function App() {
             playSynthSound={playSynthSound}
             showToast={showToast}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedDirectoryTool && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={`w-full max-w-4xl rounded-3xl border shadow-2xl overflow-hidden flex flex-col my-8 ${
+                theme === 'dark' ? 'bg-[#090d16] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+              }`}
+            >
+              {/* Header row with logo, name and rating score */}
+              <div className={`p-6 border-b flex flex-wrap items-center justify-between gap-4 relative overflow-hidden ${
+                theme === 'dark' ? 'bg-slate-950/40 border-slate-900' : 'bg-slate-50 border-slate-100'
+              }`}>
+                <div className="flex items-center gap-4 text-left relative z-10">
+                  <span className="text-3xl p-2.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-2xl shadow-inner">
+                    {selectedDirectoryTool.logo}
+                  </span>
+                  <div>
+                    <h3 className="text-lg lg:text-xl font-black uppercase tracking-wide flex items-center gap-2">
+                      <span>{selectedDirectoryTool.name}</span>
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        AUDITED SECURE
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500 font-extrabold font-mono mt-1">BEST FOR: {selectedDirectoryTool.bestFor}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 relative z-10">
+                  <div className="text-right">
+                    <span className="block text-2xl font-black font-mono text-blue-500">{selectedDirectoryTool.score}/10</span>
+                    <span className="text-[8px] text-slate-500 font-black tracking-widest uppercase font-mono mt-0.5">PLATFORM SCORE</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedDirectoryTool(null);
+                      playSynthSound('click');
+                    }}
+                    className={`p-2.5 rounded-xl border transition-all ${
+                      theme === 'dark' ? 'bg-slate-950 border-slate-900 hover:text-white' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Icons.X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Scrollable content container */}
+              <div className="p-6 overflow-y-auto max-h-[70vh] space-y-6 text-left">
+                {/* 1. Description */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 font-mono">Overview Description</h4>
+                  <p className="text-xs lg:text-sm leading-relaxed text-slate-400 font-semibold">{selectedDirectoryTool.description}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 2. Rating Score breakdowns */}
+                  <div className={`p-5 rounded-2xl border ${
+                    theme === 'dark' ? 'bg-[#04060c] border-slate-900' : 'bg-slate-50 border-slate-100'
+                  } space-y-3`}>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-blue-500 font-mono flex items-center gap-1">
+                      <Icons.Award className="w-4 h-4" />
+                      <span>🏆 Credible Score Breakdowns</span>
+                    </h4>
+                    
+                    <div className="space-y-2.5 text-xs">
+                      {[
+                        { label: lang === 'gu' ? "સાધનોની વિશેષતાઓ" : "Features & Capabilities", val: selectedDirectoryTool.ratingBreakdown.features },
+                        { label: lang === 'gu' ? "ઉપયોગમાં સરળતા" : "Ease of Use / UX", val: selectedDirectoryTool.ratingBreakdown.easeOfUse },
+                        { label: lang === 'gu' ? "કિંમત અને બજેટ" : "Price Efficiency", val: selectedDirectoryTool.ratingBreakdown.price },
+                        { label: lang === 'gu' ? "આઉટપુટ ગુણવત્તા" : "Output Integrity / Quality", val: selectedDirectoryTool.ratingBreakdown.outputQuality },
+                        { label: lang === 'gu' ? "મફત પ્લાન" : "Free Plan Generosity", val: selectedDirectoryTool.ratingBreakdown.freePlan },
+                        { label: lang === 'gu' ? "વપરાશકર્તા રિવ્યુ" : "User Satisfaction Score", val: selectedDirectoryTool.ratingBreakdown.userReviews }
+                      ].map((item) => (
+                        <div key={item.label} className="space-y-1">
+                          <div className="flex justify-between text-[11px] font-extrabold text-slate-400">
+                            <span>{item.label}</span>
+                            <span className="font-mono">{item.val}/10</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-905 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-600 rounded-full" style={{ width: `${item.val * 10}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. Features & Price details */}
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                      <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 font-mono">Core Features list</h4>
+                      <ul className="space-y-1.5">
+                        {selectedDirectoryTool.featuresList.map((f, i) => (
+                          <li key={i} className="text-xs flex items-start gap-2 text-slate-400 font-semibold">
+                            <Icons.Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <span>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="border-t border-slate-500/10 pt-4 space-y-2">
+                      <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 font-mono">Pricing & License details</h4>
+                      <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
+                        <Icons.CreditCard className="w-4 h-4 text-blue-400" />
+                        <span className="text-xs font-black tracking-wide text-blue-300 font-mono uppercase">{selectedDirectoryTool.priceInfo}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Pros & Cons */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-500/10 pt-5">
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400 font-mono flex items-center gap-1">
+                      <Icons.CheckCircle className="w-4 h-4 text-emerald-400" />
+                      <span>Pros (ફાયદાઓ)</span>
+                    </h4>
+                    <ul className="space-y-1.5 text-xs">
+                      {selectedDirectoryTool.pros.map((p, i) => (
+                        <li key={i} className="text-slate-400 font-semibold flex gap-2">
+                          <span className="text-emerald-400">•</span>
+                          <span>{p}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-red-400 font-mono flex items-center gap-1">
+                      <Icons.AlertTriangle className="w-4 h-4 text-red-400" />
+                      <span>Cons (ગેરફાયદાઓ)</span>
+                    </h4>
+                    <ul className="space-y-1.5 text-xs">
+                      {selectedDirectoryTool.cons.map((c, i) => (
+                        <li key={i} className="text-slate-400 font-semibold flex gap-2">
+                          <span className="text-red-400">•</span>
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* 5. Alternatives & Comparison (Which tool is better?) */}
+                <div className={`p-5 rounded-2xl border ${
+                  theme === 'dark' ? 'bg-[#04060c] border-slate-900' : 'bg-slate-50 border-slate-100'
+                } space-y-3.5`}>
+                  <div className="flex items-center justify-between border-b border-slate-500/10 pb-2">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-indigo-400 font-mono flex items-center gap-1">
+                      <Icons.Compass className="w-4 h-4" />
+                      <span>Which tool is better? (સરખામણી પૃષ્ઠ)</span>
+                    </h4>
+                    <span className="text-[10px] font-bold text-indigo-400 font-mono">{selectedDirectoryTool.comparisonText.versus}</span>
+                  </div>
+
+                  <p className="text-xs text-slate-400 font-semibold leading-relaxed">
+                    <strong className="text-indigo-400">Verdicts:</strong> {selectedDirectoryTool.comparisonText.verdict}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-2 text-xs">
+                    <span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Alternatives:</span>
+                    {selectedDirectoryTool.alternatives.map((alt) => (
+                      <span key={alt} className="px-2 py-1 bg-slate-900 border border-slate-800 text-slate-300 text-[10px] font-bold rounded-lg uppercase">
+                        {alt}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 6. User Reviews */}
+                <div className="space-y-3.5">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 font-mono">User Reviews & Mentions</h4>
+                  <div className="space-y-3">
+                    {selectedDirectoryTool.reviews.map((rev, idx) => (
+                      <div key={idx} className="p-4 rounded-xl border border-slate-900 bg-slate-950/40 text-left space-y-1">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-extrabold text-slate-300">{rev.user}</span>
+                          <span className="text-amber-500 font-mono flex items-center gap-0.5">
+                            {"★".repeat(rev.rating)}
+                            {"☆".repeat(5 - rev.rating)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed font-semibold">"{rev.comment}"</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 7. FAQs */}
+                <div className="space-y-3.5">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 font-mono">Frequently Asked Questions (FAQ)</h4>
+                  <div className="space-y-3">
+                    {selectedDirectoryTool.faqs.map((faq, idx) => (
+                      <div key={idx} className="space-y-1 text-left">
+                        <h5 className="text-xs font-black text-slate-200">Q: {faq.q}</h5>
+                        <p className="text-xs text-slate-450 leading-relaxed font-semibold">A: {faq.a}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer action */}
+              <div className={`p-4 border-t flex justify-end ${
+                theme === 'dark' ? 'bg-slate-950/40 border-slate-900' : 'bg-slate-50 border-slate-100'
+              }`}>
+                <a
+                  href={`https://www.google.com/search?q=${encodeURIComponent(selectedDirectoryTool.name + " official website")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => playSynthSound('success')}
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                >
+                  <span>Try {selectedDirectoryTool.name}</span>
+                  <Icons.ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
