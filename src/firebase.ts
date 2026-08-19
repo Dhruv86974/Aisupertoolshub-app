@@ -2,6 +2,38 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
+// Intercept and cleanly neutralize background Firebase network/auth failures
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    if (reason) {
+      const errMsg = reason.message || String(reason);
+      const errCode = reason.code;
+      if (
+        errCode === 'auth/network-request-failed' ||
+        errMsg.includes('auth/network-request-failed') ||
+        errMsg.includes('network-request-failed') ||
+        errMsg.includes('the client is offline')
+      ) {
+        event.preventDefault();
+        console.warn("[Firebase] Intercepted and neutralized background network/auth failure cleanly:", errMsg);
+      }
+    }
+  });
+
+  window.addEventListener('error', (event) => {
+    const errMsg = event.message || '';
+    if (
+      errMsg.includes('auth/network-request-failed') ||
+      errMsg.includes('network-request-failed') ||
+      errMsg.includes('the client is offline')
+    ) {
+      event.preventDefault();
+      console.warn("[Firebase] Intercepted and neutralized global error failure cleanly:", errMsg);
+    }
+  });
+}
+
 // Configuration from firebase-applet-config.json
 const firebaseConfig = {
   apiKey: "AIzaSyC1bPOIQ-E_06ZxuTCX8Oxwk7meh4hXfaA",

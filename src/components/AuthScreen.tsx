@@ -343,29 +343,28 @@ export default function AuthScreen({ lang, theme, playSynthSound, showToast, onA
         throw new Error(data.error || 'Authentication failed');
       }
 
-      // Synchronize Firebase Authentication on the client side
+      // Synchronize Firebase Authentication on the client side - completely non-blocking
       try {
         if (activeTab === 'signup') {
-          await createUserWithEmailAndPassword(auth, email, password);
+          await createUserWithEmailAndPassword(auth, email, password).catch(err => {
+            console.warn("[Firebase] Client-side signup sync failed (offline/sandboxed):", err);
+          });
         } else {
           try {
             await signInWithEmailAndPassword(auth, email, password);
           } catch (fbErr: any) {
             if (fbErr.code === 'auth/user-not-found' || fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password') {
               // Register silently inside Firebase Auth so legacy accounts reconcile perfectly
-              await createUserWithEmailAndPassword(auth, email, password);
+              await createUserWithEmailAndPassword(auth, email, password).catch(err => {
+                console.warn("[Firebase] Client-side silent registration failed (offline/sandboxed):", err);
+              });
             } else {
-              throw fbErr;
+              console.warn("[Firebase] Client-side login sync failed (offline/sandboxed):", fbErr);
             }
           }
         }
       } catch (fbErr: any) {
-        console.warn("Firebase Auth synchronization silent fallback:", fbErr);
-        try {
-          await signInAnonymously(auth);
-        } catch (anonErr) {
-          console.warn("Firebase Auth completely unavailable:", anonErr);
-        }
+        console.warn("[Firebase] Auth synchronization silent fallback failed:", fbErr);
       }
 
       showToast(activeTab === 'signup' ? t.successSignup : t.successLogin, 'success');
@@ -416,24 +415,21 @@ export default function AuthScreen({ lang, theme, playSynthSound, showToast, onA
         loggedInUser = data.user;
       }
 
-      // Synchronize demo user with Firebase Auth session
+      // Synchronize demo user with Firebase Auth session - completely non-blocking
       try {
         try {
           await signInWithEmailAndPassword(auth, 'demo@aisupertools.com', 'demouser123');
         } catch (fbErr: any) {
           if (fbErr.code === 'auth/user-not-found' || fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password') {
-            await createUserWithEmailAndPassword(auth, 'demo@aisupertools.com', 'demouser123');
+            await createUserWithEmailAndPassword(auth, 'demo@aisupertools.com', 'demouser123').catch(err => {
+              console.warn("[Firebase] Demo silent signup failed (offline/sandboxed):", err);
+            });
           } else {
-            throw fbErr;
+            console.warn("[Firebase] Demo login sync failed (offline/sandboxed):", fbErr);
           }
         }
       } catch (fbErr: any) {
-        console.warn("Firebase Demo Auth synchronization silent fallback:", fbErr);
-        try {
-          await signInAnonymously(auth);
-        } catch (anonErr) {
-          console.warn("Firebase Auth completely unavailable in demo:", anonErr);
-        }
+        console.warn("[Firebase] Demo Auth synchronization failed:", fbErr);
       }
 
       showToast(t.successLogin, 'success');
