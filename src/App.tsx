@@ -12,7 +12,7 @@ import InteractiveWidgets from './components/InteractiveWidgets';
 import AuthScreen from './components/AuthScreen';
 import ProfileModal from './components/ProfileModal';
 import GlobalOperationsHub from './components/GlobalOperationsHub';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, executeResilientDbOp } from './firebase';
 
 // --- Global Procedural Synthesizer for Immersive Micro-Sounds ---
@@ -526,6 +526,71 @@ export default function App() {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 3500);
   };
+
+  // --- Live Real-Time Firestore Synchronization for Transactions & Approvals ---
+  useEffect(() => {
+    if (!userState.isLoggedIn || !userState.id) return;
+
+    let unsubscribeTxList: (() => void) | null = null;
+    let unsubscribeUserPendingTx: (() => void) | null = null;
+
+    // 1. Merchant Admin: Listen to all pending transactions
+    if (userState.email === 'dhruvtarsariya3@gmail.com') {
+      executeResilientDbOp(async (currentDb) => {
+        const q = query(collection(currentDb, 'transactions'), where('status', '==', 'pending'));
+        const unsub = onSnapshot(q, (snapshot) => {
+          const list: any[] = [];
+          snapshot.forEach((doc) => {
+            list.push(doc.data());
+          });
+          // Sort in memory to avoid needing composite indexes
+          list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          setPendingTransactions(list);
+        }, (err) => {
+          console.warn("Firestore admin transactions listener failed:", err);
+        });
+        unsubscribeTxList = unsub;
+      }).catch(err => console.warn("Admin transactions query initialization failed:", err));
+    }
+
+    // 2. Regular User / Anyone with an active local pending transaction: Listen to its status
+    if (userPendingTx && userPendingTx.id) {
+      executeResilientDbOp(async (currentDb) => {
+        const unsub = onSnapshot(doc(currentDb, 'transactions', userPendingTx.id), (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.status === 'approved') {
+              playSynthSound('success');
+              showToast(lang === 'gu' 
+                ? 'તમારું પેમેન્ટ મંજૂર થઈ ગયું છે! પ્રીમિયમ સક્રિય થઈ ગયું છે!' 
+                : 'Your payment has been approved! Premium Access has been activated!', 'success');
+              
+              setUserState(prev => ({
+                ...prev,
+                tier: data.plan,
+                credits: 999999
+              }));
+              setUserPendingTx(null);
+            } else if (data.status === 'rejected') {
+              playSynthSound('laser');
+              showToast(lang === 'gu'
+                ? 'અસ્વીકાર: તમારી વિનંતી એડમિન દ્વારા નકારવામાં આવી છે. કૃપા કરીને UTR તપાસો.'
+                : 'Rejected: Your payment reference was rejected. Please double-check your UTR/Ref ID.', 'error');
+              setUserPendingTx(null);
+            }
+          }
+        }, (err) => {
+          console.warn("Firestore pending tx listener failed:", err);
+        });
+        unsubscribeUserPendingTx = unsub;
+      }).catch(err => console.warn("Pending tx query initialization failed:", err));
+    }
+
+    return () => {
+      if (unsubscribeTxList) unsubscribeTxList();
+      if (unsubscribeUserPendingTx) unsubscribeUserPendingTx();
+    };
+  }, [userState.isLoggedIn, userState.id, userState.email, userPendingTx?.id, lang]);
 
   // --- Tool Onboarding Tour Step ---
   const [tourStep, setTourStep] = useState<number | null>(null);
@@ -4685,17 +4750,27 @@ export default function App() {
                       alert(isGu ? 'કૃપા કરીને બધી વિગતો ભરો!' : 'Please fill out both your name and UPI transaction ID/UTR!');
                       return;
                     }
+                    const txnId = 'TXN-' + Math.floor(100000 + Math.random() * 900000);
                     const newPending = {
-                      id: 'TXN-' + Math.floor(100000 + Math.random() * 900000),
+                      id: txnId,
+                      userId: userState.id || '',
                       email: userState.email,
                       senderName: senderNameInput.trim(),
                       utr: utrInput.trim(),
                       plan: selectedPlan,
                       amount: activeAmount,
                       cycle: billingCycle,
-                      timestamp: Date.now()
+                      timestamp: Date.now(),
+                      status: 'pending'
                     };
-                    setPendingTransactions(prev => [newPending, ...prev]);
+                    
+                    // Persist to centralized Firestore instantly
+                    executeResilientDbOp(async (currentDb) => {
+                      await setDoc(doc(currentDb, 'transactions', txnId), newPending);
+                    }).catch(err => {
+                      console.error("Failed to save transaction to Firestore:", err);
+                    });
+
                     setUserPendingTx(newPending);
                     setSenderNameInput('');
                     setUtrInput('');
@@ -4861,6 +4936,14 @@ export default function App() {
                                   if (tx.email === userState.email) {
                                     setUserPendingTx(null);
                                   }
+
+                                  // Update Firestore status to rejected
+                                  executeResilientDbOp(async (currentDb) => {
+                                    await setDoc(doc(currentDb, 'transactions', tx.id), {
+                                      status: 'rejected'
+                                    }, { merge: true });
+                                  }).catch(err => console.error("Firestore transaction reject failed:", err));
+
                                   setPendingTransactions(prev => prev.filter(t => t.id !== tx.id));
                                   alert(isGu ? 'પેમેન્ટ અસ્વીકાર કરવામાં આવ્યું!' : 'Transaction rejected and removed from queue.');
                                 }}
@@ -4880,6 +4963,24 @@ export default function App() {
                                     }));
                                     setUserPendingTx(null);
                                   }
+
+                                  // Update Firestore status to approved and upgrade user in Firestore
+                                  executeResilientDbOp(async (currentDb) => {
+                                    // 1. Approve transaction
+                                    await setDoc(doc(currentDb, 'transactions', tx.id), {
+                                      status: 'approved'
+                                    }, { merge: true });
+
+                                    // 2. Permanently upgrade user in the 'users' collection
+                                    if (tx.userId) {
+                                      await setDoc(doc(currentDb, 'users', tx.userId), {
+                                        tier: tx.plan,
+                                        credits: 999999,
+                                        updatedAt: new Date().toISOString()
+                                      }, { merge: true });
+                                    }
+                                  }).catch(err => console.error("Firestore transaction approve failed:", err));
+
                                   setPendingTransactions(prev => prev.filter(t => t.id !== tx.id));
                                   alert(isGu ? 'પેમેન્ટ સફળતાપૂર્વક મંજૂર કરવામાં આવ્યું! પ્રીમિયમ ચાલુ થયું!' : `Approved successfully! Granted ${tx.plan.toUpperCase()} access to ${tx.email}.`);
                                 }}
