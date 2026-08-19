@@ -1710,9 +1710,12 @@ export default function App() {
       {/* Ambient soft glowing backgrounds */}
       {theme === 'dark' ? (
         <>
-          <div className="absolute top-0 left-1/4 right-1/4 h-[500px] bg-gradient-to-b from-indigo-500/5 to-transparent rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute top-[20%] left-[-100px] w-96 h-96 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
-          <div className="absolute bottom-[10%] right-[-100px] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[150px] pointer-events-none" />
+          {/* Elite Animated Matrix Radial Mesh & Top Accent Grid */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b06_1px,transparent_1px),linear-gradient(to_bottom,#1e293b06_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent animate-pulse" />
+          <div className="absolute top-0 left-1/4 right-1/4 h-[500px] bg-gradient-to-b from-indigo-500/10 to-transparent rounded-full blur-[140px] pointer-events-none" />
+          <div className="absolute top-[20%] left-[-100px] w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-[10%] right-[-100px] w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[150px] pointer-events-none" />
         </>
       ) : (
         <>
@@ -2687,21 +2690,21 @@ export default function App() {
             <div className="space-y-6">
               
               {/* Premium Welcome Hero Panel (Elegant, functional, zero generic slop) */}
-              <div className={`bg-gradient-to-br ${theme === 'dark' ? 'from-[#0c1222] via-[#090d16] to-[#04060c] border-slate-900/80' : 'from-blue-50/70 via-indigo-50/50 to-white border-slate-200 shadow-md'} border rounded-3xl p-6 lg:p-8 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6 hover:border-slate-800/80 transition-all duration-300`}>
-                <div className="absolute top-0 left-0 w-64 h-64 bg-blue-600/5 rounded-full blur-[100px] pointer-events-none" />
-                <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-600/5 rounded-full blur-[100px] pointer-events-none" />
+              <div className={`bg-gradient-to-br ${theme === 'dark' ? 'from-[#0f172a] via-[#090e1a] to-[#020617] border-slate-800/60 shadow-[0_0_50px_rgba(37,99,235,0.06)]' : 'from-blue-50/70 via-indigo-50/50 to-white border-slate-200 shadow-md'} border rounded-3xl p-6 lg:p-8 relative overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-6 hover:border-blue-500/20 transition-all duration-300`}>
+                <div className="absolute top-0 left-0 w-80 h-80 bg-gradient-to-br from-blue-600/10 to-transparent rounded-full blur-[120px] pointer-events-none animate-pulse" />
+                <div className="absolute bottom-0 right-0 w-80 h-80 bg-gradient-to-tl from-indigo-600/10 to-transparent rounded-full blur-[120px] pointer-events-none animate-pulse" />
                 
-                <div className="space-y-3.5 max-w-xl text-left">
-                  <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
+                <div className="space-y-3.5 max-w-xl text-left relative z-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                    <span className="text-[9px] text-blue-500 dark:text-blue-300 font-extrabold tracking-widest uppercase">
+                    <span className="text-[9px] text-blue-500 dark:text-blue-300 font-extrabold tracking-widest uppercase font-mono">
                       SECURE MULTITHREADED FRAMEWORK
                     </span>
                   </div>
-                  <h2 className={`text-xl lg:text-3xl font-black ${theme === 'dark' ? 'text-white' : 'text-slate-900'} leading-tight tracking-tight`}>
-                    {lang === 'gu' ? '૧૦૦+ AI અને સ્માર્ટ સાધનો' : lang === 'hi' ? '100+ सुपर एआई टूलकिट' : '100+ High-Performance AI Hub'}
+                  <h2 className={`text-xl lg:text-3xl font-black ${theme === 'dark' ? 'text-white' : 'text-slate-900'} leading-tight tracking-tight uppercase`}>
+                    {lang === 'gu' ? '૧૦૦+ AI અને સ્માર્ટ સાધનો' : lang === 'hi' ? '100+ सुपर एआई टूलキット' : '100+ High-Performance AI Hub'}
                   </h2>
-                  <p className={`text-xs lg:text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} leading-relaxed font-semibold`}>
+                  <p className={`text-xs lg:text-sm ${theme === 'dark' ? 'text-slate-350' : 'text-slate-600'} leading-relaxed font-semibold`}>
                     {t.tagline} Instantly invoke advanced micro-processing tools, dynamic document OCR extractions, secure sandbox compilers, color matrices, and fast financial invoice splitters.
                   </p>
                 </div>
@@ -3721,11 +3724,17 @@ export default function App() {
                         isCompareMode && comparedToolIds.includes(tool.id)
                           ? 'ring-4 ring-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/5 border-emerald-500'
                           : ''
-                      } ${theme === 'dark' ? 'bg-[#090d16] hover:bg-[#0c1222] border-slate-900 hover:border-slate-800 text-slate-100' : 'bg-white hover:bg-slate-50/50 border-slate-200 hover:border-slate-300 text-slate-800 shadow-md hover:shadow-lg'} p-5 rounded-2xl cursor-pointer transition-all duration-300 flex flex-col justify-between space-y-4 text-left relative overflow-hidden border`}
+                      } ${
+                        theme === 'dark' 
+                          ? 'bg-gradient-to-b from-[#090d16]/90 to-[#04060c]/95 hover:from-[#0d1527] hover:to-[#080d1a] border-slate-900/80 hover:border-blue-500/30 text-slate-100 shadow-xl shadow-slate-950/20' 
+                          : 'bg-gradient-to-b from-white to-slate-50/60 hover:from-white hover:to-slate-50 border-slate-200/80 hover:border-blue-500/30 text-slate-800 shadow-md hover:shadow-xl hover:shadow-blue-500/5'
+                      } p-5 rounded-2xl cursor-pointer transition-all duration-300 flex flex-col justify-between space-y-4 text-left relative overflow-hidden border`}
                     >
                       {/* Premium Accent line */}
-                      {isToolPremium && (
+                      {isToolPremium ? (
                         <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-500 via-orange-400 to-yellow-500" />
+                      ) : (
+                        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent group-hover:via-blue-500/40 transition-all duration-300" />
                       )}
 
                       {/* Favorite star toggle */}
