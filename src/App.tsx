@@ -13,7 +13,8 @@ import AuthScreen from './components/AuthScreen';
 import ProfileModal from './components/ProfileModal';
 import GlobalOperationsHub from './components/GlobalOperationsHub';
 import { doc, setDoc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db, executeResilientDbOp } from './firebase';
+import { db, executeResilientDbOp, auth } from './firebase';
+import { signOut } from 'firebase/auth';
 
 // --- Global Procedural Synthesizer for Immersive Micro-Sounds ---
 const playSynthSound = (type: 'click' | 'success' | 'rate' | 'chime' | 'laser' | 'toggle') => {
@@ -313,16 +314,16 @@ export default function App() {
       }
     }
     return {
-      id: 'usr-sutex-bca',
-      email: 'dhruvtarsariya3@gmail.com',
-      name: 'Dhruv Tarsariya',
-      username: 'dhruvtarsariya',
-      tier: 'elite',
-      credits: 999999,
-      favorites: ['ai-chat', 'website-generator', 'rich-notes', 'sutex-bca-assistant', 'pitch-deck-generator'],
+      id: '',
+      email: '',
+      name: '',
+      username: '',
+      tier: 'free',
+      credits: 30,
+      favorites: [],
       history: [],
       savedNotes: [],
-      isLoggedIn: true
+      isLoggedIn: false
     };
   });
 
@@ -5674,6 +5675,29 @@ export default function App() {
                 college: updatedUser.college,
                 semester: updatedUser.semester
               }));
+            }}
+            onLogout={() => {
+              // Reset local storage
+              localStorage.removeItem('hub_user');
+              localStorage.removeItem('hub_user_pending_tx');
+              
+              // Clear state
+              setUserState({
+                id: '',
+                email: '',
+                name: '',
+                username: '',
+                tier: 'free',
+                credits: 30,
+                favorites: [],
+                history: [],
+                savedNotes: [],
+                isLoggedIn: false
+              });
+              
+              setShowProfileModal(false);
+              signOut(auth).catch(err => console.warn("Firebase Auth signout failed:", err));
+              showToast(lang === 'gu' ? 'તમે લોગ આઉટ થયા છો!' : 'Logged out successfully!', 'info');
             }}
             playSynthSound={playSynthSound}
             showToast={showToast}

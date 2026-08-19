@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, AtSign, Key, Save, ShieldAlert, Award, Star, History, Check, GraduationCap, BookOpen, Download, Upload } from 'lucide-react';
+import { X, User, AtSign, Key, Save, ShieldAlert, Award, Star, History, Check, GraduationCap, BookOpen, Download, Upload, LogOut } from 'lucide-react';
 import { LanguageCode } from '../types';
 
 interface ProfileModalProps {
@@ -19,6 +19,7 @@ interface ProfileModalProps {
   };
   onClose: () => void;
   onUpdateSuccess: (updatedUser: { name: string; username: string; college?: string; semester?: string }) => void;
+  onLogout?: () => void;
   playSynthSound: (type: 'click' | 'success' | 'rate' | 'chime' | 'laser' | 'toggle') => void;
   showToast: (message: string, type: 'success' | 'info' | 'error') => void;
 }
@@ -163,6 +164,7 @@ export default function ProfileModal({
   userState,
   onClose,
   onUpdateSuccess,
+  onLogout,
   playSynthSound,
   showToast
 }: ProfileModalProps) {
@@ -376,6 +378,18 @@ export default function ProfileModal({
                     <span>{userState.history.length}</span>
                   </div>
                 </div>
+                {onLogout && (
+                  <button
+                    onClick={() => {
+                      playSynthSound('laser');
+                      onLogout();
+                    }}
+                    className="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 text-[10px] font-black py-2.5 rounded-xl transition-all duration-150 uppercase tracking-widest flex items-center justify-center gap-1.5 cursor-pointer mt-3"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>{lang === 'gu' ? 'લોગ આઉટ કરો' : 'Log Out Account'}</span>
+                  </button>
+                )}
               </div>
             </div>
 
