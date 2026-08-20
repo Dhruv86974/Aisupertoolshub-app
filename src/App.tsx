@@ -12,6 +12,12 @@ import InteractiveWidgets from './components/InteractiveWidgets';
 import AuthScreen from './components/AuthScreen';
 import ProfileModal from './components/ProfileModal';
 import GlobalOperationsHub from './components/GlobalOperationsHub';
+import BusinessAIStackPanel from './components/BusinessAIStackPanel';
+import ScamFakeAIDetector from './components/ScamFakeAIDetector';
+import EmailNewsletterCampaign from './components/EmailNewsletterCampaign';
+import AffiliateAndPartnerHub from './components/AffiliateAndPartnerHub';
+import AISuperToolsIndex from './components/AISuperToolsIndex';
+import XPRewardStore from './components/XPRewardStore';
 import { doc, setDoc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, executeResilientDbOp, auth } from './firebase';
 import { signOut } from 'firebase/auth';
@@ -1171,7 +1177,7 @@ export default function App() {
     const saved = localStorage.getItem('hub_radar_upvotes');
     return saved ? JSON.parse(saved) : { omniscribe: 42, vectradesign: 38, devsprint: 56 };
   });
-  const [activeRadarTab, setActiveRadarTab] = useState<'directory' | 'radar' | 'toolbox' | 'trends' | 'builder' | 'leaderboard' | 'companies' | 'dev-directory' | 'scam-detector'>('directory');
+  const [activeRadarTab, setActiveRadarTab] = useState<'directory' | 'radar' | 'toolbox' | 'trends' | 'builder' | 'leaderboard' | 'companies' | 'dev-directory' | 'scam-detector' | 'newsletter' | 'affiliate-hub' | 'rewards'>('directory');
   const [newCollectionName, setNewCollectionName] = useState('');
   const [showCreateCollection, setShowCreateCollection] = useState(false);
 
@@ -4006,7 +4012,7 @@ export default function App() {
                       } ${
                         theme === 'dark' 
                           ? 'bg-gradient-to-b from-[#090d16]/90 to-[#04060c]/95 hover:from-[#0d1527] hover:to-[#080d1a] border-slate-900/80 hover:border-blue-500/30 text-slate-100 shadow-xl shadow-slate-950/20' 
-                          : 'bg-gradient-to-b from-white to-slate-50/60 hover:from-white hover:to-slate-50 border-slate-200/80 hover:border-blue-500/30 text-slate-800 shadow-md hover:shadow-xl hover:shadow-blue-500/5'
+                          : 'bg-gradient-to-b from-white to-slate-50/60 hover:from-white hover:to-slate-50 border-slate-200/80 hover:border-blue-500/30 text-slate-800 hover:shadow-xl hover:shadow-blue-500/5'
                       } p-5 rounded-2xl cursor-pointer transition-all duration-300 flex flex-col justify-between space-y-4 text-left relative overflow-hidden border`}
                     >
                       {/* Premium Accent line */}
