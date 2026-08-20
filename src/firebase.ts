@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, Firestore } from 'firebase/firestore';
 
 // Intercept and cleanly neutralize background Firebase network/auth failures
 if (typeof window !== 'undefined') {
@@ -53,10 +53,19 @@ export const auth = getAuth(app);
 // Dynamic resilient Firestore setup
 let activeDb: Firestore;
 try {
-  activeDb = getFirestore(app, "ai-studio-aisupertoolshub-ed12c8af-0de6-4766-a5b3-85d8f6e82b8e");
+  activeDb = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+  }, "ai-studio-aisupertoolshub-ed12c8af-0de6-4766-a5b3-85d8f6e82b8e");
 } catch (e) {
-  console.warn("Could not load custom named database, using default:", e);
-  activeDb = getFirestore(app);
+  console.warn("Could not load custom named database with custom settings, trying default with custom settings:", e);
+  try {
+    activeDb = initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    });
+  } catch (err2) {
+    console.warn("Could not initialize custom named or default database with initializeFirestore, falling back to getFirestore:", err2);
+    activeDb = getFirestore(app);
+  }
 }
 
 export let db = activeDb;

@@ -62,7 +62,7 @@ export interface Note {
   updatedAt: number;
 }
 
-export type LanguageCode = 'en' | 'es' | 'gu' | 'hi' | 'ja';
+export type LanguageCode = 'en' | 'es' | 'gu' | 'hi' | 'ja' | 'pt' | 'ar';
 
 export interface TranslationSet {
   brand: string;
@@ -125,7 +125,9 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationSet> = {
       es: 'Español 🇪🇸',
       gu: 'ગુજરાતી 🇮🇳',
       hi: 'हिन्दी 🇮🇳',
-      ja: '日本語 🇯🇵'
+      ja: '日本語 🇯🇵',
+      pt: 'Português 🇵🇹',
+      ar: 'العربية 🇸🇦'
     },
     close: 'Close',
     runTool: 'Generate with AI',
@@ -178,7 +180,9 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationSet> = {
       es: 'Español 🇪🇸',
       gu: 'ગુજરાતી 🇮🇳',
       hi: 'हिन्दी 🇮🇳',
-      ja: '日本語 🇯🇵'
+      ja: '日本語 🇯🇵',
+      pt: 'Português 🇵🇹',
+      ar: 'العربية 🇸🇦'
     },
     close: 'Cerrar',
     runTool: 'Generar con IA',
@@ -231,7 +235,9 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationSet> = {
       es: 'Español 🇪🇸',
       gu: 'ગુજરાતી 🇮🇳',
       hi: 'हिन्दी 🇮🇳',
-      ja: '日本語 🇯🇵'
+      ja: '日本語 🇯🇵',
+      pt: 'Português 🇵🇹',
+      ar: 'العربية 🇸🇦'
     },
     close: 'બંધ કરો',
     runTool: 'AI સાથે બનાવો',
@@ -284,7 +290,9 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationSet> = {
       es: 'Español 🇪🇸',
       gu: 'ગુજરાતી 🇮🇳',
       hi: 'हिन्दी 🇮🇳',
-      ja: '日本語 🇯🇵'
+      ja: '日本語 🇯🇵',
+      pt: 'Português 🇵🇹',
+      ar: 'العربية 🇸🇦'
     },
     close: 'बंद करें',
     runTool: 'एआई से बनाएं',
@@ -337,7 +345,9 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationSet> = {
       es: 'Español 🇪🇸',
       gu: 'ગુજરાતી 🇮🇳',
       hi: 'हिन्दी 🇮🇳',
-      ja: '日本語 🇯🇵'
+      ja: '日本語 🇯🇵',
+      pt: 'Português 🇵🇹',
+      ar: 'العربية 🇸🇦'
     },
     close: '閉じる',
     runTool: 'AIで生成',
@@ -360,5 +370,115 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationSet> = {
     ],
     adTitle: 'スポンサー提供の広告',
     adClose: '広告を非表示（プロにする）'
+  },
+  pt: {
+    brand: 'AI Super Tools Hub',
+    tagline: 'Seu kit de ferramentas de alta performance premium com mais de 200 utilitários de IA.',
+    searchPlaceholder: 'Pesquise mais de 200 ferramentas de IA...',
+    categories: {
+      all: 'Todas as ferramentas',
+      'ai-chat': 'Assistentes de IA & Chat',
+      'content-writing': 'Conteúdo & Escrita',
+      'marketing-social': 'Marketing & Redes Sociais',
+      'developer-tech': 'Ferramentas de Desenvolvedor',
+      'image-pdf': 'Imagem & Documento PDF',
+      utilities: 'Utilitários Diários',
+      'math-calc': 'Calculadoras & Matemática',
+      'business-ideas': 'Negócios & Startups'
+    },
+    proBadge: 'MEMBRO PRO',
+    freeBadge: 'CONTA GRÁTIS',
+    favorites: 'Favoritos',
+    history: 'Histórico',
+    noHistory: 'Nenhuma geração ainda. Tente executar uma ferramenta!',
+    savedNotes: 'Notas Salvas',
+    noNotes: 'Nenhuma nota salva. Crie uma no utilitário de Notas!',
+    creditsLabel: 'Créditos de IA Disponíveis',
+    upgradeBtn: 'Atualizar para Premium',
+    languages: {
+      en: 'English 🇺🇸',
+      es: 'Español 🇪🇸',
+      gu: 'ગુજરાતી 🇮🇳',
+      hi: 'हिन्दी 🇮🇳',
+      ja: '日本語 🇯🇵',
+      pt: 'Português 🇵🇹',
+      ar: 'العربية 🇸🇦'
+    },
+    close: 'Fechar',
+    runTool: 'Gerar com IA',
+    generating: 'Gerando Resultado...',
+    outputLabel: 'Resultado Gerado por IA',
+    copyBtn: 'Copiar para a Área de Transferência',
+    copied: 'Copiado!',
+    favoritesTitle: 'Suas Ferramentas Favoritas',
+    pricingTitle: 'Desbloquear Acesso Premium Ilimitado',
+    pricingSub: 'Turbine seu fluxo de trabalho com mais de 200 modelos de IA desbloqueados.',
+    monthly: 'Plano Mensal',
+    yearly: 'Plano Anual (Economize 40%)',
+    proFeatures: [
+      'Gerações ilimitadas de IA em alta velocidade',
+      'Chat de IA multivoltas avançado',
+      'Extração ilimitada de documentos e imagens OCR',
+      'Exportador de site completo customizado',
+      'Zero anúncios no painel de ferramentas',
+      'Atendimento ao cliente prioritário'
+    ],
+    adTitle: 'ANÚNCIO PATROCINADO',
+    adClose: 'Remover Anúncios (Go Pro)'
+  },
+  ar: {
+    brand: 'AI Super Tools Hub',
+    tagline: 'حقيبة أدواتك المتميزة فائقة الأداء مع أكثر من 200 أداة ذكاء اصطناعي.',
+    searchPlaceholder: 'ابحث في أكثر من 200 أداة ذكاء اصطناعي...',
+    categories: {
+      all: 'جميع الأدوات',
+      'ai-chat': 'مساعدي الذكاء الاصطناعي والدردشة',
+      'content-writing': 'المحتوى والكتابة',
+      'marketing-social': 'التسويق ووسائل التواصل الاجتماعي',
+      'developer-tech': 'أدوات المطورين والتكنولوجيا',
+      'image-pdf': 'الصور ومستندات PDF',
+      utilities: 'أدوات يومية عامة',
+      'math-calc': 'الآلات الحاسبة والرياضيات',
+      'business-ideas': 'الأعمال والشركات الناشئة'
+    },
+    proBadge: 'عضو برو',
+    freeBadge: 'حساب مجاني',
+    favorites: 'المفضلة',
+    history: 'السجل',
+    noHistory: 'لا توجد عمليات إنشاء حتى الآن. جرب تشغيل أداة!',
+    savedNotes: 'الملاحظات المحفوظة',
+    noNotes: 'لا توجد ملاحظات محفوظة. أنشئ واحدة في أداة الملاحظات!',
+    creditsLabel: 'رصيد الذكاء الاصطناعي المتاح',
+    upgradeBtn: 'الترقية إلى برو',
+    languages: {
+      en: 'English 🇺🇸',
+      es: 'Español 🇪🇸',
+      gu: 'ગુજરાતી 🇮🇳',
+      hi: 'हिन्दी 🇮🇳',
+      ja: '日本語 🇯🇵',
+      pt: 'Português 🇵🇹',
+      ar: 'العربية 🇸🇦'
+    },
+    close: 'إغلاق',
+    runTool: 'توليد بالذكاء الاصطناعي',
+    generating: 'جاري التوليد...',
+    outputLabel: 'النتيجة المولدة بالذكاء الاصطناعي',
+    copyBtn: 'نسخ إلى الحافظة',
+    copied: 'تم النسخ!',
+    favoritesTitle: 'أدواتك المفضلة',
+    pricingTitle: 'فتح الوصول المميز غير المحدود',
+    pricingSub: 'عزز إنتاجيتك مع أكثر من 200 نموذج ذكاء اصطناعي غير محدود.',
+    monthly: 'خطة شهرية',
+    yearly: 'خطة سنوية (وفر 40%)',
+    proFeatures: [
+      'عمليات توليد غير محدودة فائقة السرعة',
+      'دردشة ذكاء اصطناعي متقدمة متعددة الجولات',
+      'استخراج غير محدود للنصوص من الصور والمستندات OCR',
+      'مصدّر مواقع ويب مخصص بالكامل',
+      'خالٍ تماماً من الإعلانات',
+      'دعم عملاء ذو أولوية فائقة'
+    ],
+    adTitle: 'إعلان ممول',
+    adClose: 'إزالة الإعلانات (احصل على برو)'
   }
 };
