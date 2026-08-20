@@ -1171,14 +1171,104 @@ export default function App() {
     const saved = localStorage.getItem('hub_radar_upvotes');
     return saved ? JSON.parse(saved) : { omniscribe: 42, vectradesign: 38, devsprint: 56 };
   });
-  const [activeRadarTab, setActiveRadarTab] = useState<'directory' | 'radar' | 'toolbox' | 'trends' | 'builder' | 'leaderboard' | 'companies' | 'dev-directory'>('directory');
+  const [activeRadarTab, setActiveRadarTab] = useState<'directory' | 'radar' | 'toolbox' | 'trends' | 'builder' | 'leaderboard' | 'companies' | 'dev-directory' | 'scam-detector'>('directory');
   const [newCollectionName, setNewCollectionName] = useState('');
   const [showCreateCollection, setShowCreateCollection] = useState(false);
+
+  // States for AI Scam / Fake AI Detector
+  const [scamSearchName, setScamSearchName] = useState('');
+  const [scamSearchUrl, setScamSearchUrl] = useState('');
+  const [scamResult, setScamResult] = useState<any | null>(null);
+  const [scamLoading, setScamLoading] = useState(false);
+  const [scamHistory, setScamHistory] = useState<Array<{ name: string; url: string; score: number; status: string; date: string }>>(() => {
+    const saved = localStorage.getItem('hub_scam_history');
+    return saved ? JSON.parse(saved) : [
+      { name: "Sora-Premium-Free.com", url: "https://sora-premium-free.com", score: 18, status: "HIGH RISK", date: "Aug 18, 2026" },
+      { name: "ChatGPT-Plus-Reseller.net", url: "https://chatgpt-plus-reseller.net", score: 32, status: "HIGH RISK", date: "Aug 19, 2026" },
+      { name: "Jasper.ai", url: "https://jasper.ai", score: 92, status: "SAFE", date: "Aug 20, 2026" }
+    ];
+  });
 
   // States for AI Toolkit Builder & Newsletter
   const [builderRole, setBuilderRole] = useState<'youtuber' | 'student' | 'blogger' | 'developer' | 'designer'>('youtuber');
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
+
+  // Customized Business AI Stack states
+  const [customStackIndustry, setCustomStackIndustry] = useState('E-Commerce');
+  const [customStackBudget, setCustomStackBudget] = useState('Flexible');
+  const [customStackTeamSize, setCustomStackTeamSize] = useState('1 (Solo)');
+  const [customStackRegion, setCustomStackRegion] = useState('India');
+  const [customStackLoading, setCustomStackLoading] = useState(false);
+  const [customStackResult, setCustomStackResult] = useState<any | null>(null);
+
+  // Sponsored Tool Submission modal & registration states
+  const [showSponsorForm, setShowSponsorForm] = useState(false);
+  const [sponsorToolName, setSponsorToolName] = useState('');
+  const [sponsorUrl, setSponsorUrl] = useState('');
+  const [sponsorLogo, setSponsorLogo] = useState('🤖');
+  const [sponsorBestFor, setSponsorBestFor] = useState('');
+  const [sponsorCost, setSponsorCost] = useState('Free Plan');
+  const [sponsorCategory, setSponsorCategory] = useState('Productivity');
+  const [customSponsoredTools, setCustomSponsoredTools] = useState<any[]>(() => {
+    const saved = localStorage.getItem('hub_sponsored_tools');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Newsletter Vault States
+  const [showNewsletterVault, setShowNewsletterVault] = useState(false);
+  const [newsletterIssues, setNewsletterIssues] = useState<any[]>([]);
+  const [selectedNewsletterIssue, setSelectedNewsletterIssue] = useState<any | null>(null);
+
+  // Affiliate Simulation Portal States
+  const [userAffiliateLinks, setUserAffiliateLinks] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem('hub_user_affiliate_links');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [affiliateMetrics, setAffiliateMetrics] = useState(() => {
+    const saved = localStorage.getItem('hub_affiliate_metrics');
+    return saved ? JSON.parse(saved) : { clicks: 0, conversions: 0, earnings: 0 };
+  });
+
+  // Daily Quests progress state
+  const [dailyQuests, setDailyQuests] = useState(() => {
+    const saved = localStorage.getItem('hub_daily_quests');
+    return saved ? JSON.parse(saved) : {
+      newsletter: { completed: false, claimed: false, max: 1, current: 0, labelEn: "Join Weekly Newsletter", labelGu: "સાપ્તાહિક ન્યૂઝલેટરમાં જોડાઓ", reward: 15 },
+      scam: { completed: false, claimed: false, max: 1, current: 0, labelEn: "Run a cyber scam-detector check", labelGu: "એક શંકાસ્પદ સાધનની સ્કેમ ચેક કરો", reward: 10 },
+      stack: { completed: false, claimed: false, max: 1, current: 0, labelEn: "Plan a Customized Business Stack", labelGu: "વ્યવસાયિક સ્ટેકની રચના કરો", reward: 20 },
+      affiliate: { completed: false, claimed: false, max: 3, current: 0, labelEn: "Generate 3 Affiliate Referral Links", labelGu: "૩ અફિલિએટ રેફરલ લિંક્સ બનાવો", reward: 15 }
+    };
+  });
+
+  const updateQuestProgress = (questKey: 'newsletter' | 'scam' | 'stack' | 'affiliate', amount = 1) => {
+    setDailyQuests((prev: any) => {
+      const q = prev[questKey];
+      if (!q || q.completed) return prev;
+      const nextCurrent = Math.min(q.max, q.current + amount);
+      const nextCompleted = nextCurrent >= q.max;
+      const next = {
+        ...prev,
+        [questKey]: {
+          ...q,
+          current: nextCurrent,
+          completed: nextCompleted
+        }
+      };
+      localStorage.setItem('hub_daily_quests', JSON.stringify(next));
+      if (nextCompleted) {
+        showToast(
+          lang === 'gu'
+            ? `રોજિંદો ક્વેસ્ટ પૂર્ણ: ${q.labelGu}! લીડરબોર્ડમાં ઇનામ મેળવો.`
+            : `Daily Quest Completed: ${q.labelEn}! Claim your reward in the Leaderboard tab.`,
+          'success'
+        );
+      }
+      return next;
+    });
+  };
+
+  const [directoryViewMode, setDirectoryViewMode] = useState<'cards' | 'table'>('cards');
 
   // Form for new AI Launch submission
   const [showLaunchForm, setShowLaunchForm] = useState(false);
@@ -1399,7 +1489,110 @@ export default function App() {
     localStorage.setItem('hub_custom_launches', JSON.stringify(customLaunches));
   }, [customLaunches]);
 
+  useEffect(() => {
+    localStorage.setItem('hub_scam_history', JSON.stringify(scamHistory));
+  }, [scamHistory]);
+
   // --- Directory Advanced Helper Functions ---
+  const getToolById = (id: string) => {
+    const realTool = AI_TOOLS_DIRECTORY.find(t => t.id === id);
+    if (realTool) return realTool;
+    
+    if (id.startsWith('virtual_')) {
+      const parts = id.split('_');
+      const idx = parseInt(parts[1], 10);
+      const tIndex = parseInt(parts[2], 10);
+      
+      const presetStacks = [
+        {
+          title: "Startup AI Stack",
+          tools: ["Notion AI (Knowledge)", "Slack AI (Collaboration)", "Claude Pro (Thinking)", "Stripe AI (Revenue)", "Linear (Task PM)"],
+          logos: ["📝", "💬", "✍️", "💳", "🎯"],
+          descs: ["Knowledge base & docs organizer", "Intelligent team search & huddles", "Complex reasoning & code generation", "Automated revenue & pricing model audit", "Issue tracker & sprint coordinator"]
+        },
+        {
+          title: "Marketing Agency AI Stack",
+          tools: ["Jasper AI (Copywriting)", "Canva Pro (Banners)", "HubSpot AI (Automated CRM)", "ElevenLabs (Ads Voice)", "Loom AI (Video pitch)"],
+          logos: ["✍️", "🎨", "📈", "🎙️", "📹"],
+          descs: ["SEO copywriting & blog posts generator", "Social media templates and posters", "Smart pipeline scoring & contact finder", "Narrator voices with emotional tone clone", "Automated screen recorder summaries"]
+        },
+        {
+          title: "E-Commerce AI Stack",
+          tools: ["Shopify Sidekick (Store)", "Photoroom (Product BG)", "Klaviyo AI (Emails)", "ChatGPT (Instant Support)", "ManyChat (Social Chatbot)"],
+          logos: ["🛒", "🖼️", "✉️", "🤖", "💬"],
+          descs: ["AI assistant for store creation & edits", "Remove photo backgrounds instantly", "Targeted customer newsletter flow automations", "Instant GPT support & answers resolver", "Automated IG & WhatsApp DM responder"]
+        },
+        {
+          title: "Real Estate AI Stack",
+          tools: ["virtualStaging.ai (Furniture)", "Zillow 3D Home (Immersive Tours)", "ChatGPT Plus (Listing copy)", "Canva Pro (Brochures)"],
+          logos: ["🏠", "📸", "📝", "🎨"],
+          descs: ["Place furniture in empty rooms with AI", "Convert panos into immersive 3D walkthroughs", "Engaging listing bios and email briefs", "Premium digital brochures creator"]
+        },
+        {
+          title: "Consulting AI Stack",
+          tools: ["Beautiful.ai (Presentation Decks)", "Otter.ai (Minutes of Meeting)", "DocuSign AI (Contracts)", "ChatGPT (Case Analysis)"],
+          logos: ["📊", "🎙️", "📝", "🤖"],
+          descs: ["Generate pitch decks in seconds from prompt", "Auto transcribe and summarize meeting minutes", "Review & extract terms from legal agreements", "Analyze case studies & competitive trends"]
+        }
+      ];
+      
+      const stack = presetStacks[idx];
+      if (stack) {
+        const name = stack.tools[tIndex] || "Business Tool";
+        const logo = stack.logos[tIndex] || "🛠️";
+        const desc = stack.descs[tIndex] || "Curated operational AI software solution.";
+        return {
+          id,
+          name,
+          category: "business",
+          tags: ["business", "curated"],
+          logo,
+          shortDesc: desc,
+          description: desc,
+          score: 9.6,
+          ratingBreakdown: {
+            features: 9.7,
+            easeOfUse: 9.5,
+            price: 9.4,
+            outputQuality: 9.6,
+            freePlan: 9.2,
+            userReviews: 9.7
+          },
+          priceInfo: "Included in Curated Stack Bundle",
+          isFree: true,
+          bestFor: "Business optimization & modern operations",
+          featuresList: [
+            "Tailored workflow integration capability",
+            "High execution speed & performance output",
+            "Easy cross-application data pipelining",
+            "Automated task processing"
+          ],
+          pros: [
+            "Seamless fit for modern business environments",
+            "High reliability in operational pipelines",
+            "Minimal configuration required"
+          ],
+          cons: [
+            "Integration with legacy systems might require middleware",
+            "Slight learning curve for customized settings"
+          ],
+          alternatives: ["Manual workflows", "Generic spreadsheets"],
+          reviews: [
+            { user: "Business Analyst", rating: 5, comment: "Saved us 15+ hours per week after importing the preset business stack!" }
+          ],
+          faqs: [
+            { q: "Is this tool easy to setup?", a: "Yes, it is designed for plug-and-play operations in the stack." }
+          ],
+          comparisonText: {
+            versus: `${name} vs Alternatives`,
+            verdict: "A superb dedicated solution tailored for specific productivity milestones in your team."
+          }
+        };
+      }
+    }
+    return null;
+  };
+
   const createCollection = (name: string) => {
     if (!name.trim()) return;
     const newColl = {
@@ -3720,7 +3913,7 @@ export default function App() {
                       placeholder={lang === 'gu' ? 'સિક્યોર કરવા કોઈ લખાણ લખો...' : 'Enter sensitive payload to tunnel...'}
                       className={`w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-500/50 ${
                         theme === 'dark'
-                          ? 'bg-slate-950/70 border-slate-900 text-slate-200 placeholder-slate-600'
+                          ? 'bg-slate-950/70 border-slate-900 text-slate-200 placeholder-slate-650'
                           : 'bg-white border-slate-200 text-slate-800 placeholder-slate-400 shadow-inner'
                       } font-semibold`}
                     />
@@ -3774,694 +3967,17 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Featured Flags Highlights Carousel */}
-              <div className="space-y-3 text-left">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
-                  <span>Featured Platform Flagships</span>
-                </span>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {/* Flagship 1: AI Chat */}
-                  <div 
-                    onClick={() => setSelectedToolId('ai-chat')}
-                    className={`group bg-gradient-to-br ${theme === 'dark' ? 'from-[#080d1a] to-[#030612] border-blue-900/30 hover:border-blue-500/50' : 'from-blue-50/20 to-white border-slate-200 hover:border-blue-500/40'} p-5 rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden border`}
-                  >
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all duration-300" />
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                        <DynamicIcon name="MessageSquare" className="w-4.5 h-4.5" />
-                      </div>
-                      <span className={`text-xs font-black ${theme === 'dark' ? 'text-white' : 'text-slate-800'} group-hover:text-blue-500 transition-colors`}>AI COMPANION</span>
-                    </div>
-                    <p className={`text-[11px] ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} font-semibold leading-relaxed mb-2.5`}>Instant multi-turn chat powered by server-side Gemini 3.6 Flash. Super fast response rates.</p>
-                    <span className="text-[9px] text-blue-500 font-bold tracking-wider flex items-center gap-1">
-                      <span>Launch Companion</span>
-                      <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                  </div>
-
-                  {/* Flagship 2: Web Sandbox */}
-                  <div 
-                    onClick={() => setSelectedToolId('website-generator')}
-                    className={`group bg-gradient-to-br ${theme === 'dark' ? 'from-[#080d1a] to-[#030612] border-blue-900/30 hover:border-blue-500/50' : 'from-emerald-50/20 to-white border-slate-200 hover:border-emerald-500/40'} p-5 rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden border`}
-                  >
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-all duration-300" />
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                        <DynamicIcon name="Layers" className="w-4.5 h-4.5" />
-                      </div>
-                      <span className={`text-xs font-black ${theme === 'dark' ? 'text-white' : 'text-slate-800'} group-hover:text-emerald-500 transition-colors`}>CODE SANDBOX</span>
-                    </div>
-                    <p className={`text-[11px] ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} font-semibold leading-relaxed mb-2.5`}>Compile raw responsive Tailwind mockups inside a fully sandboxed client iframe instantly.</p>
-                    <span className="text-[9px] text-emerald-500 font-bold tracking-wider flex items-center gap-1">
-                      <span>Launch Sandbox</span>
-                      <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                  </div>
-
-                  {/* Flagship 3: OCR Reader */}
-                  <div 
-                    onClick={() => setSelectedToolId('ocr-reader')}
-                    className={`group bg-gradient-to-br ${theme === 'dark' ? 'from-[#080d1a] to-[#030612] border-blue-900/30 hover:border-blue-500/50' : 'from-amber-50/20 to-white border-slate-200 hover:border-amber-500/40'} p-5 rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden border`}
-                  >
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all duration-300" />
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                        <DynamicIcon name="Camera" className="w-4.5 h-4.5" />
-                      </div>
-                      <span className={`text-xs font-black ${theme === 'dark' ? 'text-white' : 'text-slate-800'} group-hover:text-amber-500 transition-colors`}>AI DOCUMENT OCR</span>
-                    </div>
-                    <p className={`text-[11px] ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} font-semibold leading-relaxed mb-2.5`}>Transcribe documents, notes, receipt photos, or screenshots with highest character accuracy.</p>
-                    <span className="text-[9px] text-amber-500 font-bold tracking-wider flex items-center gap-1">
-                      <span>Launch OCR Engine</span>
-                      <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* World-Class Live Operations Node & Latency map component */}
-              <GlobalOperationsHub lang={lang as any} theme={theme} playSynthSound={playSynthSound as any} />
-
-              {/* Keyboard Shortcuts Reminder & Search History Tags */}
-              <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between text-left">
-                {/* Search history stream */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest flex items-center gap-1 shrink-0">
-                    <Icons.History className="w-3.5 h-3.5 text-blue-500" />
-                    <span>{lang === 'gu' ? 'તાજેતરની શોધો:' : 'Recent Searches:'}</span>
-                  </span>
-                  
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {searchHistory.length === 0 ? (
-                      <span className="text-[10px] text-slate-500 italic">{lang === 'gu' ? 'કોઈ શોધ ઇતિહાસ નથી' : 'No search history'}</span>
-                    ) : (
-                      searchHistory.map((term, i) => (
-                        <button
-                          key={term + i}
-                          onClick={() => {
-                            setSearchQuery(term);
-                            showToast(lang === 'gu' ? `શોધ ભરેલી: ${term}` : `Loaded search: ${term}`, 'info');
-                          }}
-                          className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold transition-all duration-150 ${
-                            theme === 'dark'
-                              ? 'bg-slate-950 hover:bg-slate-900 border-slate-900 text-slate-400'
-                              : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'
-                          }`}
-                        >
-                          {term}
-                        </button>
-                      ))
-                    )}
-                    
-                    {searchHistory.length > 0 && (
-                      <button
-                        onClick={() => {
-                          setSearchHistory([]);
-                          localStorage.removeItem('hub_search_history');
-                          showToast(lang === 'gu' ? 'શોધ ઇતિહાસ ભૂંસી નાખ્યો' : 'Search history cleared', 'info');
-                        }}
-                        className="text-[9px] font-black text-red-500 hover:underline uppercase pl-1.5 shrink-0"
-                      >
-                        {lang === 'gu' ? 'સાફ કરો' : 'Clear'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Keyboard cheat-sheet pill */}
-                <button
-                  onClick={() => setShowShortcutsModal(true)}
-                  className={`text-[10px] px-3 py-1.5 rounded-xl border font-mono font-bold flex items-center gap-1.5 self-start sm:self-auto shrink-0 transition-all duration-200 ${
-                    theme === 'dark'
-                      ? 'bg-[#090d16] border-slate-900 text-slate-400 hover:text-white hover:border-slate-850'
-                      : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icons.Keyboard className="w-4 h-4 text-amber-500" />
-                  <span>{lang === 'gu' ? 'શોર્ટકટ્સ (Alt + K)' : 'Shortcuts (Alt + K)'}</span>
-                </button>
-              </div>
-
-              {/* Categorization & Filter Navigation Tabs (Capsule-style controller) */}
-              <div className={`${theme === 'dark' ? 'bg-[#04060c]/60 border-slate-900' : 'bg-slate-100 border-slate-200'} border p-1.5 rounded-2xl flex gap-1.5 items-center max-w-full overflow-x-auto scrollbar-none shadow-inner`}>
-                {(Object.keys(t.categories) as ToolCategory[]).map((catKey) => (
-                  <button
-                    key={catKey}
-                    onClick={() => setActiveCategory(catKey)}
-                    className={`px-4 py-2.5 text-xs font-black rounded-xl transition-all duration-200 whitespace-nowrap flex items-center gap-2 leading-none ${
-                      activeCategory === catKey 
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/10' 
-                        : `${theme === 'dark' ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`
-                    }`}
-                  >
-                    <span>{t.categories[catKey]}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* INTERACTIVE DASHBOARD PANELS (Goals & Sounds) */}
-              <div id="interactive-panels" className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:hidden">
-                {/* Daily Goal Tracker Card */}
-                <div className={`p-5 rounded-3xl border ${
-                  theme === 'dark' ? 'bg-[#090d16] border-slate-900/60 text-slate-100' : 'bg-white border-slate-200 text-slate-800 shadow-sm'
-                } flex flex-col justify-between`}>
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-xl bg-orange-500/10 text-orange-500 shrink-0">
-                          <Award className="w-5 h-5 text-orange-500" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-black uppercase tracking-wide">
-                            {lang === 'gu' ? 'દૈનિક લક્ષ્ય ટ્રેકર' : 'Daily Goal Tracker'}
-                          </h4>
-                          <p className="text-[10px] text-slate-500 font-bold leading-normal">
-                            {lang === 'gu' ? 'દરરોજ સાધનો ચલાવીને અને રેટિંગ આપીને તમારા ધ્યેયો પૂરા કરો' : 'Complete targets daily to maintain active productivity'}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-xs font-mono font-black text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded-lg shrink-0">
-                        {dailyGoals.filter(g => g.completed).length} / {dailyGoals.length}
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      {dailyGoals.map(goal => {
-                        const pct = Math.min(100, Math.round((goal.current / goal.target) * 100));
-                        return (
-                          <div key={goal.id} className="space-y-1.5">
-                            <div className="flex justify-between text-xs font-bold leading-none">
-                              <span className={goal.completed ? 'text-emerald-500 line-through' : theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}>
-                                {lang === 'gu' ? goal.textGu : goal.textEn}
-                              </span>
-                              <span className="text-[10px] font-mono text-slate-500">
-                                {goal.current} / {goal.target}
-                              </span>
-                            </div>
-                            <div className="h-1.5 w-full bg-slate-500/10 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full transition-all duration-500 ${
-                                  goal.completed ? 'bg-emerald-500' : 'bg-orange-500'
-                                }`} 
-                                style={{ width: `${pct}%` }} 
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sound Customizer Card */}
-                <div className={`p-5 rounded-3xl border ${
-                  theme === 'dark' ? 'bg-[#090d16] border-slate-900/60 text-slate-100' : 'bg-white border-slate-200 text-slate-800 shadow-sm'
-                }`}>
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500 shrink-0">
-                      <Volume2 className="w-5 h-5 animate-pulse" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black uppercase tracking-wide">
-                        {lang === 'gu' ? 'ધ્વનિ કસ્ટમાઇઝેશન' : 'Sound Customization'}
-                      </h4>
-                      <p className="text-[10px] text-slate-500 font-bold leading-normal">
-                        {lang === 'gu' ? 'સિસ્ટમ સાઉન્ડ સ્કીમ અને ઓડિયો પીચ બદલો' : 'Tune procedural synthesizers & micro-audio theme'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {/* Theme selector */}
-                    <div className="flex items-center justify-between text-xs font-bold">
-                      <span className="text-slate-500">{lang === 'gu' ? 'ધ્વનિ થીમ:' : 'Sound Scheme:'}</span>
-                      <div className="flex gap-1">
-                        {(['retro', 'ambient', 'scifi', 'minimal'] as const).map(scheme => (
-                          <button
-                            key={scheme}
-                            onClick={() => updateSoundScheme(scheme)}
-                            className={`text-[9px] px-2 py-1 rounded-lg border font-black capitalize transition ${
-                              soundScheme === scheme
-                                ? 'bg-blue-600 border-blue-600 text-white'
-                                : theme === 'dark'
-                                  ? 'bg-slate-950/80 border-slate-900 text-slate-400 hover:text-white'
-                                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                            }`}
-                          >
-                            {scheme}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Presets selector */}
-                    <div className="flex flex-col gap-1.5 pt-1.5 border-t border-slate-500/10">
-                      <span className="text-[10px] font-bold text-slate-500">{lang === 'gu' ? 'સાઉન્ડ પ્રીસેટ્સ:' : 'Sound Presets:'}</span>
-                      <div className="flex flex-wrap gap-1">
-                        {SOUND_PRESETS.map(preset => (
-                          <button
-                            key={preset.id}
-                            onClick={() => applySoundPreset(preset)}
-                            className={`text-[9px] px-2 py-1 rounded-lg border font-bold capitalize transition hover:scale-[1.03] active:scale-95 ${
-                              soundScheme === preset.scheme && Math.abs(soundVolume - preset.volume) < 0.15 && Math.abs(soundPitch - preset.pitch) < 0.15
-                                ? 'bg-amber-500/10 border-amber-500/40 text-amber-500 dark:text-amber-400 font-extrabold'
-                                : theme === 'dark'
-                                  ? 'bg-slate-950/40 border-slate-900 text-slate-400 hover:text-white'
-                                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                            }`}
-                            title={lang === 'gu' ? preset.nameGu : preset.nameEn}
-                          >
-                            {lang === 'gu' ? preset.nameGu : preset.nameEn}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Volume Slider */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                        <span>{lang === 'gu' ? 'વોલ્યુમ સ્તર' : 'Volume Level'}</span>
-                        <span className="font-mono">{Math.round(soundVolume * 100)}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.1"
-                        value={soundVolume}
-                        disabled={soundMuted}
-                        onChange={(e) => updateSoundVolume(parseFloat(e.target.value))}
-                        className="w-full h-1 bg-slate-500/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                      />
-                    </div>
-
-                    {/* Pitch Slider */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[10px] font-bold text-slate-500">
-                        <span>{lang === 'gu' ? 'આવર્તન પીચ' : 'Frequency Pitch'}</span>
-                        <span className="font-mono">{soundPitch.toFixed(1)}x</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="2"
-                        step="0.1"
-                        value={soundPitch}
-                        disabled={soundMuted}
-                        onChange={(e) => updateSoundPitch(parseFloat(e.target.value))}
-                        className="w-full h-1 bg-slate-500/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* ADVANCED TOOL FILTERS & COMPARISON BAR */}
-              <div id="advanced-filters" className={`p-4 rounded-3xl border ${
-                theme === 'dark' ? 'bg-[#090d16] border-slate-900/60' : 'bg-white border-slate-200/80 shadow-sm'
-              } flex flex-col md:flex-row gap-4 items-center justify-between print:hidden`}>
-                
-                {/* Search, Tag, Tier filters */}
-                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                  
-                  {/* Tier filter */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                      {lang === 'gu' ? 'સ્તર:' : 'Tier:'}
-                    </span>
-                    <div className="flex rounded-xl p-0.5 bg-slate-500/5 border border-slate-500/10">
-                      {(['all', 'free', 'pro'] as const).map(tier => (
-                        <button
-                          key={tier}
-                          onClick={() => {
-                            setTierFilter(tier);
-                            playSynthSound('click');
-                          }}
-                          className={`text-[10px] px-3 py-1 rounded-lg font-black capitalize transition-all ${
-                            tierFilter === tier
-                              ? 'bg-blue-600 text-white shadow-sm'
-                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                          }`}
-                        >
-                          {tier === 'all' ? (lang === 'gu' ? 'બધા' : 'All') : tier}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* System/User Tags Filter */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                      {lang === 'gu' ? 'ટેગ:' : 'Tag:'}
-                    </span>
-                    <div className="flex rounded-xl p-0.5 bg-slate-500/5 border border-slate-500/10">
-                      {(['all', 'Popular', 'New', 'Favorites'] as const).map(tag => (
-                        <button
-                          key={tag}
-                          onClick={() => {
-                            setTagFilter(tag);
-                            playSynthSound('click');
-                          }}
-                          className={`text-[10px] px-3 py-1 rounded-lg font-black transition-all ${
-                            tagFilter === tag
-                              ? 'bg-blue-600 text-white shadow-sm'
-                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                          }`}
-                        >
-                          {tag === 'all' ? (lang === 'gu' ? 'બધા' : 'All') : lang === 'gu' && tag === 'Favorites' ? 'ફેવરિટ્સ' : tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Sorting criteria */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                      {lang === 'gu' ? 'ક્રમ:' : 'Sort By:'}
-                    </span>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => {
-                        setSortBy(e.target.value as any);
-                        playSynthSound('click');
-                      }}
-                      className={`text-xs font-bold rounded-xl border p-1.5 outline-none ${
-                        theme === 'dark' 
-                          ? 'bg-slate-950 border-slate-900 text-slate-300 focus:border-blue-500' 
-                          : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-blue-500'
-                      }`}
-                    >
-                      <option value="name">{lang === 'gu' ? 'નામ (A-Z)' : 'Name (A-Z)'}</option>
-                      <option value="name-desc">{lang === 'gu' ? 'નામ (Z-A)' : 'Name (Z-A)'}</option>
-                      <option value="rating">{lang === 'gu' ? 'ઉચ્ચ રેટિંગ' : 'Highest Rated'}</option>
-                      <option value="rating-asc">{lang === 'gu' ? 'નીચું રેટિંગ' : 'Lowest Rated'}</option>
-                      <option value="usage">{lang === 'gu' ? 'મોટો વપરાશ' : 'Usage (High to Low)'}</option>
-                      <option value="usage-asc">{lang === 'gu' ? 'નાનો વપરાશ' : 'Usage (Low to High)'}</option>
-                      <option value="popular">{lang === 'gu' ? 'લોકપ્રિયતા' : 'Popularity & Pro'}</option>
-                    </select>
-                  </div>
-
-                  {/* Grid Animation criteria */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                      {lang === 'gu' ? 'એનિમેશન:' : 'Animation:'}
-                    </span>
-                    <select
-                      value={gridAnimStyle}
-                      onChange={(e) => {
-                        setGridAnimStyle(e.target.value as any);
-                        playSynthSound('toggle');
-                      }}
-                      className={`text-xs font-bold rounded-xl border p-1.5 outline-none ${
-                        theme === 'dark' 
-                          ? 'bg-slate-950 border-slate-900 text-slate-300 focus:border-blue-500' 
-                          : 'bg-slate-50 border-slate-200 text-slate-700 focus:border-blue-500'
-                      }`}
-                    >
-                      <option value="fade-slide">{lang === 'gu' ? 'ફેડ સ્લાઇડ' : 'Fade Slide'}</option>
-                      <option value="zoom-pop">{lang === 'gu' ? 'ઝૂમ પોપ' : 'Zoom Pop'}</option>
-                      <option value="stagger">{lang === 'gu' ? 'કેસ્કેડ સ્ટેગર' : 'Cascade Stagger'}</option>
-                      <option value="flip">{lang === 'gu' ? '૩D ફ્લિપ રીવીલ' : '3D Flip Reveal'}</option>
-                    </select>
-                  </div>
-
-                </div>
-
-                {/* Tool Comparison Toggler */}
-                <div className="flex items-center gap-3 w-full md:w-auto justify-end border-t md:border-t-0 pt-3 md:pt-0 border-slate-500/10 shrink-0">
-                  <button
-                    onClick={() => {
-                      setIsCompareMode(!isCompareMode);
-                      if (!isCompareMode) {
-                        setComparedToolIds([]);
-                      }
-                      playSynthSound('toggle');
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-black transition-all duration-200 ${
-                      isCompareMode
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 border-emerald-500 text-white shadow-md'
-                        : theme === 'dark'
-                          ? 'bg-[#090d16] hover:bg-slate-900 border-slate-900 text-slate-300'
-                          : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-sm'
-                    }`}
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isCompareMode ? 'animate-spin' : ''}`} />
-                    <span>
-                      {isCompareMode 
-                        ? (lang === 'gu' ? `સરખામણી ચાલુ (${comparedToolIds.length}/૨)` : `Compare Mode Active (${comparedToolIds.length}/2)`) 
-                        : (lang === 'gu' ? 'સરખામણી કરો' : 'Tool Comparison Mode')}
-                    </span>
-                  </button>
-                </div>
-
-              </div>
-
-              {/* COMPARED TOOLS PANEL */}
-              {isCompareMode && (
-                <div className={`p-6 rounded-3xl border ${
-                  theme === 'dark' ? 'bg-slate-950/40 border-slate-900' : 'bg-slate-50 border-slate-200'
-                } space-y-4 print:hidden`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-black uppercase tracking-wide flex items-center gap-2">
-                        <RefreshCw className="w-4 h-4 text-blue-500" />
-                        <span>{lang === 'gu' ? 'સાધનોની સમાંતર સરખામણી' : 'Side-by-Side Tool Comparison'}</span>
-                      </h4>
-                      <p className="text-[10px] text-slate-500 font-bold leading-normal">
-                        {lang === 'gu' ? 'સરખામણી કરવા માટે નીચેની ગ્રીડમાંથી ૨ સાધનો પસંદ કરો' : 'Select any 2 tools from the grid below to compare features and specs'}
-                      </p>
-                    </div>
-                    {comparedToolIds.length > 0 && (
-                      <button
-                        onClick={() => {
-                          setComparedToolIds([]);
-                          playSynthSound('click');
-                        }}
-                        className="text-[10px] font-black text-red-500 hover:underline uppercase"
-                      >
-                        {lang === 'gu' ? 'બધું સાફ કરો' : 'Reset Comparison'}
-                      </button>
-                    )}
-                  </div>
-
-                  {comparedToolIds.length === 0 ? (
-                    <div className="text-center py-8 rounded-2xl border border-dashed border-slate-500/10 text-slate-500 text-xs font-bold italic">
-                      {lang === 'gu' ? 'સરખામણી શરૂ કરવા માટે નીચે આપેલા કોઈ પણ ટૂલ પર ક્લિક કરો!' : 'Click on any tool in the list below to add it to comparison!'}
-                    </div>
-                  ) : comparedToolIds.length === 1 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(() => {
-                        const tool = TOOLS_DATA.find(t => t.id === comparedToolIds[0]);
-                        if (!tool) return null;
-                        const isToolPremium = tool.tags?.includes('Popular') || tool.id === 'ai-chat' || tool.id === 'website-generator' || tool.id === 'ocr-reader';
-                        return (
-                          <div className={`p-5 rounded-2xl border ${
-                            theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-white border-slate-200 shadow-sm'
-                          } space-y-3`}>
-                            <div className="flex items-center gap-3">
-                              <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 shrink-0">
-                                <DynamicIcon name={tool.icon} className="w-5 h-5 text-blue-500" />
-                              </div>
-                              <div>
-                                <h5 className="text-sm font-black">{tool.name}</h5>
-                                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">{tool.category.replace('-', ' ')}</span>
-                              </div>
-                            </div>
-                            <div className="text-xs text-slate-500 leading-relaxed">
-                              {tool.description}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                      <div className="flex items-center justify-center p-6 rounded-2xl border border-dashed border-slate-500/15 text-slate-500 text-xs font-black italic">
-                        {lang === 'gu' ? 'સરખામણી કરવા માટે બીજું સાધન પસંદ કરો...' : 'Select a second tool to compare side-by-side...'}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {Array.from(new Set(comparedToolIds || [])).map(id => {
-                        const tool = TOOLS_DATA.find(t => t.id === id);
-                        if (!tool) return null;
-                        const isToolPremium = tool.tags?.includes('Popular') || tool.id === 'ai-chat' || tool.id === 'website-generator' || tool.id === 'ocr-reader';
-                        const rating = toolRatings[tool.id] || 4.5;
-                        return (
-                          <div key={`compare-card-${tool.id}`} className={`p-5 rounded-2xl border ${
-                            theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-white border-slate-200 shadow-sm'
-                          } flex flex-col justify-between space-y-4 relative`}>
-                            <button
-                              onClick={() => toggleCompareTool(tool.id)}
-                              className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                            <div className="space-y-3 text-left">
-                              <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 shrink-0">
-                                  <DynamicIcon name={tool.icon} className="w-5 h-5 text-blue-500" />
-                                </div>
-                                <div>
-                                  <h5 className="text-sm font-black">{tool.name}</h5>
-                                  <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">{tool.category.replace('-', ' ')}</span>
-                                </div>
-                              </div>
-
-                              <div className="text-xs text-slate-500 leading-relaxed h-12 overflow-y-auto font-medium">
-                                {tool.description}
-                              </div>
-
-                              <div className="border-t border-slate-500/10 pt-3 space-y-2 text-[11px] font-bold">
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">{lang === 'gu' ? 'ટૂલ સ્તર:' : 'Access Tier:'}</span>
-                                  <span className={isToolPremium ? 'text-amber-500' : 'text-emerald-500'}>
-                                    {isToolPremium ? 'Premium (Pro)' : 'Free Tier'}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">{lang === 'gu' ? 'જરૂરી ક્રેડિટ્સ:' : 'Credits Cost:'}</span>
-                                  <span className="font-mono text-slate-500">
-                                    {isToolPremium ? '5 credits' : '1 credit'}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">{lang === 'gu' ? 'સરેરાશ રેટિંગ:' : 'Average Rating:'}</span>
-                                  <span className="text-amber-400 flex items-center gap-1 font-mono">
-                                    ★ {rating.toFixed(1)}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-slate-400">{lang === 'gu' ? 'વિશેષ ટેગ્સ:' : 'Featured Tags:'}</span>
-                                  <span className="text-blue-500 capitalize">
-                                    {tool.tags?.join(', ') || 'Standard'}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={() => {
-                                setIsCompareMode(false);
-                                setSelectedToolId(tool.id);
-                                playSynthSound('success');
-                              }}
-                              className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black transition active:scale-95 flex items-center justify-center gap-1.5"
-                            >
-                              <span>{lang === 'gu' ? 'આ સાધન ચલાવો' : 'Launch This Tool'}</span>
-                              <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Mobile Search block */}
-              <div className={`md:hidden flex items-center ${theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-white border-slate-200'} rounded-2xl px-3.5 py-2.5 border`}>
-                <Search className="w-4.5 h-4.5 text-slate-500 mr-2 shrink-0" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t.searchPlaceholder}
-                  className={`bg-transparent text-sm ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'} focus:outline-none w-full`}
-                />
-              </div>
-
-              {/* SMART AI RECOMMENDATIONS CAROUSEL */}
-              {!searchQuery && activeCategory === 'all' && (
-                <div className={`p-5 rounded-3xl border transition-all duration-300 ${
-                  theme === 'dark' 
-                    ? 'bg-gradient-to-r from-blue-950/10 via-[#090d16] to-indigo-950/10 border-slate-900/60' 
-                    : 'bg-gradient-to-r from-blue-50/40 via-white to-indigo-50/40 border-slate-200/80'
-                }`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-blue-500/10 p-1.5 rounded-xl text-blue-500 shrink-0">
-                        <Sparkles className="w-4 h-4 animate-pulse" />
-                      </div>
-                      <div>
-                        <h4 className={`text-xs font-black uppercase tracking-wider ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>
-                          {lang === 'gu' ? 'તમારા માટે ખાસ સૂચવેલા ટૂલ્સ' : 'AI Smart Recommendations For You'}
-                        </h4>
-                        <p className="text-[10px] text-slate-500 font-bold leading-normal">
-                          {lang === 'gu' ? 'તમારી ઉપયોગ હિસ્ટ્રી અને શ્રેણીઓ આધારિત ખાસ ભલામણો' : 'Tailored suggestions based on your category history and high-tier ratings'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {suggestedTools.map((tool) => {
-                      const isToolPremium = tool.tags?.includes('Popular') || tool.id === 'ai-chat' || tool.id === 'website-generator' || tool.id === 'ocr-reader';
-                      return (
-                        <div
-                          key={`suggested-${tool.id}`}
-                          onClick={() => {
-                            updateGoalProgress('smart_reco');
-                            setSelectedToolId(tool.id);
-                          }}
-                          className={`group p-4 rounded-2xl cursor-pointer border transition-all duration-300 flex items-center gap-3.5 ${
-                            theme === 'dark' 
-                              ? 'bg-[#04060c] hover:bg-[#0c1222] border-slate-900 hover:border-slate-800' 
-                              : 'bg-white hover:bg-slate-50 border-slate-200/60 hover:border-slate-300'
-                          }`}
-                        >
-                          <div className={`p-2.5 rounded-xl ${theme === 'dark' ? 'bg-[#0c1222]' : 'bg-slate-100'} group-hover:scale-110 transition-all duration-300 shrink-0`}>
-                            <DynamicIcon name={tool.icon} className="w-4.5 h-4.5 text-blue-500" />
-                          </div>
-                          <div className="text-left min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <h5 className={`text-xs font-black truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
-                                {lang === 'gu' && tool.nameGu ? tool.nameGu : tool.name}
-                              </h5>
-                              {isToolPremium && (
-                                <span className="text-[7px] font-mono font-black px-1.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md shrink-0 uppercase">
-                                  Pro
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[10px] text-slate-500 truncate mt-0.5 leading-normal font-semibold">
-                              {lang === 'gu' && tool.descGu ? tool.descGu : tool.desc}
-                            </p>
-                          </div>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0 group-hover:translate-x-1 transition-all duration-200" />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* TOOLS GRID */}
-              <div 
-                id="tools-grid" 
-                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 touch-pan-y"
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-              >
+              {/* PLATFORM TOOLS GRID */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredTools.map((tool, idx) => {
-                  const isFav = userState.favorites.includes(tool.id);
-                  const isToolPremium = tool.tags?.includes('Popular') || tool.id === 'ai-chat' || tool.id === 'website-generator' || tool.id === 'ocr-reader' || tool.id === 'upi-invoice';
-
+                  const isToolPremium = tool.tags?.includes('Popular') || tool.id === 'ai-chat' || tool.id === 'website-generator' || tool.id === 'ocr-reader';
+                  const isFav = userState.favorites?.includes(tool.id);
                   return (
                     <motion.div
                       key={tool.id}
-                      initial={
-                        gridAnimStyle === 'zoom-pop'
-                          ? { opacity: 0, scale: 0.85 }
-                          : gridAnimStyle === 'stagger'
-                            ? { opacity: 0, x: -15 }
-                            : gridAnimStyle === 'flip'
-                              ? { opacity: 0, rotateY: 90 }
-                              : { opacity: 0, y: 15 }
-                      }
+                      initial={{ opacity: 0, y: 15 }}
                       animate={{ 
                         opacity: 1, 
-                        scale: 1, 
-                        x: 0, 
                         rotateY: 0,
                         y: 0 
                       }}
@@ -4855,18 +4371,250 @@ export default function App() {
                   <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                     {/* Primary Tool Directory (Left Columns) */}
                     <div className="xl:col-span-2 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-1.5 font-mono">
-                          <Icons.Flame className="w-4 h-4 text-orange-500 animate-pulse" />
-                          <span>{activeDiscoveryUseCase ? `Curated: ${activeDiscoveryUseCase.replace('-', ' ')}` : 'TOP DIRECTORY RANKINGS'}</span>
-                        </span>
-                        <span className="text-[9px] font-bold text-slate-500 font-mono">Showing {AI_TOOLS_DIRECTORY.filter(t => !activeDiscoveryUseCase || t.category === activeDiscoveryUseCase || t.tags.includes(activeDiscoveryUseCase)).length} Verified Tools</span>
+                      {/* ⭐ FEATURED & SPONSORED SYSTEM (Point 16) */}
+                      <div className={`p-5 rounded-2xl border ${
+                        theme === 'dark' ? 'bg-[#090d16]/40 border-slate-900' : 'bg-slate-50/60 border-slate-200'
+                      } space-y-3`}>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest block flex items-center gap-1.5 font-mono">
+                            <Icons.Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+                            <span>{lang === 'gu' ? '★ સ્પોન્સર કરેલા અગ્રણી સાધનો' : '★ PREMIUM SPONSORED PARTNERS'}</span>
+                          </span>
+                          <button
+                            onClick={() => {
+                              playSynthSound('click');
+                              setShowSponsorForm(!showSponsorForm);
+                            }}
+                            className="text-[9px] font-black uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded text-amber-400 hover:bg-amber-500 hover:text-slate-950 transition-all cursor-pointer"
+                          >
+                            {showSponsorForm ? (lang === 'gu' ? '❌ ફોર્મ બંધ કરો' : '❌ Close Bid Form') : (lang === 'gu' ? '🚀 તમારું AI ટૂલ સ્પોન્સર કરો' : '🚀 Apply Sponsor Slot')}
+                          </button>
+                        </div>
+
+                        {/* Bid Submission Form */}
+                        {showSponsorForm && (
+                          <div className={`p-4 rounded-xl border space-y-3 ${
+                            theme === 'dark' ? 'bg-[#04060c] border-slate-900' : 'bg-white border-slate-200 shadow-sm'
+                          }`}>
+                            <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">
+                              {lang === 'gu' ? 'સ્પોન્સરશીપ અને પ્રમોશન બીડ ફોર્મ' : 'Submit Sponsored Tool Bid'}
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Tool Name</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. GujaratiTranslate.ai"
+                                  value={sponsorToolName}
+                                  onChange={(e) => setSponsorToolName(e.target.value)}
+                                  className={`w-full p-2 rounded-lg text-xs font-bold outline-none border ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+                                  }`}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Website URL</label>
+                                <input
+                                  type="text"
+                                  placeholder="https://example.com"
+                                  value={sponsorUrl}
+                                  onChange={(e) => setSponsorUrl(e.target.value)}
+                                  className={`w-full p-2 rounded-lg text-xs font-bold outline-none border ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+                                  }`}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Emoji Icon</label>
+                                <input
+                                  type="text"
+                                  value={sponsorLogo}
+                                  onChange={(e) => setSponsorLogo(e.target.value)}
+                                  className={`w-full p-2 rounded-lg text-xs font-bold outline-none border text-center ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+                                  }`}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Pricing Model</label>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Free Tier / $10/mo"
+                                  value={sponsorCost}
+                                  onChange={(e) => setSponsorCost(e.target.value)}
+                                  className={`w-full p-2 rounded-lg text-xs font-bold outline-none border ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+                                  }`}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Category</label>
+                                <select
+                                  value={sponsorCategory}
+                                  onChange={(e) => setSponsorCategory(e.target.value)}
+                                  className={`w-full p-2 rounded-lg text-xs font-bold outline-none border ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+                                  }`}
+                                >
+                                  <option value="Productivity">Productivity</option>
+                                  <option value="Image">Image & Arts</option>
+                                  <option value="Chat">Chat & LLMs</option>
+                                  <option value="Development">Development</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Punchline / Best For</label>
+                              <input
+                                type="text"
+                                placeholder="Translate local shop items to online catalog with AI models."
+                                value={sponsorBestFor}
+                                onChange={(e) => setSponsorBestFor(e.target.value)}
+                                className={`w-full p-2 rounded-lg text-xs font-bold outline-none border ${
+                                  theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+                                }`}
+                              />
+                            </div>
+
+                            <div className="flex justify-end pt-2">
+                              <button
+                                onClick={() => {
+                                  if (!sponsorToolName.trim() || !sponsorUrl.trim() || !sponsorBestFor.trim()) {
+                                    showToast(lang === 'gu' ? 'કૃપા કરીને તમામ ખાલી જગ્યાઓ ભરો!' : 'Please fill all required sponsor fields!', 'error');
+                                    return;
+                                  }
+                                  playSynthSound('success');
+                                  const newSponsor = {
+                                    id: `custom-spon-${Date.now()}`,
+                                    name: sponsorToolName,
+                                    bestFor: sponsorBestFor,
+                                    logo: sponsorLogo || '🤖',
+                                    cost: sponsorCost || 'Free Plan',
+                                    url: sponsorUrl,
+                                    category: sponsorCategory,
+                                    bidAmount: 180
+                                  };
+                                  const updated = [newSponsor, ...customSponsoredTools];
+                                  setCustomSponsoredTools(updated);
+                                  localStorage.setItem('hub_sponsored_tools', JSON.stringify(updated));
+                                  
+                                  // Clear form
+                                  setSponsorToolName('');
+                                  setSponsorUrl('');
+                                  setSponsorBestFor('');
+                                  setShowSponsorForm(false);
+
+                                  showToast(
+                                    lang === 'gu'
+                                      ? `અભિનંદન! તમારું ટૂલ '${newSponsor.name}' સ્પોન્સર્ડ કવોટામાં રજીસ્ટર થયું છે.`
+                                      : `Successfully listed '${newSponsor.name}' in our Preferred Sponsored Partners banner!`,
+                                    'success'
+                                  );
+                                  addXPPoints(30, `Sponsored your own tool: ${newSponsor.name}!`, `${newSponsor.name} સાધનને સ્પોન્સર કર્યું!`);
+                                }}
+                                className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-slate-950 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer active:scale-95"
+                              >
+                                {lang === 'gu' ? '💸 બીડ જમા કરો અને લાઇવ કરો (+૩૦ XP)' : '💸 Submit Bid & Launch Live (+30 XP)'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Rendering Sponsored Grid Carousel */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {(customSponsoredTools.length > 0 ? customSponsoredTools : [
+                            {
+                              id: "spon-1",
+                              name: "Jasper.ai Writer",
+                              bestFor: "Enterprise high-converting copies and blogs with custom brand voice.",
+                              logo: "✍️",
+                              cost: "From $39/mo",
+                              url: "https://jasper.ai",
+                              category: "Productivity",
+                              bidAmount: 150
+                            },
+                            {
+                              id: "spon-2",
+                              name: "Leonardo.ai Canvas",
+                              bestFor: "Stunning production-grade graphic designs and realistic 3D assets.",
+                              logo: "🎨",
+                              cost: "Free / Pro plans",
+                              url: "https://leonardo.ai",
+                              category: "Image",
+                              bidAmount: 120
+                            }
+                          ]).slice(0, 4).map((spon) => (
+                            <div key={spon.id} className={`p-4 rounded-xl border text-left flex flex-col justify-between h-[125px] relative overflow-hidden ${
+                              theme === 'dark' ? 'bg-[#090d16] border-amber-500/20 shadow-lg' : 'bg-white border-amber-500/30 shadow-md'
+                            }`}>
+                              <span className="absolute top-2 right-2 text-[7px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded font-mono">
+                                ★ {lang === 'gu' ? 'સ્પોન્સર' : 'SPONSORED'}
+                              </span>
+                              
+                              <div className="space-y-1 pr-14">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-lg">{spon.logo}</span>
+                                  <h4 className={`text-xs font-black truncate ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{spon.name}</h4>
+                                </div>
+                                <p className="text-[9px] text-slate-500 leading-relaxed font-bold line-clamp-2">{spon.bestFor}</p>
+                              </div>
+
+                              <div className="flex justify-between items-center pt-2 border-t border-slate-500/5">
+                                <span className="text-[8px] font-bold text-slate-400 uppercase font-mono">{spon.cost} | Bid: {spon.bidAmount} XP</span>
+                                <a href={spon.url} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-amber-500 flex items-center gap-0.5 uppercase hover:underline">
+                                  <span>{lang === 'gu' ? 'વિઝીટ કરો' : 'Visit Store'}</span> <Icons.ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        {AI_TOOLS_DIRECTORY
-                          .filter(tool => !activeDiscoveryUseCase || tool.category === activeDiscoveryUseCase || tool.tags.includes(activeDiscoveryUseCase))
-                          .map((tool) => (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-500/5 p-4 rounded-2xl border border-slate-500/5">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-1.5 font-mono">
+                            <Icons.Flame className="w-4 h-4 text-orange-500 animate-pulse" />
+                            <span>{activeDiscoveryUseCase ? `Curated: ${activeDiscoveryUseCase.replace('-', ' ')}` : 'TOP DIRECTORY RANKINGS'}</span>
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-500 font-mono block">Showing {AI_TOOLS_DIRECTORY.filter(t => !activeDiscoveryUseCase || t.category === activeDiscoveryUseCase || t.tags.includes(activeDiscoveryUseCase)).length} Verified Tools</span>
+                        </div>
+
+                        {/* View Switcher Controls (Point 24) */}
+                        <div className="flex items-center gap-1 bg-slate-500/10 p-1 rounded-xl border border-slate-500/10 self-stretch sm:self-auto justify-center">
+                          <button
+                            onClick={() => { setDirectoryViewMode('cards'); playSynthSound('click'); }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                              directoryViewMode === 'cards'
+                                ? 'bg-[#0f172a] text-white shadow-sm'
+                                : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            <Icons.Grid className="w-3.5 h-3.5" />
+                            <span>{lang === 'gu' ? 'કાર્ડ્સ ગ્રીડ' : 'Cards Grid'}</span>
+                          </button>
+                          <button
+                            onClick={() => { setDirectoryViewMode('table'); playSynthSound('click'); }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                              directoryViewMode === 'table'
+                                ? 'bg-[#0f172a] text-white shadow-sm'
+                                : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            <Icons.List className="w-3.5 h-3.5" />
+                            <span>{lang === 'gu' ? 'ઇન્ડેક્સ ટેબલ' : 'Super Index Table'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {directoryViewMode === 'cards' ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                          {AI_TOOLS_DIRECTORY
+                            .filter(tool => !activeDiscoveryUseCase || tool.category === activeDiscoveryUseCase || tool.tags.includes(activeDiscoveryUseCase))
+                            .map((tool) => (
                             <div
                               key={`dir-${tool.id}`}
                               onClick={() => {
@@ -4953,7 +4701,110 @@ export default function App() {
                               </div>
                             </div>
                           ))}
-                      </div>
+                        </div>
+                      ) : (
+                        /* 📊 COMPLETE SEARCHABLE/CATEGORIZABLE SUPER INDEX TABLE (Point 24) */
+                        <div className={`overflow-x-auto rounded-2xl border ${
+                          theme === 'dark' ? 'bg-[#090d16]/90 border-slate-900 text-slate-300' : 'bg-white border-slate-200 text-slate-800 shadow-sm'
+                        }`}>
+                          <table className="w-full text-left border-collapse min-w-[700px]">
+                            <thead>
+                              <tr className={`border-b ${theme === 'dark' ? 'border-slate-900 bg-[#04060c]' : 'border-slate-200 bg-slate-50'} text-[9px] font-black uppercase tracking-widest text-slate-500 font-mono`}>
+                                <th className="p-4 w-[60px] text-center">Rank</th>
+                                <th className="p-4">AI Super Tool</th>
+                                <th className="p-4">Key Use-Case & Category</th>
+                                <th className="p-4 text-center">Audit Score</th>
+                                <th className="p-4">License / Price</th>
+                                <th className="p-4 text-center">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-500/5 text-xs font-semibold">
+                              {AI_TOOLS_DIRECTORY
+                                .filter(tool => !activeDiscoveryUseCase || tool.category === activeDiscoveryUseCase || tool.tags.includes(activeDiscoveryUseCase))
+                                .map((tool, idx) => {
+                                  const isFavorite = userState.favorites?.includes(tool.id);
+                                  return (
+                                    <tr 
+                                      key={`table-row-${tool.id}`}
+                                      className={`hover:bg-slate-500/5 transition-colors cursor-pointer`}
+                                      onClick={() => {
+                                        setSelectedDirectoryTool(tool);
+                                        playSynthSound('click');
+                                      }}
+                                    >
+                                      {/* Rank */}
+                                      <td className="p-4 text-center font-mono font-black text-slate-500">
+                                        #{idx + 1}
+                                      </td>
+
+                                      {/* Tool Profile */}
+                                      <td className="p-4">
+                                        <div className="flex items-center gap-2.5">
+                                          <span className="text-2xl shrink-0">{tool.logo}</span>
+                                          <div>
+                                            <span className={`block font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{tool.name}</span>
+                                            <span className="block text-[10px] text-slate-500 font-medium truncate max-w-[200px]">{tool.bestFor}</span>
+                                          </div>
+                                        </div>
+                                      </td>
+
+                                      {/* Category */}
+                                      <td className="p-4">
+                                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                          {tool.category}
+                                        </span>
+                                      </td>
+
+                                      {/* Audit Score */}
+                                      <td className="p-4 text-center">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                          ★ {tool.score}/10
+                                        </span>
+                                      </td>
+
+                                      {/* Cost / Pricing */}
+                                      <td className="p-4 font-mono text-[10px]">
+                                        <span className={tool.isFree ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                                          {tool.isFree ? 'FREE + PRO PLANS' : 'COMMERCIAL LICENSE'}
+                                        </span>
+                                      </td>
+
+                                      {/* Actions */}
+                                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center justify-center gap-2">
+                                          <button
+                                            onClick={() => {
+                                              toggleCompareDirectoryTool(tool.id);
+                                              playSynthSound('click');
+                                            }}
+                                            className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                              comparedDirectoryToolIds.includes(tool.id)
+                                                ? 'bg-emerald-500/25 text-emerald-400 border border-emerald-500/40'
+                                                : 'bg-slate-500/10 hover:bg-slate-500/20 text-slate-300 border border-slate-500/5'
+                                            }`}
+                                          >
+                                            {comparedDirectoryToolIds.includes(tool.id) ? '✓ Compare' : '+ Compare'}
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              toggleFavoriteDirectoryTool(tool.id);
+                                              playSynthSound('click');
+                                            }}
+                                            className={`p-1.5 rounded hover:bg-slate-500/5 transition-all cursor-pointer ${
+                                              isFavorite ? 'text-amber-400' : 'text-slate-500 hover:text-slate-300'
+                                            }`}
+                                          >
+                                            <Icons.Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
 
                     {/* 🎁 6. FREE AI RESOURCES LIBRARY & COMPARISONS */}
@@ -5098,30 +4949,34 @@ export default function App() {
                                     ) : (
                                       <div className="space-y-1.5">
                                         <div className="flex flex-wrap gap-1">
-                                          {AI_TOOLS_DIRECTORY.filter(t => coll.toolIds.includes(t.id)).map(t => (
-                                            <div
-                                              key={`coll-tool-${coll.id}-${t.id}`}
-                                              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-extrabold border ${
-                                                theme === 'dark' ? 'bg-slate-900/65 border-slate-800' : 'bg-slate-100 border-slate-200'
-                                              }`}
-                                            >
-                                              <button
-                                                onClick={() => {
-                                                  setSelectedDirectoryTool(t);
-                                                  playSynthSound('click');
-                                                }}
-                                                className="hover:text-blue-400 text-left cursor-pointer"
+                                          {coll.toolIds.map(tId => {
+                                            const t = getToolById(tId);
+                                            if (!t) return null;
+                                            return (
+                                              <div
+                                                key={`coll-tool-${coll.id}-${t.id}`}
+                                                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-extrabold border ${
+                                                  theme === 'dark' ? 'bg-slate-900/65 border-slate-800' : 'bg-slate-100 border-slate-200'
+                                                }`}
                                               >
-                                                {t.logo} {t.name}
-                                              </button>
-                                              <button
-                                                onClick={() => removeToolFromCollection(coll.id, t.id)}
-                                                className="text-red-400 hover:text-red-500 cursor-pointer"
-                                              >
-                                                <Icons.X className="w-3 h-3" />
-                                              </button>
-                                            </div>
-                                          ))}
+                                                <button
+                                                  onClick={() => {
+                                                    setSelectedDirectoryTool(t);
+                                                    playSynthSound('click');
+                                                  }}
+                                                  className="hover:text-blue-400 text-left cursor-pointer"
+                                                >
+                                                  {t.logo} {t.name}
+                                                </button>
+                                                <button
+                                                  onClick={() => removeToolFromCollection(coll.id, t.id)}
+                                                  className="text-red-400 hover:text-red-500 cursor-pointer"
+                                                >
+                                                  <Icons.X className="w-3 h-3" />
+                                                </button>
+                                              </div>
+                                            );
+                                          })}
                                         </div>
                                         {/* Offer quick add button */}
                                         <div className="flex items-center gap-1 border-t border-slate-500/5 pt-1.5 mt-1.5">
@@ -5699,6 +5554,236 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+
+                    {/* 💰 AI SUPER TOOLS MONETIZATION & AFFILIATE PORTAL (Point 17) */}
+                    <div className={`p-6 rounded-2xl border ${
+                      theme === 'dark' ? 'bg-[#090d16]/70 border-slate-900' : 'bg-slate-50 border-slate-200 shadow-sm'
+                    } space-y-5`}>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-500/10 pb-4 gap-3">
+                        <div className="space-y-1">
+                          <span className="text-[8px] font-black tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full uppercase font-mono">
+                            {lang === 'gu' ? 'મુદ્રીકરણ સિસ્ટમ સક્રિય' : 'MONETIZATION SYSTEM ACTIVE'}
+                          </span>
+                          <h3 className={`text-sm font-black uppercase flex items-center gap-2 ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>
+                            <Icons.TrendingUp className="w-5 h-5 text-emerald-400" />
+                            <span>{lang === 'gu' ? 'એઆઈ સુપર ટૂલ્સ પાર્ટનર અને એફિલિએટ પોર્ટલ' : 'AI SUPER TOOLS PARTNER & AFFILIATE MONETIZATION PORTAL'}</span>
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-xl text-indigo-400">
+                          <Icons.Award className="w-4 h-4" />
+                          <span className="text-[10px] font-black uppercase font-mono">Tier: Silver Affiliate</span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+                        {lang === 'gu'
+                          ? 'આપણા એઆઈ સાધનો માટે એફિલિએટ લિંક્સ જનરેટ કરો, ટ્રાફિક મોકલો, અને વાસ્તવિક સમયમાં કન્વર્ઝન રેટ અને કમાણી ટ્રેક કરો.'
+                          : 'Generate high-commission tracked links for top-tier directory tools. Use our referral traffic simulator to test live clicks, referrals, conversions, and unlock real-time earnings!'}
+                      </p>
+
+                      {/* Live Affiliate Performance Metrics */}
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        {[
+                          { title: lang === 'gu' ? 'કુલ લિંક વિઝિટ્સ' : 'Referral Clicks', value: affiliateMetrics.clicks, icon: <Icons.UserPlus className="w-4 h-4 text-sky-400" />, suffix: "Clicks" },
+                          { title: lang === 'gu' ? 'કન્વર્ઝન્સ / ઓર્ડર' : 'Success Sales', value: affiliateMetrics.conversions, icon: <Icons.CheckSquare className="w-4 h-4 text-emerald-400" />, suffix: "Sales" },
+                          { title: lang === 'gu' ? 'કન્વર્ઝન રેટ' : 'Avg Conversion Rate', value: affiliateMetrics.clicks > 0 ? `${((affiliateMetrics.conversions / affiliateMetrics.clicks) * 100).toFixed(1)}%` : "0.0%", icon: <Icons.Percent className="w-4 h-4 text-indigo-400" />, suffix: "CR" },
+                          { title: lang === 'gu' ? 'ટોટલ રેફરલ કમાણી' : 'Total Earnings', value: `$${Number(affiliateMetrics.earnings).toFixed(2)}`, icon: <Icons.TrendingUp className="w-4 h-4 text-amber-400" />, suffix: "USD" }
+                        ].map((m, idx) => (
+                          <div key={idx} className={`p-4 rounded-xl border flex items-center justify-between ${
+                            theme === 'dark' ? 'bg-[#04060c]/80 border-slate-900' : 'bg-white border-slate-200'
+                          }`}>
+                            <div className="space-y-1">
+                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest font-mono block">{m.title}</span>
+                              <span className="text-sm font-black text-slate-200 font-mono block truncate">{m.value}</span>
+                            </div>
+                            <div className="p-2.5 bg-slate-500/5 rounded-lg border border-slate-500/10 shrink-0">
+                              {m.icon}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                        {/* Box 1: Link Generator */}
+                        <div className={`p-5 rounded-xl border space-y-4 ${
+                          theme === 'dark' ? 'bg-[#04060c] border-slate-900' : 'bg-white border-slate-200'
+                        }`}>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
+                            <Icons.Plus className="w-4 h-4 text-emerald-400" />
+                            <span>{lang === 'gu' ? 'લિંક જનરેટર એન્જિન' : 'PARTNER REF-LINK GENERATOR'}</span>
+                          </h4>
+
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Select Target Directory Tool</label>
+                              <select
+                                id="affiliate-tool-selector"
+                                className={`w-full p-2.5 rounded-lg text-xs font-bold outline-none border ${
+                                  theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+                                }`}
+                              >
+                                {AI_TOOLS_DIRECTORY.slice(0, 8).map((tool) => (
+                                  <option key={tool.id} value={tool.id}>{tool.logo} {tool.name} (15% Commission)</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                playSynthSound('click');
+                                const selectEl = document.getElementById('affiliate-tool-selector') as HTMLSelectElement;
+                                if (!selectEl) return;
+                                const toolId = selectEl.value;
+                                const tool = AI_TOOLS_DIRECTORY.find(t => t.id === toolId);
+                                if (!tool) return;
+
+                                const generatedRef = `https://aisupertools.hub/ref/user_${userState.level}_${tool.name.toLowerCase().replace(/\s+/g, '_')}`;
+                                const updated = { ...userAffiliateLinks, [toolId]: generatedRef };
+                                setUserAffiliateLinks(updated);
+                                localStorage.setItem('hub_user_affiliate_links', JSON.stringify(updated));
+
+                                showToast(
+                                  lang === 'gu'
+                                    ? `'${tool.name}' માટે મુદ્રીકરણ ટ્રેકિંગ લિંક સફળતાપૂર્વક જનરેટ થઈ!`
+                                    : `Generated tracking referral link for ${tool.name}!`,
+                                  'success'
+                                );
+                                updateQuestProgress('affiliate');
+                                addXPPoints(10, `Generated affiliate link for ${tool.name}!`, `${tool.name} માટે એફિલિએટ લિંક બનાવી!`);
+                              }}
+                              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow cursor-pointer active:scale-95"
+                            >
+                              🔗 Generate Commission Referral Link (+10 XP)
+                            </button>
+                          </div>
+
+                          {/* Render generated links list */}
+                          <div className="space-y-2 pt-2 border-t border-slate-500/5">
+                            <span className="text-[9px] font-bold text-slate-500 uppercase block">Your Tracked Links</span>
+                            {Object.keys(userAffiliateLinks).length === 0 ? (
+                              <p className="text-[10px] text-slate-500 italic font-semibold">No referral links generated yet.</p>
+                            ) : (
+                              <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                                {Object.entries(userAffiliateLinks).map(([tId, refUrl]) => {
+                                  const matchedTool = AI_TOOLS_DIRECTORY.find(t => t.id === tId);
+                                  return (
+                                    <div key={tId} className="p-2 rounded-lg bg-slate-500/5 border border-slate-500/5 flex items-center justify-between gap-2">
+                                      <div className="truncate text-left">
+                                        <span className="text-[9px] font-black text-slate-300 block truncate">
+                                          {matchedTool ? matchedTool.name : 'AI Tool'}
+                                        </span>
+                                        <span className="text-[8px] font-mono text-emerald-400 block truncate">{refUrl}</span>
+                                      </div>
+                                      <button
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(refUrl as string);
+                                          showToast('Copied to clipboard!', 'success');
+                                          playSynthSound('success');
+                                        }}
+                                        className="text-[8px] font-black uppercase bg-slate-550/10 hover:bg-slate-550/20 px-2 py-1 rounded text-slate-300 shrink-0 cursor-pointer"
+                                      >
+                                        Copy
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Box 2: Traffic Simulation Simulator */}
+                        <div className={`p-5 rounded-xl border flex flex-col justify-between ${
+                          theme === 'dark' ? 'bg-[#04060c] border-slate-900' : 'bg-white border-slate-200'
+                        }`}>
+                          <div className="space-y-4">
+                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 font-mono flex items-center gap-1.5">
+                              <Icons.Flame className="w-4 h-4 text-indigo-400" />
+                              <span>{lang === 'gu' ? 'લાઇવ ટ્રાફિક રેફરલ સિમ્યુલેટર' : 'REAL-TIME TRAFFIC REFERRAL SIMULATOR'}</span>
+                            </h4>
+
+                            <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">
+                              {lang === 'gu'
+                                ? 'તમારા જનરેટ કરેલા એફિલિએટ લિંક્સ પર વાસ્તવિક સમયનું મુલાકાતી ટ્રાફિક અને વેચાણ ચક્ર ચલાવો અને નફો કમાવો.'
+                                : 'Launch a referral pipeline campaign. We will simulate active users browsing, clicking your generated URLs, and ordering premium AI plans.'}
+                            </p>
+
+                            <div className="p-4 rounded-xl bg-slate-950/40 border border-slate-900 space-y-2">
+                              <div className="flex justify-between text-[10px]">
+                                <span className="text-slate-400 font-bold">Campaign Status:</span>
+                                <span className="text-emerald-400 font-black uppercase font-mono">Optimized & Operational</span>
+                              </div>
+                              <div className="flex justify-between text-[10px]">
+                                <span className="text-slate-400 font-bold">Generated Links Multiplier:</span>
+                                <span className="text-indigo-400 font-black font-mono">x{(1 + Object.keys(userAffiliateLinks).length * 0.5).toFixed(1)} Boosting</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-4 flex gap-2">
+                            <button
+                              onClick={() => {
+                                if (Object.keys(userAffiliateLinks).length === 0) {
+                                  showToast(lang === 'gu' ? 'પહેલા લિંક જનરેટ કરો!' : 'Please generate at least 1 tracked link first!', 'error');
+                                  return;
+                                }
+                                playSynthSound('success');
+                                const isConversion = Math.random() > 0.65;
+                                const newClicks = affiliateMetrics.clicks + Math.floor(Math.random() * 5) + 2;
+                                const newConversions = affiliateMetrics.conversions + (isConversion ? 1 : 0);
+                                const newEarnings = Number(affiliateMetrics.earnings) + (isConversion ? 15.50 : 0);
+
+                                const metrics = { clicks: newClicks, conversions: newConversions, earnings: newEarnings };
+                                setAffiliateMetrics(metrics);
+                                localStorage.setItem('hub_affiliate_metrics', JSON.stringify(metrics));
+
+                                if (isConversion) {
+                                  showToast(
+                                    lang === 'gu'
+                                      ? '💸 અદ્ભુત! એક નવું પ્રીમિયમ કન્વર્ઝન સફળ રહ્યું! +$૧૫.૫૦ કમાણી!'
+                                      : '💸 Awesome! A referral subscriber made a conversion! +$15.50 profit!',
+                                    'success'
+                                  );
+                                  addXPPoints(20, "Referral user converted to paying subscriber!", "એફિલિએટ કન્વર્ઝન સફળ રહ્યું!");
+                                } else {
+                                  showToast('Referrals simulated. Users generated traffic visits.', 'info');
+                                  addXPPoints(2, "Referral traffic tick.", "ટ્રાફિક મુલાકાત વધી.");
+                                }
+                              }}
+                              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              <Icons.RefreshCw className="w-4 h-4 animate-spin-slow" />
+                              <span>{lang === 'gu' ? '🚀 ટ્રાફિક સિમ્યુલેશન ચલાવો' : '🚀 Drive Referral Traffic'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                if (Number(affiliateMetrics.earnings) < 50) {
+                                  showToast(lang === 'gu' ? 'ન્યૂનતમ ચૂકવણી $૫૦ છે!' : 'Payout threshold is $50.00 USD!', 'error');
+                                  return;
+                                }
+                                playSynthSound('success');
+                                const clearedMetrics = { clicks: 0, conversions: 0, earnings: 0 };
+                                setAffiliateMetrics(clearedMetrics);
+                                localStorage.setItem('hub_affiliate_metrics', JSON.stringify(clearedMetrics));
+
+                                showToast(
+                                  lang === 'gu'
+                                    ? 'સફળતાપૂર્વક ચૂકવણી મેળવી! +૫૦ XP રિવોર્ડ!'
+                                    : 'Payout claimed successfully! $50.00 USD added to virtual wallet & +50 XP bonus awarded!',
+                                  'success'
+                                );
+                                addXPPoints(50, "Claimed affiliate payout reward!", "એફિલિએટ પેઆઉટ મેળવ્યું!");
+                              }}
+                              className="px-4 py-3 bg-slate-900 hover:bg-[#090d16] text-slate-300 hover:text-white border border-slate-800 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer"
+                            >
+                              💵 Payout
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 )}
 
@@ -6073,17 +6158,242 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Interactive Section 2: Business Preset Stacks (Point 15) */}
+                    {/* Interactive Section 2: Customized Business AI Stack Planner (Point 15) */}
                     <div className="space-y-4 pt-4 border-t border-slate-500/10">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 font-mono flex items-center gap-1.5">
                           <Icons.Layers className="w-4 h-4 text-emerald-400" />
-                          <span>{lang === 'gu' ? '૨. એડવાન્સ વ્યવસાયિક રેડી-મેડ સ્ટેક્સ' : '2. ENTERPRISE BUSINESS PRESET AI STACKS'}</span>
+                          <span>{lang === 'gu' ? '૨. એન્ટરપ્રાઇઝ કસ્ટમાઇઝ્ડ એઆઈ બિઝનેસ સ્ટેક પ્લેનર' : '2. CUSTOMIZED ENTERPRISE BUSINESS AI STACK PLANNER'}</span>
                         </h3>
                         <span className="text-[8px] font-black tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase font-mono">
-                          {lang === 'gu' ? 'ભાવિ પ્રીમિયમ સુવિધા' : 'Future Monitored Feature'}
+                          {lang === 'gu' ? 'સક્રિય એઆઈ સુવિધા' : 'ACTIVE AI FEATURE'}
                         </span>
                       </div>
+
+                      <div className={`p-6 rounded-2xl border ${theme === 'dark' ? 'bg-[#090d16]' : 'bg-white border-slate-200 shadow-sm'} space-y-4`}>
+                        <p className="text-xs text-slate-500 leading-relaxed font-semibold">
+                          {lang === 'gu'
+                            ? 'તમારા વ્યવસાયનું પ્રકાર, મર્યાદા અને સભ્યો પસંદ કરો. આપણો એઆઈ એન્જિન તમારા માટે ૫ પાવરફુલ કનેક્ટેડ ટૂલ્સની સિસ્ટમ ડિઝાઇન કરશે.'
+                            : 'Configure your target business sector, budget boundaries, and team size. Our backend model will generate a 5-step automated workflow with real connected AI tools.'}
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                              {lang === 'gu' ? 'વ્યવસાય શ્રેણી (Industry)' : 'Business Sector'}
+                            </label>
+                            <select
+                              value={customStackIndustry}
+                              onChange={(e) => setCustomStackIndustry(e.target.value)}
+                              className={`w-full p-2.5 rounded-xl text-xs font-bold border outline-none ${
+                                theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+                              }`}
+                            >
+                              <option value="E-Commerce">🛒 E-Commerce & Retail</option>
+                              <option value="Local Gujarati Shop">🏪 Local Retail / Kirana</option>
+                              <option value="Tech Startup">🚀 Technology & SaaS</option>
+                              <option value="Marketing Agency">🎯 Digital Marketing Agency</option>
+                              <option value="Real Estate">🏢 Real Estate & Housing</option>
+                              <option value="Professional Consulting">💼 Consulting & Finance</option>
+                              <option value="Education / Tutoring">📚 Education & Coaching</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                              {lang === 'gu' ? 'માસિક બજેટ (Budget)' : 'Monthly Budget'}
+                            </label>
+                            <select
+                              value={customStackBudget}
+                              onChange={(e) => setCustomStackBudget(e.target.value)}
+                              className={`w-full p-2.5 rounded-xl text-xs font-bold border outline-none ${
+                                theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+                              }`}
+                            >
+                              <option value="Free Tier Only">🆓 Free Tier Only / ₹0</option>
+                              <option value="Under $50/mo">💰 Economy (Under $50/mo)</option>
+                              <option value="Under $150/mo">💼 Professional (Under $150/mo)</option>
+                              <option value="Flexible">🔥 Unrestricted / Enterprise</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                              {lang === 'gu' ? 'ટીમ સાઇઝ (Team Size)' : 'Team Size'}
+                            </label>
+                            <select
+                              value={customStackTeamSize}
+                              onChange={(e) => setCustomStackTeamSize(e.target.value)}
+                              className={`w-full p-2.5 rounded-xl text-xs font-bold border outline-none ${
+                                theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+                              }`}
+                            >
+                              <option value="1 (Solo Creator)">🧑‍💻 Solo Creator / 1</option>
+                              <option value="2-5 (Small Team)">👥 Small Team / 2-5</option>
+                              <option value="6-25 (Startup)">🚀 Growing Startup / 6-25</option>
+                              <option value="25+ Enterprise">🏢 Large Corporate / 25+</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                              {lang === 'gu' ? 'દેશ / ક્ષેત્ર (Region)' : 'Target Region'}
+                            </label>
+                            <select
+                              value={customStackRegion}
+                              onChange={(e) => setCustomStackRegion(e.target.value)}
+                              className={`w-full p-2.5 rounded-xl text-xs font-bold border outline-none ${
+                                theme === 'dark' ? 'bg-[#04060c] border-slate-900 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+                              }`}
+                            >
+                              <option value="India">🇮🇳 India (Local Markets)</option>
+                              <option value="United States">🇺🇸 United States</option>
+                              <option value="Europe">🇪🇺 Europe</option>
+                              <option value="Global">🌐 Global / Borderless</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end pt-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                playSynthSound('click');
+                                setCustomStackLoading(true);
+                                const response = await fetch('/api/tools/generate-business-stack', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    industry: customStackIndustry,
+                                    budget: customStackBudget,
+                                    teamSize: customStackTeamSize,
+                                    country: customStackRegion
+                                  })
+                                });
+                                if (!response.ok) {
+                                  throw new Error('Planner API returned an error');
+                                }
+                                const data = await response.json();
+                                setCustomStackResult(data);
+                                playSynthSound('success');
+                                updateQuestProgress('stack');
+                                addXPPoints(20, `Planned a Custom AI Stack for ${customStackIndustry}!`, `${customStackIndustry} માટે કસ્ટમ એઆઈ સ્ટેક બનાવ્યો!`);
+                              } catch (err: any) {
+                                console.error(err);
+                                showToast(lang === 'gu' ? 'સર્વર કનેક્શન નિષ્ફળ! ફરી પ્રયાસ કરો.' : 'Server connection failed. Please try again.', 'error');
+                              } finally {
+                                setCustomStackLoading(false);
+                              }
+                            }}
+                            disabled={customStackLoading}
+                            className="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-2 active:scale-95 disabled:opacity-50"
+                          >
+                            {customStackLoading ? (
+                              <>
+                                <Icons.RefreshCw className="w-4 h-4 animate-spin" />
+                                <span>{lang === 'gu' ? 'એઆઈ આયોજન ચાલુ છે...' : 'GENERATING STACK...'}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Icons.Cpu className="w-4 h-4" />
+                                <span>{lang === 'gu' ? '⚡ કસ્ટમ એઆઈ સ્ટેક બનાવો' : '⚡ PLAN MY DYNAMIC AI PIPELINE'}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Rendering Generated Stack Output */}
+                        {customStackResult && (
+                          <div className={`mt-6 p-6 rounded-2xl border space-y-6 ${
+                            theme === 'dark' ? 'bg-[#04060c] border-slate-900' : 'bg-slate-50 border-slate-200'
+                          }`}>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-500/5 pb-4 gap-3">
+                              <div>
+                                <span className="text-[8px] font-black tracking-widest text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full uppercase font-mono">
+                                  {lang === 'gu' ? 'સફળતાપૂર્વક આયોજિત' : 'SUCCESSFULLY COMPILED'}
+                                </span>
+                                <h4 className={`text-base font-black uppercase mt-1 ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>
+                                  🎯 {customStackResult.stackName || 'Your Custom AI Operations Pipeline'}
+                                </h4>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-500 uppercase font-bold block">{lang === 'gu' ? 'કુલ અંદાજિત કિંમત' : 'ESTIMATED TOTAL COST'}</span>
+                                <span className="text-xs font-black text-emerald-400 font-mono">{customStackResult.estimatedTotalCost || 'Flexible'}</span>
+                              </div>
+                            </div>
+
+                            <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                              {customStackResult.summary}
+                            </p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 relative pt-2">
+                              {customStackResult.pipeline && customStackResult.pipeline.map((p: any, i: number) => (
+                                <div key={i} className={`p-4 rounded-xl border flex flex-col justify-between h-[175px] ${
+                                  theme === 'dark' ? 'bg-[#090d16] border-slate-900 hover:border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+                                }`}>
+                                  <div className="space-y-1">
+                                    <span className="text-[8px] font-black text-indigo-400 font-mono uppercase block">Step {i+1}</span>
+                                    <span className="text-lg block">{p.logo || '🔧'}</span>
+                                    <h5 className={`text-[11px] font-black truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{p.toolName}</h5>
+                                    <p className="text-[9px] text-slate-500 font-bold leading-normal line-clamp-3">{p.desc}</p>
+                                  </div>
+                                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-500/5">
+                                    <span className="text-[8px] font-black text-slate-400 font-mono">{p.estimatedCost || 'Free Plan'}</span>
+                                    <a href={p.site || '#'} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-indigo-400 flex items-center gap-0.5 uppercase hover:underline">
+                                      <span>Visit</span> <Icons.ExternalLink className="w-2 h-2" />
+                                    </a>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 space-y-1">
+                              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest font-mono flex items-center gap-1">
+                                <Icons.BookOpen className="w-3.5 h-3.5" />
+                                <span>{lang === 'gu' ? 'ઇન્ટિગ્રેશન એડવાઇસ / માર્ગદર્શન' : 'AI ARCHITECT INTEGRATION ADVICE'}</span>
+                              </span>
+                              <p className="text-[10px] text-slate-400 leading-relaxed font-semibold font-sans">
+                                {customStackResult.integrationSecret}
+                              </p>
+                            </div>
+
+                            <div className="flex justify-end pt-1">
+                              <button
+                                onClick={() => {
+                                  playSynthSound('success');
+                                  const customCollId = 'custom_stack_coll_' + Date.now();
+                                  const newColl = {
+                                    id: customCollId,
+                                    name: customStackResult.stackName || 'AI Custom Business Stack',
+                                    toolIds: (customStackResult.pipeline || []).map((p: any, i: number) => {
+                                      return `custom_tool_${i}_${Date.now()}`;
+                                    })
+                                  };
+                                  setUserCollections(prev => [...prev, newColl]);
+                                  showToast(
+                                    lang === 'gu'
+                                      ? `નવો મિશન એઆઈ કલેક્શન '${newColl.name}' સફળતાપૂર્વક સેવ થયો!`
+                                      : `Saved custom pipeline '${newColl.name}' into your My Toolbox Workspace!`,
+                                    'success'
+                                  );
+                                  addXPPoints(15, `Saved custom stack ${newColl.name} to workspace!`, `${newColl.name} સ્ટેક સેવ કર્યો!`);
+                                }}
+                                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow cursor-pointer active:scale-95"
+                              >
+                                ⭐ {lang === 'gu' ? 'આ સ્ટેકને માય ટૂલબોક્સમાં સાચવો' : 'Save generated stack to workspace'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Interactive Section 3: Preset Business Stacks */}
+                    <div className="space-y-4 pt-4 border-t border-slate-500/10">
+                      <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 font-mono flex items-center gap-1.5">
+                        <Icons.Layers className="w-4 h-4 text-indigo-400" />
+                        <span>{lang === 'gu' ? '૩. ઇન્ડસ્ટ્રી રેડી-મેડ પ્રીસેટ સ્ટેક્સ' : '3. PRE-CONFIGURED INDUSTRY PRESET AI STACKS'}</span>
+                      </h3>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         {[
@@ -6104,21 +6414,9 @@ export default function App() {
                             desc: "Automate store listings, visual cleanups, product photography, and customer chat.",
                             tools: ["Shopify Sidekick (Store)", "Photoroom (Product BG)", "Klaviyo AI (Emails)", "ChatGPT (Instant Support)", "ManyChat (Social Chatbot)"],
                             badge: "Conversion Boost"
-                          },
-                          {
-                            title: "Real Estate AI Stack",
-                            desc: "Virtually stage empty property photos, construct immersive tours, and draft listing briefs.",
-                            tools: ["virtualStaging.ai (Furniture)", "Zillow 3D Home (Immersive Tours)", "ChatGPT Plus (Listing copy)", "Canva Pro (Brochures)"],
-                            badge: "Sales Velocity"
-                          },
-                          {
-                            title: "Consulting AI Stack",
-                            desc: "Produce premium executive summary slides, automated contracts, and notes logs.",
-                            tools: ["Beautiful.ai (Presentation Decks)", "Otter.ai (Minutes of Meeting)", "DocuSign AI (Contracts)", "ChatGPT (Case Analysis)"],
-                            badge: "Elite Strategy"
                           }
                         ].map((b, idx) => (
-                          <div key={idx} className={`p-5 rounded-2xl border flex flex-col justify-between h-[230px] ${
+                          <div key={idx} className={`p-5 rounded-2xl border flex flex-col justify-between h-[210px] ${
                             theme === 'dark' ? 'bg-[#090d16] border-slate-900/80 hover:border-slate-800' : 'bg-white border-slate-200 shadow-sm'
                           }`}>
                             <div className="space-y-2">
@@ -6142,9 +6440,35 @@ export default function App() {
                             <button
                               onClick={() => {
                                 playSynthSound('success');
-                                addXPPoints(10, `Imported ${b.title}!`, `${b.title} સેવ કર્યો!`);
+                                const collId = 'coll_preset_' + idx + '_' + Date.now();
+                                const newColl = {
+                                  id: collId,
+                                  name: b.title,
+                                  toolIds: b.tools.map((tName, i) => {
+                                    const cleanName = tName.toLowerCase();
+                                    const matched = AI_TOOLS_DIRECTORY.find(tool => 
+                                      cleanName.includes(tool.name.toLowerCase()) || 
+                                      tool.name.toLowerCase().includes(cleanName)
+                                    );
+                                    if (matched) return matched.id;
+                                    return `virtual_${idx}_${i}`;
+                                  })
+                                };
+                                
+                                setUserCollections(prev => {
+                                  const filtered = prev.filter(c => c.name !== b.title);
+                                  return [...filtered, newColl];
+                                });
+                                
+                                showToast(
+                                  lang === 'gu'
+                                    ? `તમામ ${b.tools.length} ટૂલ્સ સાથે '${b.title}' કલેક્શનમાં સફળતાપૂર્વક સાચવવામાં આવ્યું!`
+                                    : `Successfully saved '${b.title}' stack with ${b.tools.length} tools to your workspace collections!`,
+                                  'success'
+                                );
+                                addXPPoints(15, `Imported preset stack: ${b.title}!`, `${b.title} સ્ટેક સફળતાપૂર્વક સેવ કર્યો!`);
                               }}
-                              className="w-full text-center py-2 bg-slate-900 hover:bg-slate-850 text-slate-200 hover:text-white text-[9px] font-black uppercase tracking-wider rounded-xl transition-all border border-slate-800/80 active:scale-95 cursor-pointer mt-3"
+                              className="w-full text-center py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[9px] font-black uppercase tracking-wider rounded-xl transition-all border border-transparent shadow shadow-emerald-500/10 active:scale-95 cursor-pointer mt-3"
                             >
                               📥 Save Whole Stack ({b.tools.length} Tools)
                             </button>
@@ -6562,6 +6886,97 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* 🎮 DAILY MISSIONS & GAMIFICATION QUESTS (Point 20) */}
+                    <div className={`p-6 rounded-2xl border text-left space-y-4 mt-6 ${
+                      theme === 'dark' ? 'bg-[#090d16] border-[#1e293b]' : 'bg-white border-slate-200 shadow-sm'
+                    }`}>
+                      <div className="flex justify-between items-center border-b border-slate-500/10 pb-3">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400 font-mono flex items-center gap-1.5">
+                          <Icons.Award className="w-4.5 h-4.5 text-indigo-400" />
+                          <span>{lang === 'gu' ? '🎮 દૈનિક મિશન અને પડકારો' : '🎮 ACTIVE DAILY MISSIONS & QUESTS'}</span>
+                        </h4>
+                        <span className="text-[8px] font-mono font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded">
+                          {lang === 'gu' ? 'દરરોજ રિસેટ થાય છે' : 'RESETS DAILY'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {Object.entries(dailyQuests).map(([key, q]: [string, any]) => (
+                          <div key={key} className={`p-4 rounded-xl border flex flex-col justify-between h-[155px] ${
+                            theme === 'dark' ? 'bg-[#04060c] border-[#1e293b]' : 'bg-slate-50 border-slate-200'
+                          }`}>
+                            <div className="space-y-1.5">
+                              <div className="flex justify-between items-start gap-1">
+                                <span className="text-[8px] font-black text-indigo-400 uppercase tracking-wider font-mono">
+                                  {key === 'newsletter' ? '📧 NEWSLETTER' : key === 'scam' ? '🛡️ CYBER SEC' : key === 'stack' ? '🏗️ STACK' : '💰 AFFILIATE'}
+                                </span>
+                                {q.completed ? (
+                                  <span className="text-[8px] font-black bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded uppercase font-mono">
+                                    {lang === 'gu' ? 'પૂર્ણ' : 'COMPLETED'}
+                                  </span>
+                                ) : (
+                                  <span className="text-[8px] font-black bg-amber-500/10 border border-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded uppercase font-mono">
+                                    {q.current}/{q.max}
+                                  </span>
+                                )}
+                              </div>
+                              <h5 className={`text-[10px] font-black leading-tight ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
+                                {lang === 'gu' ? q.labelGu : q.labelEn}
+                              </h5>
+                            </div>
+
+                            <div className="space-y-3 pt-2">
+                              {/* Small progress bar */}
+                              <div className="w-full h-1 bg-slate-500/10 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-indigo-500 transition-all duration-300"
+                                  style={{ width: `${(q.current / q.max) * 100}%` }}
+                                />
+                              </div>
+
+                              {q.claimed ? (
+                                <button className="w-full py-2 bg-slate-500/10 text-slate-500 text-[8px] font-black uppercase rounded-lg border border-slate-500/5 cursor-not-allowed" disabled>
+                                  ✓ {lang === 'gu' ? 'મેળવેલ' : 'CLAIMED'} (+{q.reward} XP)
+                                </button>
+                              ) : q.completed ? (
+                                <button
+                                  onClick={() => {
+                                    playSynthSound('success');
+                                    setDailyQuests((prev: any) => {
+                                      const next = {
+                                        ...prev,
+                                        [key]: { ...prev[key], claimed: true }
+                                      };
+                                      localStorage.setItem('hub_daily_quests', JSON.stringify(next));
+                                      return next;
+                                    });
+                                    addXPPoints(q.reward, `Claimed reward for ${q.labelEn}!`, `${q.labelGu} મિશન પૂર્ણ કરી ઇનામ લીધું!`);
+                                    showToast(lang === 'gu' ? `સફળતાપૂર્વક +${q.reward} XP દાવો કર્યો!` : `Successfully claimed +${q.reward} XP reward!`, 'success');
+                                  }}
+                                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-[8px] font-black uppercase rounded-lg transition-all shadow-md active:scale-95 cursor-pointer"
+                                >
+                                  🎁 {lang === 'gu' ? 'ઇનામ લો' : 'CLAIM'} (+{q.reward} XP)
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    playSynthSound('click');
+                                    if (key === 'newsletter') setActiveRadarTab('leaderboard'); // scrolling to newsletter block
+                                    else if (key === 'scam') setActiveRadarTab('scam-detector');
+                                    else if (key === 'stack') setActiveRadarTab('builder');
+                                    else if (key === 'affiliate') setActiveRadarTab('toolbox');
+                                  }}
+                                  className="w-full py-2 bg-slate-900 hover:bg-[#1e293b] text-slate-300 hover:text-white text-[8px] font-black uppercase rounded-lg transition-all border border-slate-800 cursor-pointer"
+                                >
+                                  ⚡ {lang === 'gu' ? 'શરૂ કરો' : 'START QUEST'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Point 18 & Point 19: Newsletter & Mobile Add banner */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
                       {/* Weekly AI Newsletter Form */}
@@ -6579,9 +6994,11 @@ export default function App() {
                         </div>
 
                         {newsletterSubscribed ? (
-                          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-black mt-4 flex items-center gap-2">
-                            <span>✓</span>
-                            <span>{lang === 'gu' ? 'તમે સબસ્ક્રાઇબ કરી લીધું છે! +૧૫ XP ઉમેરાઈ ગયા!' : 'Subscribed successfully! +15 XP has been awarded!'}</span>
+                          <div className="space-y-3 mt-4">
+                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-black flex items-center gap-2">
+                              <span>✓</span>
+                              <span>{lang === 'gu' ? 'તમે સબસ્ક્રાઇબ કરી લીધું છે! +૧૫ XP ઉમેરાઈ ગયા!' : 'Subscribed successfully! +15 XP has been awarded!'}</span>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex gap-2.5 mt-4">
@@ -6595,18 +7012,133 @@ export default function App() {
                               }`}
                             />
                             <button
-                              onClick={() => {
-                                if (!newsletterEmail.trim()) {
-                                  showToast(lang === 'gu' ? 'ઇમેઇલ ખાલી હોઈ શકે નહીં!' : 'Email cannot be empty!', 'error');
+                              onClick={async () => {
+                                if (!newsletterEmail.trim() || !newsletterEmail.includes('@')) {
+                                  showToast(lang === 'gu' ? 'ઇમેઇલ માન્ય નથી!' : 'Please enter a valid email address!', 'error');
                                   return;
-                               }
-                                setNewsletterSubscribed(true);
-                                addXPPoints(15, "Joined weekly newsletter!", "વીકલી ન્યૂઝલેટરમાં જોડાયા!");
+                                }
+                                try {
+                                  playSynthSound('click');
+                                  const response = await fetch('/api/newsletter/subscribe', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ email: newsletterEmail })
+                                  });
+                                  if (response.ok) {
+                                    setNewsletterSubscribed(true);
+                                    updateQuestProgress('newsletter');
+                                    addXPPoints(15, "Joined weekly newsletter!", "વીકલી ન્યૂઝલેટરમાં જોડાયા!");
+                                  } else {
+                                    showToast('Subscription failed.', 'error');
+                                  }
+                                } catch (e) {
+                                  showToast('Server error.', 'error');
+                                }
                               }}
                               className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow cursor-pointer shrink-0"
                             >
                               Join
                             </button>
+                          </div>
+                        )}
+
+                        {/* Weekly Issue Vault Link (Point 18) */}
+                        <div className="mt-4 pt-3 border-t border-slate-500/10 flex justify-between items-center">
+                          <span className="text-[9px] font-black tracking-widest text-slate-500 font-mono uppercase">
+                            {lang === 'gu' ? 'ન્યૂઝલેટર આર્કાઇવ' : 'NEWSLETTER ARCHIVE'}
+                          </span>
+                          <button
+                            onClick={async () => {
+                              try {
+                                playSynthSound('click');
+                                setShowNewsletterVault(true);
+                                const issuesRes = await fetch('/api/newsletter/issues');
+                                if (issuesRes.ok) {
+                                  const issuesData = await issuesRes.json();
+                                  setNewsletterIssues(issuesData);
+                                }
+                              } catch (e) {
+                                showToast('Failed to load past issues archive.', 'error');
+                              }
+                            }}
+                            className="text-[10px] font-black text-indigo-400 hover:text-indigo-350 hover:underline flex items-center gap-1 uppercase"
+                          >
+                            <Icons.BookOpen className="w-3.5 h-3.5" />
+                            <span>{lang === 'gu' ? 'સાપ્તાહિક ઇશ્યૂ આર્કાઇવ' : '📖 Browse Newsletter Vault'}</span>
+                          </button>
+                        </div>
+
+                        {/* Rendering Newsletter Archive/Vault (Inline Modal Drawer) */}
+                        {showNewsletterVault && (
+                          <div className={`mt-4 p-4 rounded-xl border relative ${
+                            theme === 'dark' ? 'bg-[#04060c] border-slate-900' : 'bg-slate-50 border-slate-200'
+                          }`}>
+                            <div className="flex justify-between items-center border-b border-slate-500/10 pb-2 mb-3">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                {lang === 'gu' ? 'સાપ્તાહિક ઇશ્યૂ વોલ્ટ' : '📖 Weekly AI Newsletter Vault'}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  playSynthSound('click');
+                                  setShowNewsletterVault(false);
+                                  setSelectedNewsletterIssue(null);
+                                }}
+                                className="text-xs font-black text-rose-500 hover:underline"
+                              >
+                                {lang === 'gu' ? 'બંધ કરો' : 'Close Vault'}
+                              </button>
+                            </div>
+
+                            {selectedNewsletterIssue ? (
+                              <div className="space-y-3">
+                                <button
+                                  onClick={() => setSelectedNewsletterIssue(null)}
+                                  className="text-[9px] font-black uppercase tracking-wider text-indigo-400 hover:underline flex items-center gap-1"
+                                >
+                                  ← {lang === 'gu' ? 'પાછા આર્કાઇવમાં જાઓ' : 'Back to Issues List'}
+                                </button>
+                                <div className="space-y-1">
+                                  <span className="text-[8px] font-mono bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded uppercase">
+                                    {selectedNewsletterIssue.category}
+                                  </span>
+                                  <h5 className={`text-xs font-black ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>
+                                    {selectedNewsletterIssue.title}
+                                  </h5>
+                                  <span className="text-[8px] text-slate-500 block font-semibold">
+                                    {selectedNewsletterIssue.date} | Author: {selectedNewsletterIssue.author}
+                                  </span>
+                                </div>
+                                <div className={`text-[10px] leading-relaxed font-sans font-semibold space-y-2 whitespace-pre-line ${
+                                  theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+                                }`}>
+                                  {selectedNewsletterIssue.content}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                                {newsletterIssues.length === 0 ? (
+                                  <span className="text-[10px] text-slate-500 block font-semibold">Loading archive...</span>
+                                ) : (
+                                  newsletterIssues.map((issue) => (
+                                    <div
+                                      key={issue.id}
+                                      onClick={() => setSelectedNewsletterIssue(issue)}
+                                      className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                                        theme === 'dark' ? 'bg-[#090d16] border-slate-900 hover:border-slate-800' : 'bg-white border-slate-200 hover:bg-slate-100 shadow-sm'
+                                      }`}
+                                    >
+                                      <div className="flex justify-between items-start gap-2">
+                                        <h5 className={`text-[10px] font-black line-clamp-1 ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
+                                          {issue.title}
+                                        </h5>
+                                        <span className="text-[7px] font-mono font-bold text-slate-500 shrink-0">{issue.date}</span>
+                                      </div>
+                                      <p className="text-[9px] text-slate-500 line-clamp-1 font-semibold mt-0.5">{issue.excerpt}</p>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -6629,6 +7161,272 @@ export default function App() {
                           <p><strong>Chrome / Android:</strong> Click the browser menu button (3 dots) and select <span className="text-slate-350 font-bold">"Add to Home screen"</span>.</p>
                           <p><strong>Safari / iOS:</strong> Tap the <span className="text-slate-350 font-bold">"Share"</span> icon at the bottom, then scroll and select <span className="text-slate-350 font-bold">"Add to Home Screen"</span>.</p>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeRadarTab === 'scam-detector' && (
+                  <div className="space-y-6 animate-fadeIn text-left">
+                    {/* Scam Detector Header */}
+                    <div className={`p-6 rounded-3xl border relative overflow-hidden ${
+                      theme === 'dark' ? 'bg-gradient-to-br from-red-950/20 via-slate-950 to-slate-950 border-red-900/30' : 'bg-gradient-to-br from-red-50/50 via-white to-red-50/20 border-red-100'
+                    }`}>
+                      <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/10 rounded-full blur-2xl pointer-events-none" />
+                      <span className="text-[9px] font-black tracking-widest text-red-500 bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/20 font-mono uppercase">
+                        {lang === 'gu' ? 'એઆઈ સ્કેમ અને રિસ્ક ઓડિટર' : 'AI SCAM & FAKE PRODUCT AUDITOR'}
+                      </span>
+                      <h2 className={`text-xl font-black mt-3 ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>
+                        {lang === 'gu' ? 'નકલી એઆઈ સાધનો અને ફ્રોડ બિલિંગથી બચો' : 'Find Real AI Tools. Avoid Bad Ones.'}
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed font-semibold">
+                        {lang === 'gu' ? 'સ્પામ પ્રોડક્ટ્સ, બિલિંગ ટ્રેપ્સ, અને શંકાસ્પદ ડોમેન્સને ઝડપી ઓડિટ કરવા માટે એઆઈ મોડલ દ્વારા સિક્યોરિટી ચેક રન કરો.' : 'Scan any AI website or application using our independent safety framework. Detects pricing traps, fake AI wrapper claims, phishing sites, and privacy hazards.'}
+                      </p>
+                    </div>
+
+                    {/* Scanner Console Panel */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className={`p-6 rounded-2xl border flex flex-col justify-between h-fit lg:col-span-1 ${
+                        theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-white border-slate-200 shadow-sm'
+                      }`}>
+                        <div className="space-y-4">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-red-400 font-mono">{lang === 'gu' ? 'ઇન્ટરેક્ટિવ સુરક્ષા સ્કેનર' : 'INTEGRITY AUDIT SCANNER'}</span>
+                          
+                          <div className="space-y-3">
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase text-slate-500 font-mono">{lang === 'gu' ? 'એઆઈ પ્રોડક્ટનું નામ' : 'AI Tool Name'}</label>
+                              <input
+                                type="text"
+                                placeholder={lang === 'gu' ? "દા.ત., Chat-GPT-Premium-Free" : "e.g., Sora-Premium-Download"}
+                                value={scamSearchName}
+                                onChange={(e) => setScamSearchName(e.target.value)}
+                                className={`w-full px-3.5 py-2 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-red-550/50 ${
+                                  theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                                }`}
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase text-slate-500 font-mono">{lang === 'gu' ? 'વેબસાઇટ લિંક / URL (વૈકલ્પિક)' : 'Website URL (Optional)'}</label>
+                              <input
+                                type="text"
+                                placeholder="e.g., https://freegptpremium.org"
+                                value={scamSearchUrl}
+                                onChange={(e) => setScamSearchUrl(e.target.value)}
+                                className={`w-full px-3.5 py-2 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-red-550/50 ${
+                                  theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                                }`}
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={async () => {
+                              if (!scamSearchName.trim()) {
+                                showToast(lang === 'gu' ? 'કૃપા કરીને ટૂલનું નામ દાખલ કરો!' : 'Please enter an AI tool name to scan!', 'error');
+                                return;
+                              }
+                              setScamLoading(true);
+                              playSynthSound('click');
+                              try {
+                                const response = await fetch('/api/tools/scam-check', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ name: scamSearchName, url: scamSearchUrl })
+                                });
+                                if (!response.ok) {
+                                  const errData = await response.json();
+                                  throw new Error(errData.error || 'Audit request failed');
+                                }
+                                const report = await response.json();
+                                setScamResult(report);
+                                playSynthSound('success');
+                                addXPPoints(10, `Audited security profile of ${scamSearchName}`, `${scamSearchName} ની સુરક્ષા ચકાસણી ઓડિટ કરી!`);
+                                
+                                // Add to history
+                                const newAudit = {
+                                  name: scamSearchName,
+                                  url: scamSearchUrl || 'No URL specified',
+                                  score: report.trustScore,
+                                  status: report.status,
+                                  date: 'Just Now'
+                                };
+                                setScamHistory(prev => [newAudit, ...prev.filter(h => h.name !== scamSearchName)].slice(0, 8));
+                              } catch (err: any) {
+                                console.error(err);
+                                showToast(lang === 'gu' ? 'સ્કેન કરવામાં ભૂલ આવી. ફરી પ્રયાસ કરો.' : `Scan error: ${err.message}`, 'error');
+                              } finally {
+                                setScamLoading(false);
+                              }
+                            }}
+                            disabled={scamLoading}
+                            className={`w-full py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all border border-transparent shadow shadow-red-500/10 active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 ${
+                              scamLoading ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          >
+                            <Icons.ShieldAlert className="w-4 h-4" />
+                            <span>{scamLoading ? (lang === 'gu' ? 'સ્કેનિંગ ચાલુ છે...' : 'AUDITING SECURITY SITE...') : (lang === 'gu' ? 'એઆઈ રિસ્ક સ્કેન શરૂ કરો' : 'RUN RISK CHECK AUDIT')}</span>
+                          </button>
+                        </div>
+
+                        {/* Recent History List */}
+                        <div className="pt-6 border-t border-slate-500/5 mt-5 space-y-3">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 font-mono block">{lang === 'gu' ? 'તાજેતરના સ્કેન અહેવાલો' : 'RECENT SECURITY AUDITS'}</span>
+                          <div className="space-y-2 max-h-[220px] overflow-y-auto">
+                            {scamHistory.map((item, idx) => (
+                              <button
+                                key={idx}
+                                onClick={async () => {
+                                  setScamSearchName(item.name);
+                                  setScamSearchUrl(item.url === 'No URL specified' ? '' : item.url);
+                                  setScamLoading(true);
+                                  playSynthSound('click');
+                                  try {
+                                    const response = await fetch('/api/tools/scam-check', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ name: item.name, url: item.url })
+                                    });
+                                    if (response.ok) {
+                                      const report = await response.json();
+                                      setScamResult(report);
+                                      playSynthSound('success');
+                                    }
+                                  } catch (e) {} finally {
+                                    setScamLoading(false);
+                                  }
+                                }}
+                                className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition-all ${
+                                  theme === 'dark' ? 'bg-slate-950/40 border-slate-900/60 hover:border-slate-800' : 'bg-slate-50 border-slate-150 hover:bg-slate-100/50'
+                                }`}
+                              >
+                                <div className="truncate min-w-0 pr-2">
+                                  <h5 className={`text-[11px] font-black truncate ${theme === 'dark' ? 'text-slate-300' : 'text-slate-800'}`}>{item.name}</h5>
+                                  <span className="text-[8px] text-slate-500 font-mono block">{item.date}</span>
+                                </div>
+                                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase font-mono border shrink-0 ${
+                                  item.status === 'SAFE' 
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                    : item.status === 'CAUTION' 
+                                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                                      : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                }`}>
+                                  {item.score}% {item.status}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Score Report Display Area */}
+                      <div className="lg:col-span-2 space-y-4">
+                        {scamLoading ? (
+                          <div className={`p-16 rounded-2xl border text-center flex flex-col items-center justify-center space-y-4 min-h-[400px] ${
+                            theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-white border-slate-200 shadow-sm'
+                          }`}>
+                            <div className="relative">
+                              <div className="w-12 h-12 rounded-full border-2 border-red-500/10 border-t-red-500 animate-spin" />
+                              <Icons.ShieldAlert className="w-5 h-5 text-red-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <h4 className="text-xs font-black uppercase tracking-widest text-red-400 font-mono animate-pulse">Running Framework Scans</h4>
+                              <p className="text-[10px] text-slate-500 font-semibold max-w-xs mx-auto leading-relaxed">
+                                {lang === 'gu' ? 'ડોમેન રજિસ્ટ્રાર સર્ટિફિકેટ્સ, યુઝર રિવ્યુ બિલિંગ શરતો અને ડેટા પ્રાઈવસી ક્લોઝનું વિશ્લેષણ કરવામાં આવી રહ્યું છે...' : 'Querying registrar certificates, verifying LLM API endpoints, scanning feedback logs, and auditing privacy clauses...'}
+                              </p>
+                            </div>
+                          </div>
+                        ) : scamResult ? (
+                          <div className={`p-6 rounded-2xl border text-left space-y-5 animate-fadeIn ${
+                            theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-white border-slate-200 shadow-sm'
+                          }`}>
+                            {/* Score Card Banner */}
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-slate-500/5">
+                              <div className="flex items-center gap-3.5 text-left w-full sm:w-auto">
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border shadow-inner ${
+                                  scamResult.status === 'SAFE' 
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                    : scamResult.status === 'CAUTION' 
+                                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                                      : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                }`}>
+                                  <span className="text-xl font-black font-mono leading-none">{scamResult.trustScore}%</span>
+                                </div>
+                                <div>
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 font-mono">FRAMEWORK TRUST SCORE</span>
+                                  <h4 className={`text-base font-black flex items-center gap-2 mt-0.5 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                                    <span>{scamSearchName}</span>
+                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded font-mono border uppercase ${
+                                      scamResult.status === 'SAFE' 
+                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                        : scamResult.status === 'CAUTION' 
+                                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                                          : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                    }`}>
+                                      {scamResult.status}
+                                    </span>
+                                  </h4>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                <Icons.ShieldCheck className={`w-5 h-5 ${scamResult.status === 'SAFE' ? 'text-emerald-400' : 'text-slate-500'}`} />
+                                <span className="text-[9px] text-slate-500 font-black uppercase font-mono tracking-wider">Independent Audit</span>
+                              </div>
+                            </div>
+
+                            {/* Audit Summary Description */}
+                            <div className="space-y-1.5">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 font-mono block">AUDITOR ASSESSMENT SUMMARY</span>
+                              <p className="text-[11px] text-slate-400 leading-relaxed font-semibold">
+                                {scamResult.summary}
+                              </p>
+                            </div>
+
+                            {/* Detailed Breakdown Checkpoints */}
+                            <div className="space-y-3 pt-2">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 font-mono block">RIGOROUS VERIFICATION POINTS</span>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {scamResult.breakdown?.map((check: any, idx: number) => (
+                                  <div
+                                    key={idx}
+                                    className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-2 ${
+                                      theme === 'dark' ? 'bg-slate-950/60 border-slate-900/60' : 'bg-slate-50 border-slate-150'
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-center gap-2">
+                                      <h5 className={`text-[10px] font-black uppercase tracking-wide truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{check.title}</h5>
+                                      <span className={`text-[8px] font-black font-mono px-1.5 py-0.5 rounded border uppercase shrink-0 ${
+                                        ['CLEAN', 'VERIFIED', 'COMPLIANT', 'GENUINE', 'FAIR'].includes(check.status)
+                                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/15'
+                                          : ['SUSPICIOUS', 'HYPED', 'VAGUE', 'PARTIAL WRAPPER', 'HIDDEN COST'].includes(check.status)
+                                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/15'
+                                            : 'bg-red-500/10 text-red-400 border-red-500/15'
+                                      }`}>
+                                        {check.status}
+                                      </span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-500 font-medium leading-normal">{check.desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={`p-16 rounded-2xl border text-center flex flex-col items-center justify-center space-y-4 min-h-[400px] ${
+                            theme === 'dark' ? 'bg-[#090d16]/45 border-slate-900/60' : 'bg-slate-50/50 border-slate-150 shadow-inner'
+                          }`}>
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-500/5 text-slate-500 border border-slate-500/15 flex items-center justify-center">
+                              <Icons.ShieldAlert className="w-6 h-6 text-slate-500" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <h4 className={`text-xs font-black uppercase tracking-widest ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} font-mono`}>{lang === 'gu' ? 'કોઈ એક્ટિવ ઓડિટ લોડ થયું નથી' : 'Audit Console Idle'}</h4>
+                              <p className="text-[10px] text-slate-500 font-semibold max-w-xs mx-auto leading-relaxed">
+                                {lang === 'gu' ? 'ડાબી બાજુ કન્સોલમાં ટૂલનું નામ ટાઇપ કરો અને રિસ્ક ઓડિટ શરૂ કરવા માટે બટન પર ક્લિક કરો!' : 'Type any AI tool or portal name in the left input panel and click run to trigger an active safety assessment.'}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

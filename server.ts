@@ -1134,6 +1134,256 @@ Please solve and explain this question step-by-step. Include formulas, definitio
   }
 });
 
+// AI Scam / Fake AI Tool Risk Check Endpoint
+app.post('/api/tools/scam-check', async (req, res) => {
+  try {
+    const { name, url } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'Tool name is required' });
+    }
+
+    const ai = getGemini();
+    const systemInstruction = `You are an elite cybersecurity specialist, independent software auditor, and AI tool fraud investigator at AI Super Tools Hub.
+Your job is to run a rigorous audit on the AI product name/URL provided by the user and determine if it is:
+1. A Scam or phishing site
+2. Charging hidden fees or having billing traps (pricing traps)
+3. Making fake AI wrapper claims (e.g. zero value-add)
+4. Having severe data privacy violations
+5. Running deceptive marketing campaigns.
+
+Perform a realistic audit and respond with a strictly valid JSON block. The JSON block MUST follow this structure exactly (and have nothing else in the output wrapper, no markdown fences other than raw JSON):
+{
+  "trustScore": 75,
+  "status": "CAUTION", // SAFE, CAUTION, or HIGH RISK
+  "summary": "This is a detailed summary audit assessment...",
+  "breakdown": [
+    {
+      "title": "Suspicious Website",
+      "status": "CLEAN", // CLEAN, SUSPICIOUS, or MALICIOUS
+      "desc": "Detail of verification..."
+    },
+    {
+      "title": "Fake Claims Check",
+      "status": "VERIFIED", // VERIFIED, HYPED, or DECEPTIVE
+      "desc": "Detail of claims audit..."
+    },
+    {
+      "title": "Billing Transparency",
+      "status": "FAIR", // FAIR, HIDDEN COST, or BILLING TRAP
+      "desc": "Detail of pricing check..."
+    },
+    {
+      "title": "Privacy Training Policy",
+      "status": "COMPLIANT", // COMPLIANT, VAGUE, or HARVESTING
+      "desc": "Detail of user data policies..."
+    },
+    {
+      "title": "Fake Wrapper Check",
+      "status": "GENUINE", // GENUINE, PARTIAL WRAPPER, or ZERO VALUE WRAPPER
+      "desc": "Detail of technical architecture audit..."
+    }
+  ]
+}`;
+
+    const prompt = `Please audit this AI Tool:
+Name: "${name}"
+URL: "${url || 'No URL specified'}"
+
+Perform the research and return the parsed JSON safety report.`;
+
+    const response = await runGenerateWithFallback(ai, {
+      contents: prompt,
+      config: {
+        systemInstruction,
+        temperature: 0.2,
+        responseMimeType: 'application/json'
+      }
+    });
+
+    // Parse safety output
+    const rawText = response.text.trim();
+    let parsedData;
+    try {
+      parsedData = JSON.parse(rawText);
+    } catch (parseErr) {
+      const cleanJson = rawText.replace(/```json|```/g, '').trim();
+      parsedData = JSON.parse(cleanJson);
+    }
+
+    res.json(parsedData);
+  } catch (error: any) {
+    console.error('Scam check error:', error);
+    res.status(500).json({ error: error.message || 'Failed to complete anti-scam scan.' });
+  }
+});
+
+// ================= CUSTOMIZED BUSINESS AI STACK PLANNER ENDPOINT =================
+app.post('/api/tools/generate-business-stack', async (req, res) => {
+  try {
+    const { industry, budget, teamSize, country } = req.body;
+    if (!industry) {
+      return res.status(400).json({ error: 'Industry category is required' });
+    }
+
+    const ai = getGemini();
+    const systemInstruction = `You are an elite enterprise architect, operations consultant, and B2B automation strategist at AI Super Tools Hub.
+Your job is to design a high-converting, deeply integrated, automated AI tool stack (consisting of exactly 5 steps/tools) tailored to the user's specific business context.
+
+Analyze the user's input parameters and respond with a strictly valid JSON block. The JSON block MUST follow this structure exactly (and have nothing else in the output wrapper, no markdown fences other than raw JSON):
+{
+  "stackName": "Aesthetic E-Commerce AI Stack",
+  "summary": "This is a brief description of how these tools integrate to automate your operations...",
+  "pipeline": [
+    {
+      "step": "Step 1: Content Creation",
+      "toolName": "Copy.ai",
+      "logo": "✍️",
+      "desc": "Automate high-converting product listings and ad copy.",
+      "site": "https://copy.ai",
+      "estimatedCost": "$15/mo"
+    }
+  ],
+  "estimatedTotalCost": "$45/mo",
+  "integrationSecret": "A short piece of pro advice on how to integrate these..."
+}`;
+
+    const prompt = `Please design an automated AI tool stack with 5 interconnected tools for:
+Industry: "${industry}"
+Monthly Budget limit: "${budget || 'Flexible'}"
+Team size: "${teamSize || '1 (Solo)'}"
+Country/Region: "${country || 'India'}"
+
+Output the JSON safety report according to the requested format. Ensure all 5 elements in the pipeline array have distinct, real AI tools. Keep descriptions crisp and highly valuable.`;
+
+    const response = await runGenerateWithFallback(ai, {
+      contents: prompt,
+      config: {
+        systemInstruction,
+        temperature: 0.5,
+        responseMimeType: 'application/json'
+      }
+    });
+
+    const rawText = response.text.trim();
+    let parsedData;
+    try {
+      parsedData = JSON.parse(rawText);
+    } catch (parseErr) {
+      const cleanJson = rawText.replace(/```json|```/g, '').trim();
+      parsedData = JSON.parse(cleanJson);
+    }
+
+    res.json(parsedData);
+  } catch (error: any) {
+    console.error('Business stack planner error:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate custom business stack.' });
+  }
+});
+
+// ================= EMAIL NEWSLETTER SYSTEM ENDPOINTS =================
+const NEWSLETTER_SUBSCRIBERS_FILE = path.join(process.cwd(), 'newsletter_subscribers.json');
+
+function getSubscribers(): string[] {
+  try {
+    if (fs.existsSync(NEWSLETTER_SUBSCRIBERS_FILE)) {
+      return JSON.parse(fs.readFileSync(NEWSLETTER_SUBSCRIBERS_FILE, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Error loading newsletter subscribers:', e);
+  }
+  return [];
+}
+
+function saveSubscriber(email: string) {
+  try {
+    const list = getSubscribers();
+    if (!list.includes(email)) {
+      list.push(email);
+      fs.writeFileSync(NEWSLETTER_SUBSCRIBERS_FILE, JSON.stringify(list, null, 2), 'utf-8');
+    }
+  } catch (e) {
+    console.error('Error saving newsletter subscriber:', e);
+  }
+}
+
+app.post('/api/newsletter/subscribe', (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+    saveSubscriber(email);
+    res.json({ success: true, message: 'Subscribed successfully!' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to subscribe.' });
+  }
+});
+
+app.get('/api/newsletter/issues', (req, res) => {
+  try {
+    const issues = [
+      {
+        id: 'issue-3',
+        title: 'Issue #3: Protecting Your Business from AI Scams & Hidden Billing traps',
+        date: 'August 19, 2026',
+        author: 'Cyber Safety Team',
+        category: 'Security & Integrity',
+        excerpt: 'As thousands of AI wrappers launch daily, some are designed with deceptive pricing loops. Learn how to verify any AI product before entering billing details.',
+        content: `### Spotting the "AI Wrapper Trap"
+In this week's issue, we break down the top three warning signs of a predatory or fake AI tool:
+1. **Hidden Renewal Clauses**: Subscriptions that hide high recurring charges behind a $1 "one-time trial".
+2. **Infinite Landing Pages**: Websites with no real application interface, just stock videos promising futuristic capabilities.
+3. **No Account Controls**: Lack of a clear "Cancel Subscription" button, requiring you to contact a vague support email or contact your bank directly.
+
+#### The AI Hub Verdict
+Always run any unfamiliar AI website through the **AI Scam & Risk Check** inside the AI Super Tools Hub. Our independent auditor runs registrar checks, reviews billing agreements, and analyzes user reports using real-time security models to protect your budget!`
+      },
+      {
+        id: 'issue-2',
+        title: 'Issue #2: Automating Lead Response with Localized Voice Agents',
+        date: 'August 12, 2026',
+        author: 'Automation Lab',
+        category: 'B2B Pipelines',
+        excerpt: 'Learn how modern businesses are leveraging elevenlabs speech SDK and Twilio integration to connect with Indian regional language inquiries in real-time.',
+        content: `### High-Speed Lead Conversion
+Responding to customer inquiries within 5 minutes increases conversion rates by over 300%. Here is a high-level playbook to automate regional speech routing:
+- **Lead Capture**: Collect customer name, phone, and inquiry details on your portfolio landing page.
+- **Translation & Intent Routing**: Feed the lead details into a lightweight LLM endpoint (like Gemini 1.5 Flash) to generate a helpful script customized in Gujarati or Hindi.
+- **Neural Voice Synthesis**: Pass the script to ElevenLabs Speech API using a localized regional voice actor configuration.
+- **Trigger Call**: Queue the synthesized voice file to Twilio Outbound call, or send an interactive voice note via WhatsApp API.
+
+With this pipeline, the prospect receives a highly customized, ultra-realistic audio explanation of your pricing or services instantly!`
+      },
+      {
+        id: 'issue-1',
+        title: 'Issue #1: Advanced Custom GPT Prompts for Small Businesses in Gujarat',
+        date: 'August 05, 2026',
+        author: 'AI Growth Strategist',
+        category: 'Prompt Engineering',
+        excerpt: 'Uncover the top prompt sequences to automate bilingual invoice generation, GST reporting summaries, and local marketing copy writing in English and Gujarati.',
+        content: `### Native Language Business Prompts
+Many business owners in Gujarat face difficulties managing complex invoice summaries and billing templates across multiple languages. You can direct ChatGPT or Gemini with this exact prompt structure:
+
+\`\`\`
+Role: Senior bilingual accountant and corporate strategist fluent in Gujarati and English.
+Task: Draft a highly professional payment reminder invoice summary.
+Tone: Respectful yet assertive (corporate).
+Format:
+- Title / Subject line
+- Greeting
+- Invoice details (incorporating local GST formats)
+- Respectful closure in pure Gujarati
+\`\`\`
+
+By explicitly feeding roles and structural formats, LLM models produce translations that are culturally accurate, grammatically pristine, and highly professional.`
+      }
+    ];
+    res.json(issues);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to fetch issues.' });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
