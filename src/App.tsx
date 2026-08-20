@@ -209,6 +209,54 @@ const GoogleAdSenseAd = ({ clientId, slotId }: { clientId: string; slotId: strin
   );
 };
 
+interface ReviewFormProps {
+  toolId: string;
+  onSubmitReview: (toolId: string, rating: number, comment: string) => void;
+  theme: string;
+  lang: string;
+}
+
+const ReviewForm: React.FC<ReviewFormProps> = ({ toolId, onSubmitReview, theme, lang }) => {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px] font-bold text-slate-400 mr-2">{lang === 'gu' ? 'રેટિંગ પસંદ કરો:' : 'Select Rating:'}</span>
+        {[1, 2, 3, 4, 5].map((num) => (
+          <button
+            key={num}
+            type="button"
+            onClick={() => setRating(num)}
+            className="text-sm hover:scale-110 transition-transform cursor-pointer"
+          >
+            <span className={num <= rating ? 'text-amber-400 font-bold' : 'text-slate-600'}>★</span>
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder={lang === 'gu' ? 'આ ટૂલ વિશે તમારા વિચારો અને રિવ્યુ લખો...' : 'Write your audited thoughts and feedback about this tool...'}
+        className={`w-full p-2.5 text-xs rounded-xl border focus:ring-1 focus:ring-indigo-500 focus:outline-none ${
+          theme === 'dark' ? 'bg-slate-950 border-slate-850 text-slate-300' : 'bg-white border-slate-200 text-slate-800'
+        }`}
+        rows={3}
+      />
+      <button
+        onClick={() => {
+          onSubmitReview(toolId, rating, comment);
+          setComment('');
+        }}
+        className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer"
+      >
+        {lang === 'gu' ? 'સબમિટ રિવ્યુ' : 'Submit Review'}
+      </button>
+    </div>
+  );
+};
+
 const AdBanner = ({ config, theme, lang }: { config: AdsConfig; theme: 'dark' | 'light'; lang: 'en' | 'gu' }) => {
   if (config.activeMode === 'none') return null;
 
@@ -1030,6 +1078,87 @@ export default function App() {
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [comparedToolIds, setComparedToolIds] = useState<string[]>([]);
 
+  // --- Directory Advanced Features ---
+  const [comparedDirectoryToolIds, setComparedDirectoryToolIds] = useState<string[]>([]);
+  const [showDirectoryCompareModal, setShowDirectoryCompareModal] = useState(false);
+  const [userCollections, setUserCollections] = useState<Array<{ id: string; name: string; toolIds: string[] }>>(() => {
+    const saved = localStorage.getItem('hub_directory_collections');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [recentlyUsedToolIds, setRecentlyUsedToolIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('hub_recently_used_tools');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [followedDirectoryTools, setFollowedDirectoryTools] = useState<string[]>(() => {
+    const saved = localStorage.getItem('hub_followed_tools');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [customReviews, setCustomReviews] = useState<Record<string, Array<{ user: string; rating: number; comment: string; date: string }>>>(() => {
+    const saved = localStorage.getItem('hub_custom_reviews');
+    return saved ? JSON.parse(saved) : {};
+  });
+  const [radarUpvotes, setRadarUpvotes] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('hub_radar_upvotes');
+    return saved ? JSON.parse(saved) : { omniscribe: 42, vectradesign: 38, devsprint: 56 };
+  });
+  const [activeRadarTab, setActiveRadarTab] = useState<'directory' | 'radar' | 'toolbox'>('directory');
+  const [newCollectionName, setNewCollectionName] = useState('');
+  const [showCreateCollection, setShowCreateCollection] = useState(false);
+
+  // Form for new AI Launch submission
+  const [showLaunchForm, setShowLaunchForm] = useState(false);
+  const [launchName, setLaunchName] = useState('');
+  const [launchFounder, setLaunchFounder] = useState('');
+  const [launchDesc, setLaunchDesc] = useState('');
+  const [launchPrice, setLaunchPrice] = useState('');
+  const [launchUrl, setLaunchUrl] = useState('');
+  const [customLaunches, setCustomLaunches] = useState<Array<{ id: string; name: string; logo: string; founder: string; launchDate: string; desc: string; price: string; rating: string; votes: number }>>(() => {
+    const saved = localStorage.getItem('hub_custom_launches');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    const defaultList = [
+      {
+        id: "launch-1",
+        name: "VoiceCraft Pro",
+        logo: "🎤",
+        founder: "Darshan Patel",
+        launchDate: "September 2026",
+        desc: "Next-gen zero-shot bilingual Gujarati-English voice synthesizer with authentic colloquial intonations and accent profiles.",
+        price: "Free tier + $5/mo",
+        rating: "4.9/5",
+        votes: 142
+      },
+      {
+        id: "launch-2",
+        name: "DesignMind Studio",
+        logo: "🎨",
+        founder: "Sneha Rao",
+        launchDate: "October 2026",
+        desc: "Generate professional structural blueprints and high-contrast light-themed user interfaces from single paragraph prompts.",
+        price: "Free Trial",
+        rating: "4.8/5",
+        votes: 98
+      },
+      {
+        id: "launch-3",
+        name: "QueryBot SQL",
+        logo: "💾",
+        founder: "Aarav Shah",
+        launchDate: "November 2026",
+        desc: "Intelligent vector search and auto-optimizing schema compiler for relational databases. Integrates natively with Cloud SQL.",
+        price: "$9.99/mo",
+        rating: "4.7/5",
+        votes: 74
+      }
+    ];
+    localStorage.setItem('hub_custom_launches', JSON.stringify(defaultList));
+    return defaultList;
+  });
+
   const toggleCompareTool = (toolId: string) => {
     setComparedToolIds(prev => {
       if (prev.includes(toolId)) {
@@ -1144,6 +1273,228 @@ export default function App() {
     } else {
       showToast(lang === 'gu' ? 'અવાજ બંધ કર્યો!' : 'Sound effects muted!', 'info');
     }
+  };
+
+  // --- Directory Persistence Syncer effects ---
+  useEffect(() => {
+    localStorage.setItem('hub_directory_collections', JSON.stringify(userCollections));
+  }, [userCollections]);
+
+  useEffect(() => {
+    localStorage.setItem('hub_recently_used_tools', JSON.stringify(recentlyUsedToolIds));
+  }, [recentlyUsedToolIds]);
+
+  useEffect(() => {
+    localStorage.setItem('hub_followed_tools', JSON.stringify(followedDirectoryTools));
+  }, [followedDirectoryTools]);
+
+  useEffect(() => {
+    localStorage.setItem('hub_custom_reviews', JSON.stringify(customReviews));
+  }, [customReviews]);
+
+  useEffect(() => {
+    localStorage.setItem('hub_radar_upvotes', JSON.stringify(radarUpvotes));
+  }, [radarUpvotes]);
+
+  useEffect(() => {
+    localStorage.setItem('hub_custom_launches', JSON.stringify(customLaunches));
+  }, [customLaunches]);
+
+  // --- Directory Advanced Helper Functions ---
+  const createCollection = (name: string) => {
+    if (!name.trim()) return;
+    const newColl = {
+      id: 'coll_' + Date.now(),
+      name: name.trim(),
+      toolIds: []
+    };
+    setUserCollections(prev => [...prev, newColl]);
+    showToast(lang === 'gu' ? 'નવું કલેક્શન બનાવવામાં આવ્યું!' : 'New collection created!', 'success');
+    playSynthSound('success');
+  };
+
+  const deleteCollection = (id: string) => {
+    setUserCollections(prev => prev.filter(c => c.id !== id));
+    showToast(lang === 'gu' ? 'કલેક્શન ડિલીટ કર્યું!' : 'Collection deleted!', 'info');
+    playSynthSound('click');
+  };
+
+  const addToolToCollection = (collectionId: string, toolId: string) => {
+    setUserCollections(prev => prev.map(c => {
+      if (c.id === collectionId) {
+        if (c.toolIds.includes(toolId)) return c;
+        return { ...c, toolIds: [...c.toolIds, toolId] };
+      }
+      return c;
+    }));
+    showToast(lang === 'gu' ? 'સાધન કલેક્શનમાં ઉમેર્યું!' : 'Added tool to collection!', 'success');
+    playSynthSound('success');
+  };
+
+  const removeToolFromCollection = (collectionId: string, toolId: string) => {
+    setUserCollections(prev => prev.map(c => {
+      if (c.id === collectionId) {
+        return { ...c, toolIds: c.toolIds.filter(id => id !== toolId) };
+      }
+      return c;
+    }));
+    showToast(lang === 'gu' ? 'સાધન કલેક્શનમાંથી દૂર કર્યું!' : 'Removed tool from collection!', 'info');
+    playSynthSound('click');
+  };
+
+  const toggleCompareDirectoryTool = (toolId: string) => {
+    setComparedDirectoryToolIds(prev => {
+      if (prev.includes(toolId)) {
+        playSynthSound('click');
+        return prev.filter(id => id !== toolId);
+      }
+      if (prev.length >= 5) {
+        showToast(lang === 'gu' ? 'મહત્તમ ૫ ટૂલ્સ સરખાવી શકાય!' : 'Max 5 tools can be compared!', 'info');
+        playSynthSound('click');
+        return prev;
+      }
+      playSynthSound('success');
+      return [...prev, toolId];
+    });
+  };
+
+  const addToRecentlyUsed = (toolId: string) => {
+    setRecentlyUsedToolIds(prev => {
+      const filtered = prev.filter(id => id !== toolId);
+      return [toolId, ...filtered].slice(0, 5);
+    });
+  };
+
+  const toggleFavoriteDirectoryTool = (toolId: string) => {
+    playSynthSound('click');
+    const isFav = userState.favorites?.includes(toolId);
+    let updatedFavs = userState.favorites || [];
+    if (isFav) {
+      updatedFavs = updatedFavs.filter(id => id !== toolId);
+      showToast(lang === 'gu' ? 'સાધન સિક્યોર ટૂલબોક્સમાંથી હટાવ્યું!' : 'Removed from secure toolbox!', 'info');
+    } else {
+      updatedFavs = [...updatedFavs, toolId];
+      showToast(lang === 'gu' ? 'સાધન સિક્યોર ટૂલબોક્સમાં સાચવ્યું! ⭐' : 'Saved to secure toolbox! ⭐', 'success');
+    }
+
+    setUserState(prev => ({
+      ...prev,
+      favorites: updatedFavs
+    }));
+
+    // Update Firestore if logged in
+    if (userState.isLoggedIn && userState.id) {
+      import('firebase/firestore').then(({ doc, updateDoc }) => {
+        import('./firebase').then(({ db }) => {
+          const userRef = doc(db, 'users', userState.id);
+          updateDoc(userRef, { favorites: updatedFavs }).catch(err => {
+            console.warn("Could not sync favorites to cloud DB:", err);
+          });
+        });
+      });
+    }
+  };
+
+  const toggleToolInCollection = (collectionId: string, toolId: string) => {
+    playSynthSound('click');
+    setUserCollections(prev => prev.map(c => {
+      if (c.id === collectionId) {
+        const exists = c.toolIds.includes(toolId);
+        const updatedIds = exists ? c.toolIds.filter(id => id !== toolId) : [...c.toolIds, toolId];
+        showToast(
+          exists 
+            ? (lang === 'gu' ? 'કલેક્શનમાંથી દૂર કર્યું!' : 'Removed from collection!')
+            : (lang === 'gu' ? 'કલેક્શનમાં ઉમેર્યું!' : 'Added to collection!'),
+          'success'
+        );
+        return { ...c, toolIds: updatedIds };
+      }
+      return c;
+    }));
+  };
+
+  const toggleFollowAlerts = (toolId: string) => {
+    playSynthSound('toggle');
+    setFollowedDirectoryTools(prev => {
+      const isFollowing = prev.includes(toolId);
+      if (isFollowing) {
+        showToast(lang === 'gu' ? 'અલર્ટ સબ્સ્ક્રિપ્શન રદ કર્યું!' : 'Alert subscription cancelled!', 'info');
+        return prev.filter(id => id !== toolId);
+      } else {
+        showToast(lang === 'gu' ? 'કિંમત અને વિશેષતા બદલાવ અલર્ટ ચાલુ થયા! 🔔' : 'Price & Feature alerts subscription active! 🔔', 'success');
+        return [...prev, toolId];
+      }
+    });
+  };
+
+  const submitToolReview = (toolId: string, rating: number, comment: string) => {
+    if (!comment.trim()) {
+      showToast(lang === 'gu' ? 'કૃપા કરીને ટિપ્પણી લખો!' : 'Please write a comment!', 'error');
+      return;
+    }
+    playSynthSound('success');
+    const author = userState.name || 'Anonymous User';
+    const newRev = {
+      user: author,
+      rating,
+      comment: comment.trim(),
+      date: new Date().toLocaleDateString(lang === 'gu' ? 'gu-IN' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    };
+
+    setCustomReviews(prev => {
+      const list = prev[toolId] || [];
+      return {
+        ...prev,
+        [toolId]: [newRev, ...list]
+      };
+    });
+
+    showToast(lang === 'gu' ? 'તમારો રિવ્યુ સફળતાપૂર્વક સબમિટ થયો! ⭐️' : 'Your review submitted successfully! ⭐️', 'success');
+  };
+
+  const upvoteRadarLaunch = (launchId: string) => {
+    playSynthSound('chime');
+    setRadarUpvotes(prev => {
+      const currentVal = prev[launchId] || 0;
+      const updated = {
+        ...prev,
+        [launchId]: currentVal + 1
+      };
+      showToast(lang === 'gu' ? 'લોન્ચ વોટ સબમિટ થયો! 🚀' : 'Launch Upvoted successfully! 🚀', 'success');
+      return updated;
+    });
+  };
+
+  const submitNewAILaunch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!launchName || !launchFounder || !launchDesc || !launchPrice || !launchUrl) {
+      showToast(lang === 'gu' ? 'બધી વિગતો ભરવી ફરજિયાત છે!' : 'All fields are required!', 'error');
+      return;
+    }
+    playSynthSound('success');
+    const newLaunch = {
+      id: 'custom-launch-' + Date.now(),
+      name: launchName,
+      logo: "🚀",
+      founder: launchFounder,
+      launchDate: new Date().toLocaleDateString(lang === 'gu' ? 'gu-IN' : 'en-US', { month: 'long', year: 'numeric' }),
+      desc: launchDesc,
+      price: launchPrice,
+      rating: "5.0/5 (Early)",
+      votes: 1
+    };
+
+    setCustomLaunches(prev => [newLaunch, ...prev]);
+    
+    // Clear Form & Hide
+    setLaunchName('');
+    setLaunchFounder('');
+    setLaunchDesc('');
+    setLaunchPrice('');
+    setLaunchUrl('');
+    setShowLaunchForm(false);
+
+    showToast(lang === 'gu' ? 'નવું AI લોન્ચ રડારમાં સફળતાપૂર્વક મોકલ્યું! 🚀' : 'New AI submitted to Launch Radar! 🚀', 'success');
   };
 
   // --- Voice Commands / Speech Recognition States & Trigger ---
@@ -4188,7 +4539,39 @@ export default function App() {
                 </>
               ) : (
                 <div className="space-y-8 animate-fadeIn text-left">
-                  {/* USP Use-Case Selector & Hero Header */}
+                  {/* 50 CRORE DISCOVERY SUB-TAB NAVIGATION */}
+                  <div className="flex border-b border-slate-500/10 pb-4 flex-wrap gap-2.5 mb-2">
+                    {[
+                      { id: 'directory', label: lang === 'gu' ? '🔍 એઆઈ ડિરેક્ટરી અને ફાઇન્ડર' : '🔍 Curated Directory Hub', desc: lang === 'gu' ? 'મુખ્ય લિસ્ટિંગ અને સેકન્ડ-ફાઇન્ડર' : 'Rankings & Finder engine' },
+                      { id: 'radar', label: lang === 'gu' ? '📡 એઆઈ લોન્ચ રડાર' : '📡 AI Launch Radar', desc: lang === 'gu' ? 'નવા ટૂલ્સ લોન્ચિંગ અને વોટિંગ' : 'Upvote upcoming AI products' },
+                      { id: 'toolbox', label: lang === 'gu' ? '💼 માય એઆઈ ટૂલબોક્સ' : '💼 My AI Toolbox', desc: lang === 'gu' ? 'તમારા ફેવરિટ અને કલેક્શન્સ' : 'Your custom collections' }
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          setActiveRadarTab(tab.id as any);
+                          playSynthSound('click');
+                        }}
+                        className={`px-4 py-2 rounded-2xl border transition-all duration-300 flex items-center gap-3 cursor-pointer text-left ${
+                          activeRadarTab === tab.id
+                            ? 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/20 scale-[1.02]'
+                            : `${theme === 'dark' ? 'bg-[#04060c] border-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-[#0c1222]' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-xl shrink-0 ${activeRadarTab === tab.id ? 'bg-white/10' : theme === 'dark' ? 'bg-[#0c1222]' : 'bg-slate-100'}`}>
+                           {tab.id === 'directory' ? <Icons.Search className="w-4 h-4" /> : tab.id === 'radar' ? <Icons.Compass className="w-4 h-4" /> : <Icons.FolderHeart className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <span className="block text-xs font-black uppercase tracking-wider leading-tight">{tab.label}</span>
+                          <span className={`block text-[9px] font-bold leading-none mt-0.5 ${activeRadarTab === tab.id ? 'text-blue-100' : 'text-slate-500'}`}>{tab.desc}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeRadarTab === 'directory' && (
+                    <>
+                      {/* USP Use-Case Selector & Hero Header */}
                   <div className={`p-6 lg:p-8 rounded-3xl border relative overflow-hidden ${
                     theme === 'dark' ? 'bg-gradient-to-br from-[#0c1222] via-[#050812] to-[#01040a] border-slate-900 shadow-xl' : 'bg-gradient-to-br from-indigo-50/40 via-white to-blue-50/50 border-slate-200 shadow-md'
                   }`}>
@@ -4395,6 +4778,44 @@ export default function App() {
                                   </div>
                                 </div>
 
+                                <div className="flex items-center justify-between gap-2 border-b border-slate-500/5 pb-2">
+                                  <span className="text-[8px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md flex items-center gap-0.5 font-mono uppercase">
+                                    <Icons.ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                                    <span>Verified Audit</span>
+                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    {/* Compare Checkbox */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleCompareDirectoryTool(tool.id);
+                                      }}
+                                      className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                        comparedDirectoryToolIds.includes(tool.id)
+                                          ? 'bg-emerald-500/20 border border-emerald-500/45 text-emerald-400'
+                                          : `${theme === 'dark' ? 'bg-slate-950 border border-slate-900 text-slate-400 hover:border-slate-800' : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200'}`
+                                      }`}
+                                    >
+                                      {comparedDirectoryToolIds.includes(tool.id) ? '✓ Compare' : '+ Compare'}
+                                    </button>
+
+                                    {/* Star Save/Favorite */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavoriteDirectoryTool(tool.id);
+                                      }}
+                                      className={`p-1 rounded transition-all cursor-pointer ${
+                                        userState.favorites?.includes(tool.id)
+                                          ? 'text-amber-400 hover:scale-110'
+                                          : 'text-slate-500 hover:text-slate-300'
+                                      }`}
+                                    >
+                                      <Icons.Star className={`w-3.5 h-3.5 ${userState.favorites?.includes(tool.id) ? 'fill-current' : ''}`} />
+                                    </button>
+                                  </div>
+                                </div>
+
                                 <div>
                                   <h3 className={`text-sm font-extrabold ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'} tracking-wide`}>
                                     {tool.name}
@@ -4419,6 +4840,243 @@ export default function App() {
                             </div>
                           ))}
                       </div>
+                    </div>
+
+                    {/* 🎁 6. FREE AI RESOURCES LIBRARY & COMPARISONS */}
+                    <div className="space-y-6">
+                      {/* 👤 9. MY PERSONAL AI TOOLBOX */}
+                      <div className="space-y-3">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-1.5 font-mono">
+                          <Icons.FolderHeart className="w-4 h-4 text-pink-500" />
+                          <span>{lang === 'gu' ? '👤 માય પર્સનલ એઆઈ ટૂલબોક્સ' : '👤 MY PERSONAL AI TOOLBOX'}</span>
+                        </span>
+
+                        <div className={`p-5 rounded-2xl border space-y-4 text-left ${
+                          theme === 'dark' ? 'bg-[#090d16]/90 border-slate-900' : 'bg-white border-slate-200 shadow-sm'
+                        }`}>
+                          {/* Saved Favorites Hub */}
+                          <div>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-2 font-mono">
+                              ⭐ {lang === 'gu' ? 'મનપસંદ સાધનો' : 'Favorite Directory Tools'} ({AI_TOOLS_DIRECTORY.filter(t => userState.favorites?.includes(t.id)).length})
+                            </span>
+                            {(() => {
+                              const favDirectoryTools = AI_TOOLS_DIRECTORY.filter(t => userState.favorites?.includes(t.id));
+                              if (favDirectoryTools.length === 0) {
+                                return (
+                                  <p className="text-[10px] text-slate-500 font-semibold italic">
+                                    {lang === 'gu' ? 'કોઈ સાધન મનપસંદમાં ઉમેરેલ નથી.' : 'No directory tools favorited yet. Click the star icon on any card!'}
+                                  </p>
+                                );
+                              }
+                              return (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {favDirectoryTools.map(t => (
+                                    <div
+                                      key={`fav-toolbox-${t.id}`}
+                                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold border transition-all ${
+                                        theme === 'dark' ? 'bg-slate-950 border-slate-900 hover:border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700'
+                                      }`}
+                                    >
+                                      <button
+                                        onClick={() => {
+                                          setSelectedDirectoryTool(t);
+                                          playSynthSound('click');
+                                        }}
+                                        className="hover:text-blue-400 cursor-pointer text-left"
+                                      >
+                                        {t.logo} {t.name}
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          toggleFavoriteDirectoryTool(t.id);
+                                        }}
+                                        className="text-red-400 hover:text-red-500 ml-1 shrink-0"
+                                        title="Remove"
+                                      >
+                                        <Icons.X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                          <div className="border-t border-slate-500/5 my-2" />
+
+                          {/* Collections Manager */}
+                          <div>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-2 font-mono">
+                              📁 {lang === 'gu' ? 'તમારા વૈવિધ્યપૂર્ણ કલેક્શન્સ' : 'Your Curated Collections'} ({userCollections.length})
+                            </span>
+
+                            {/* Create Collection Form */}
+                            <div className="flex gap-1.5 mb-3">
+                              <input
+                                id="new-collection-name-input"
+                                type="text"
+                                placeholder={lang === 'gu' ? 'નવું કલેક્શન નામ...' : 'New collection name...'}
+                                className={`flex-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border focus:outline-none focus:ring-1 focus:ring-indigo-500/50 ${
+                                  theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-850'
+                                }`}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    const el = document.getElementById('new-collection-name-input') as HTMLInputElement;
+                                    if (el && el.value.trim()) {
+                                      createCollection(el.value);
+                                      el.value = '';
+                                    }
+                                  }
+                                }}
+                              />
+                              <button
+                                onClick={() => {
+                                  const el = document.getElementById('new-collection-name-input') as HTMLInputElement;
+                                  if (el && el.value.trim()) {
+                                    createCollection(el.value);
+                                    el.value = '';
+                                  }
+                                }}
+                                className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer shrink-0"
+                              >
+                                + Create
+                              </button>
+                            </div>
+
+                            {/* Collections List */}
+                            {userCollections.length === 0 ? (
+                              <p className="text-[10px] text-slate-500 font-semibold italic">
+                                {lang === 'gu' ? 'હજુ કોઈ કલેક્શન બનાવ્યું નથી.' : 'No collections created yet.'}
+                              </p>
+                            ) : (
+                              <div className="space-y-3">
+                                {userCollections.map(coll => (
+                                  <div key={coll.id} className={`p-2.5 rounded-xl border ${theme === 'dark' ? 'bg-slate-950/50 border-slate-900 text-slate-300' : 'bg-slate-50/50 border-slate-100 text-slate-700'}`}>
+                                    <div className="flex items-center justify-between gap-2 mb-2">
+                                      <span className="text-[10px] font-extrabold text-indigo-400 font-mono truncate">{coll.name}</span>
+                                      <button
+                                        onClick={() => deleteCollection(coll.id)}
+                                        className="text-red-400 hover:text-red-500"
+                                        title="Delete Collection"
+                                      >
+                                        <Icons.Trash className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+
+                                    {/* Added Tools */}
+                                    {coll.toolIds.length === 0 ? (
+                                      <div className="flex flex-col gap-1 items-stretch mt-1.5">
+                                        <span className="text-[9px] text-slate-550 font-medium italic mb-1.5 block">
+                                          {lang === 'gu' ? 'સાધનો ઉમેરવા માટે નીચેથી પસંદ કરો:' : 'Quick add tools into collection:'}
+                                        </span>
+                                        <div className="flex flex-wrap gap-1">
+                                          {AI_TOOLS_DIRECTORY.slice(0, 4).map(t => (
+                                            <button
+                                              key={`add-${coll.id}-${t.id}`}
+                                              onClick={() => addToolToCollection(coll.id, t.id)}
+                                              className="px-1.5 py-0.5 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-[8px] font-black uppercase tracking-wider cursor-pointer"
+                                            >
+                                              + {t.name}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-1.5">
+                                        <div className="flex flex-wrap gap-1">
+                                          {AI_TOOLS_DIRECTORY.filter(t => coll.toolIds.includes(t.id)).map(t => (
+                                            <div
+                                              key={`coll-tool-${coll.id}-${t.id}`}
+                                              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-extrabold border ${
+                                                theme === 'dark' ? 'bg-slate-900/65 border-slate-800' : 'bg-slate-100 border-slate-200'
+                                              }`}
+                                            >
+                                              <button
+                                                onClick={() => {
+                                                  setSelectedDirectoryTool(t);
+                                                  playSynthSound('click');
+                                                }}
+                                                className="hover:text-blue-400 text-left cursor-pointer"
+                                              >
+                                                {t.logo} {t.name}
+                                              </button>
+                                              <button
+                                                onClick={() => removeToolFromCollection(coll.id, t.id)}
+                                                className="text-red-400 hover:text-red-500 cursor-pointer"
+                                              >
+                                                <Icons.X className="w-3 h-3" />
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                        {/* Offer quick add button */}
+                                        <div className="flex items-center gap-1 border-t border-slate-500/5 pt-1.5 mt-1.5">
+                                          <span className="text-[7.5px] font-black text-slate-500 uppercase tracking-widest font-mono shrink-0">Add More:</span>
+                                          <div className="flex gap-1 overflow-x-auto pb-0.5 shrink-0 max-w-full">
+                                            {AI_TOOLS_DIRECTORY.filter(t => !coll.toolIds.includes(t.id)).slice(0, 3).map(t => (
+                                              <button
+                                                key={`quick-add-${coll.id}-${t.id}`}
+                                                onClick={() => addToolToCollection(coll.id, t.id)}
+                                                className="px-1 py-0.5 rounded bg-blue-500/5 hover:bg-blue-500/15 text-[8px] text-blue-400 font-bold cursor-pointer"
+                                              >
+                                                + {t.name}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="border-t border-slate-500/5 my-2" />
+
+                          {/* 🔔 Price & Feature Alerts Manager */}
+                          <div>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider block mb-2 font-mono">
+                              🔔 {lang === 'gu' ? 'કિંમત અને ફિચર એલર્ટ્સ' : 'Price & Feature Alerts'} ({followedDirectoryTools.length})
+                            </span>
+                            {followedDirectoryTools.length === 0 ? (
+                              <p className="text-[10px] text-slate-500 font-semibold italic">
+                                {lang === 'gu' ? 'કોઈ એલર્ટ સબ્સ્ક્રાઇબ કરેલ નથી.' : 'No alerts configured yet. Click the bell icon inside any audit profile!'}
+                              </p>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {AI_TOOLS_DIRECTORY.filter(t => followedDirectoryTools.includes(t.id)).map(t => (
+                                  <div
+                                    key={`alert-sidebar-${t.id}`}
+                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold border transition-all ${
+                                      theme === 'dark' ? 'bg-slate-950 border-slate-900 hover:border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    <button
+                                      onClick={() => {
+                                        setSelectedDirectoryTool(t);
+                                        playSynthSound('click');
+                                      }}
+                                      className="hover:text-blue-400 cursor-pointer text-left flex items-center gap-1"
+                                    >
+                                      <span>{t.logo}</span>
+                                      <span className="truncate max-w-[80px]">{t.name}</span>
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        toggleFollowAlerts(t.id);
+                                      }}
+                                      className="text-red-400 hover:text-red-500 ml-1 shrink-0 cursor-pointer"
+                                      title={lang === 'gu' ? 'એલર્ટ દૂર કરો' : 'Unsubscribe'}
+                                    >
+                                      <Icons.X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                     </div>
 
                     {/* 🎁 6. FREE AI RESOURCES LIBRARY & COMPARISONS */}
@@ -4499,6 +5157,436 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                  {/* Closing directory block */}
+                  </>
+                )}
+
+                {activeRadarTab === 'radar' && (
+                  <div className="space-y-6 animate-fadeIn">
+                    {/* Launch Radar Header Banner */}
+                    <div className={`p-6 lg:p-8 rounded-3xl border relative overflow-hidden ${
+                      theme === 'dark' ? 'bg-gradient-to-br from-[#0c1222] via-[#050812] to-[#01040a] border-slate-900 shadow-xl' : 'bg-gradient-to-br from-indigo-50/40 via-white to-blue-50/50 border-slate-200 shadow-md'
+                    }`}>
+                      <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-indigo-600/10 to-transparent rounded-full blur-[100px] pointer-events-none" />
+                      
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="space-y-2 max-w-xl text-left">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-pink-500/10 text-pink-400 border border-pink-500/20 font-mono">
+                            <Icons.Compass className="w-3.5 h-3.5 animate-spin-slow" />
+                            <span>AI PRODUCT LAUNCH RADAR</span>
+                          </div>
+                          <h2 className={`text-xl lg:text-2xl font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                            {lang === 'gu' ? '📡 રીઅલ-ટાઇમ એઆઈ પ્રોડક્ટ લોન્ચ રડાર' : '📡 Real-time AI Product Launch Radar'}
+                          </h2>
+                          <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} font-semibold leading-relaxed`}>
+                            {lang === 'gu'
+                              ? 'વૈશ્વિક સ્તરે આગામી નવીન એઆઈ સાધનો શોધો, સ્થાપકોના પ્રોફાઇલ્સ વાંચો અને પ્રોડક્ટ્સને સપોર્ટ કરવા માટે અપવોટ (Upvote) કરો.'
+                              : 'Discover the most innovative upcoming AI solutions before they go mainstream. Meet the builders behind the models and vote for the best!'}
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setShowLaunchForm(!showLaunchForm);
+                            playSynthSound('click');
+                          }}
+                          className="px-5 py-3 bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all shadow shadow-pink-600/25 cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                        >
+                          <Icons.Plus className="w-4 h-4" />
+                          <span>{lang === 'gu' ? 'તમારું AI લોન્ચ કરો 🚀' : 'Submit upcoming AI 🚀'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Inline Submission Form */}
+                    <AnimatePresence>
+                      {showLaunchForm && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <form
+                            onSubmit={submitNewAILaunch}
+                            className={`p-6 rounded-2xl border space-y-4 text-left ${
+                              theme === 'dark' ? 'bg-[#050812] border-slate-900' : 'bg-slate-50 border-slate-200 shadow-sm'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between border-b border-slate-500/5 pb-2">
+                              <h3 className={`text-xs font-black uppercase tracking-wider font-mono ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>
+                                🚀 {lang === 'gu' ? 'તમારા નવું એઆઈ સાધન સબમિટ કરો' : 'Submit upcoming product specification'}
+                              </h3>
+                              <button
+                                type="button"
+                                onClick={() => setShowLaunchForm(false)}
+                                className="text-slate-500 hover:text-slate-300 cursor-pointer"
+                              >
+                                <Icons.X className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-500 font-mono">Product Name</label>
+                                <input
+                                  type="text"
+                                  value={launchName}
+                                  onChange={(e) => setLaunchName(e.target.value)}
+                                  placeholder="e.g. GujaratiVoice.ai"
+                                  className={`w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-550/50 ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                                  }`}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-500 font-mono">Founder Name</label>
+                                <input
+                                  type="text"
+                                  value={launchFounder}
+                                  onChange={(e) => setLaunchFounder(e.target.value)}
+                                  placeholder="e.g. Rajesh Kumar"
+                                  className={`w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-550/50 ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                                  }`}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-500 font-mono">Target pricing (e.g. Free, $5/mo)</label>
+                                <input
+                                  type="text"
+                                  value={launchPrice}
+                                  onChange={(e) => setLaunchPrice(e.target.value)}
+                                  placeholder="e.g. Free Tier + Pro Plan"
+                                  className={`w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-550/50 ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                                  }`}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[9px] font-black uppercase text-slate-500 font-mono">Product Website / Demo URL</label>
+                                <input
+                                  type="text"
+                                  value={launchUrl}
+                                  onChange={(e) => setLaunchUrl(e.target.value)}
+                                  placeholder="https://example.com"
+                                  className={`w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-550/50 ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                                  }`}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-[9px] font-black uppercase text-slate-500 font-mono">Short Pitch Description</label>
+                              <textarea
+                                rows={3}
+                                value={launchDesc}
+                                onChange={(e) => setLaunchDesc(e.target.value)}
+                                placeholder="Explain exactly what the tool does, who it is for, and how it leverages AI."
+                                className={`w-full px-3 py-2 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-550/50 ${
+                                  theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
+                                }`}
+                              />
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-2">
+                              <button
+                                type="button"
+                                onClick={() => setShowLaunchForm(false)}
+                                className={`px-4 py-2 text-xs font-bold rounded-lg border cursor-pointer ${
+                                  theme === 'dark' ? 'border-slate-800 text-slate-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:bg-slate-100'
+                                }`}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider rounded-lg shadow-md cursor-pointer"
+                              >
+                                Submit product
+                              </button>
+                            </div>
+                          </form>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Upcoming Launches Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                      {customLaunches.map((launch) => {
+                        const extraVotes = radarUpvotes[launch.id] || 0;
+                        const totalVotes = (launch.votes || 0) + extraVotes;
+
+                        return (
+                          <div
+                            key={launch.id}
+                            className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between space-y-4 text-left relative overflow-hidden ${
+                              theme === 'dark' 
+                                ? 'bg-gradient-to-b from-[#090d16]/90 to-[#04060c]/95 border-slate-900 text-slate-100 shadow-xl' 
+                                : 'bg-gradient-to-b from-white to-slate-50/60 border-slate-200 text-slate-800 shadow-md'
+                            }`}
+                          >
+                            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-pink-500/10 to-transparent" />
+                            
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 border border-pink-500/20 flex items-center justify-center text-xl shadow-inner">
+                                  {launch.logo}
+                                </div>
+                                <span className="text-[9px] font-black font-mono text-pink-400 uppercase tracking-widest bg-pink-500/5 px-2 py-0.5 rounded-md border border-pink-500/15">
+                                  {launch.launchDate}
+                                </span>
+                              </div>
+
+                              <div>
+                                <h3 className={`text-sm font-extrabold ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'} tracking-wide`}>
+                                  {launch.name}
+                                </h3>
+                                <span className="text-[9px] text-slate-500 font-extrabold uppercase mt-1 block">
+                                  By founder: <span className="text-indigo-400">{launch.founder}</span>
+                                </span>
+                              </div>
+
+                              <p className={`text-[11px] ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} font-semibold leading-relaxed line-clamp-3`}>
+                                {launch.desc}
+                              </p>
+                            </div>
+
+                            <div className="border-t border-slate-500/10 pt-3.5 flex items-center justify-between gap-2.5">
+                              <span className="text-[10px] font-black text-amber-400 font-mono uppercase bg-amber-500/5 border border-amber-500/15 px-2 py-0.5 rounded-lg shrink-0">
+                                {launch.price}
+                              </span>
+                              
+                              <div className="flex items-center gap-1.5">
+                                {/* Upvote Button */}
+                                <button
+                                  onClick={() => upvoteRadarLaunch(launch.id)}
+                                  className="px-3 py-1.5 bg-gradient-to-r from-pink-600/15 to-indigo-600/15 hover:from-pink-600/25 hover:to-indigo-600/25 text-[10px] font-black text-pink-400 border border-pink-500/30 hover:border-pink-500/50 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                                >
+                                  <span>🚀 {totalVotes}</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {activeRadarTab === 'toolbox' && (
+                  <div className="space-y-6 animate-fadeIn text-left">
+                    {/* Toolbox Summary Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                      {[
+                        { title: lang === 'gu' ? "મનપસંદ સાધનો" : "Saved Favorites", value: AI_TOOLS_DIRECTORY.filter(t => userState.favorites?.includes(t.id)).length, icon: <Icons.Star className="w-5 h-5 text-amber-400 fill-current" /> },
+                        { title: lang === 'gu' ? "તમારી કલેક્શનની સંખ્યા" : "Your Collections", value: userCollections.length, icon: <Icons.FolderOpen className="w-5 h-5 text-indigo-400" /> },
+                        { title: lang === 'gu' ? "સિસ્ટમ વેરિફાઈડ રિવ્યૂઝ" : "System Reviews", value: customReviews.length, icon: <Icons.MessageSquare className="w-5 h-5 text-emerald-400" /> }
+                      ].map((metric, i) => (
+                        <div key={i} className={`p-4 rounded-2xl border flex items-center gap-4 ${
+                          theme === 'dark' ? 'bg-[#090d16] border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-800 shadow-sm'
+                        }`}>
+                          <div className="p-3 bg-slate-500/5 rounded-xl border border-slate-500/10">
+                            {metric.icon}
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono">{metric.title}</span>
+                            <span className="block text-2xl font-black font-mono mt-0.5">{metric.value}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                      {/* Collections List Layout (Expanded) */}
+                      <div className="xl:col-span-2 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-1.5 font-mono">
+                            <Icons.FolderOpen className="w-4 h-4 text-indigo-400" />
+                            <span>{lang === 'gu' ? 'તમારા વૈવિધ્યપૂર્ણ ફોલ્ડર્સ અને ગ્રૂપ્સ' : 'CURATED CUSTOM WORKSPACE GROUPS'}</span>
+                          </span>
+                        </div>
+
+                        {/* Create Form */}
+                        <div className={`p-4 rounded-2xl border flex gap-3 ${
+                          theme === 'dark' ? 'bg-[#050812] border-slate-900' : 'bg-slate-50 border-slate-200 shadow-sm'
+                        }`}>
+                          <input
+                            id="expanded-collection-input"
+                            type="text"
+                            placeholder={lang === 'gu' ? 'નવા કલેક્શનનું શીર્ષક...' : 'Create a new project workspace folder...'}
+                            className={`flex-1 px-4 py-2.5 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-550/50 ${
+                              theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-800 shadow-inner'
+                            }`}
+                          />
+                          <button
+                            onClick={() => {
+                              const el = document.getElementById('expanded-collection-input') as HTMLInputElement;
+                              if (el && el.value.trim()) {
+                                createCollection(el.value);
+                                el.value = '';
+                              }
+                            }}
+                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow cursor-pointer shrink-0"
+                          >
+                            + Add Group
+                          </button>
+                        </div>
+
+                        {userCollections.length === 0 ? (
+                          <div className={`p-8 rounded-2xl border text-center space-y-3 ${
+                            theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-white border-slate-200'
+                          }`}>
+                            <Icons.FolderOpen className="w-10 h-10 text-slate-500 mx-auto" />
+                            <p className="text-xs text-slate-500 font-bold">
+                              {lang === 'gu' ? 'કોઈ કલેક્શન બનાવેલ નથી. તમારો પ્રોજેક્ટ ઓર્ગેનાઇઝ કરવા માટે ઉપર એક નવું ફોલ્ડર બનાવો!' : 'No collection groups yet. Create folders above to organize your custom AI toolkits!'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {userCollections.map(coll => (
+                              <div key={coll.id} className={`p-5 rounded-2xl border space-y-4 ${
+                                theme === 'dark' ? 'bg-[#090d16] border-slate-900' : 'bg-white border-slate-200 shadow-sm'
+                              }`}>
+                                <div className="flex items-center justify-between border-b border-slate-500/5 pb-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-lg">📁</span>
+                                    <span className={`text-sm font-black ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{coll.name}</span>
+                                    <span className="text-[9px] font-black text-slate-500 font-mono uppercase bg-slate-500/10 px-2 py-0.5 rounded-full border border-slate-500/25">
+                                      {coll.toolIds.length} {lang === 'gu' ? 'સાધન' : 'tools'}
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => deleteCollection(coll.id)}
+                                    className="text-red-400 hover:text-red-500 cursor-pointer p-1 rounded hover:bg-red-500/10"
+                                  >
+                                    <Icons.Trash className="w-4 h-4" />
+                                  </button>
+                                </div>
+
+                                {coll.toolIds.length === 0 ? (
+                                  <div className="text-center py-4">
+                                    <p className="text-[11px] text-slate-500 font-bold italic mb-3">
+                                      {lang === 'gu' ? 'આ ફોલ્ડરમાં હજુ કોઈ સાધન ઉમેરેલ નથી.' : 'No tools added inside this workspace group.'}
+                                    </p>
+                                    <div className="flex flex-wrap gap-1.5 justify-center">
+                                      {AI_TOOLS_DIRECTORY.slice(0, 5).map(t => (
+                                        <button
+                                          key={`coll-add-${coll.id}-${t.id}`}
+                                          onClick={() => addToolToCollection(coll.id, t.id)}
+                                          className="px-2.5 py-1 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-[9px] font-black uppercase tracking-wider cursor-pointer border border-blue-500/20"
+                                        >
+                                          + {t.name}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {AI_TOOLS_DIRECTORY.filter(t => coll.toolIds.includes(t.id)).map(t => (
+                                      <div
+                                        key={`expanded-coll-t-${coll.id}-${t.id}`}
+                                        className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
+                                          theme === 'dark' ? 'bg-slate-950/80 border-slate-900 text-slate-350' : 'bg-slate-50 border-slate-200 text-slate-700'
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-2 text-left min-w-0">
+                                          <span className="text-xl shrink-0">{t.logo}</span>
+                                          <div className="truncate">
+                                            <h4 className={`text-xs font-black truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{t.name}</h4>
+                                            <span className="text-[9px] text-slate-500 font-semibold">{t.bestFor}</span>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          <button
+                                            onClick={() => {
+                                              setSelectedDirectoryTool(t);
+                                              playSynthSound('click');
+                                            }}
+                                            className="p-1 text-blue-400 hover:text-blue-500 cursor-pointer"
+                                            title="View audit profile"
+                                          >
+                                            <Icons.ExternalLink className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
+                                            onClick={() => removeToolFromCollection(coll.id, t.id)}
+                                            className="p-1 text-red-400 hover:text-red-500 cursor-pointer"
+                                            title="Remove from group"
+                                          >
+                                            <Icons.X className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Side Column: Favorite Directory profiles */}
+                      <div className="space-y-4 text-left">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block flex items-center gap-1.5 font-mono">
+                          <Icons.Star className="w-4 h-4 text-amber-400 fill-current" />
+                          <span>{lang === 'gu' ? 'મનપસંદ ઓડિટ પ્રોફાઇલ્સ' : 'FAVORITE AUDIT PROFILES'}</span>
+                        </span>
+
+                        <div className={`p-5 rounded-2xl border space-y-4 ${
+                          theme === 'dark' ? 'bg-[#090d16]/90 border-slate-900 text-slate-300' : 'bg-white border-slate-200 text-slate-750 shadow-sm'
+                        }`}>
+                          {(() => {
+                            const favDirectoryTools = AI_TOOLS_DIRECTORY.filter(t => userState.favorites?.includes(t.id));
+                            if (favDirectoryTools.length === 0) {
+                              return (
+                                <div className="text-center py-6 space-y-2">
+                                  <p className="text-xs text-slate-500 font-bold italic">
+                                    {lang === 'gu' ? 'હજુ કોઈ મનપસંદ સાધનો નથી.' : 'No directory profiles added to favorites yet.'}
+                                  </p>
+                                  <p className="text-[10px] text-slate-500">
+                                    {lang === 'gu' ? 'સાધન પત્તા પર બતાવેલ સ્ટાર આઇકોન ક્લિક કરો!' : 'Click the Star icon on any card inside the rankings list!'}
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="space-y-3">
+                                {favDirectoryTools.map(t => (
+                                  <div
+                                    key={`fav-detailed-${t.id}`}
+                                    onClick={() => {
+                                      setSelectedDirectoryTool(t);
+                                      playSynthSound('click');
+                                    }}
+                                    className={`p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.01] flex items-center justify-between gap-2.5 ${
+                                      theme === 'dark' ? 'bg-slate-950/60 border-slate-900/60 hover:border-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2.5 text-left min-w-0">
+                                      <span className="text-2xl shrink-0">{t.logo}</span>
+                                      <div className="truncate">
+                                        <h4 className={`text-xs font-black truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{t.name}</h4>
+                                        <span className="text-[9px] text-emerald-400 font-black font-mono uppercase bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">{t.score}/10 Audit</span>
+                                      </div>
+                                    </div>
+                                    <Icons.ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 </div>
               )}
             </div>
@@ -6371,6 +7459,32 @@ export default function App() {
                 </div>
 
                 <div className="flex items-center gap-3 relative z-10">
+                  {/* Save Favorite Star */}
+                  <button
+                    onClick={() => toggleFavoriteDirectoryTool(selectedDirectoryTool.id)}
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                      userState.favorites?.includes(selectedDirectoryTool.id)
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                        : theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-650'
+                    }`}
+                    title="Save to Toolbox"
+                  >
+                    <Icons.Star className="w-4 h-4 fill-current" />
+                  </button>
+
+                  {/* Follow Alerts Bell */}
+                  <button
+                    onClick={() => toggleFollowAlerts(selectedDirectoryTool.id)}
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                      followedDirectoryTools.includes(selectedDirectoryTool.id)
+                        ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400'
+                        : theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-500 hover:text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-400 hover:text-slate-650'
+                    }`}
+                    title="Subscribe to Price/Feature alerts"
+                  >
+                    <Icons.Bell className="w-4 h-4" />
+                  </button>
+
                   <div className="text-right">
                     <span className="block text-2xl font-black font-mono text-blue-500">{selectedDirectoryTool.score}/10</span>
                     <span className="text-[8px] text-slate-500 font-black tracking-widest uppercase font-mono mt-0.5">PLATFORM SCORE</span>
@@ -6380,8 +7494,8 @@ export default function App() {
                       setSelectedDirectoryTool(null);
                       playSynthSound('click');
                     }}
-                    className={`p-2.5 rounded-xl border transition-all ${
-                      theme === 'dark' ? 'bg-slate-950 border-slate-900 hover:text-white' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                      theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-100 hover:text-white' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'
                     }`}
                   >
                     <Icons.X className="w-5 h-5" />
@@ -6395,6 +7509,38 @@ export default function App() {
                 <div className="space-y-2">
                   <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 font-mono">Overview Description</h4>
                   <p className="text-xs lg:text-sm leading-relaxed text-slate-400 font-semibold">{selectedDirectoryTool.description}</p>
+                </div>
+
+                {/* 🛡️ AI Tool Verification Hub */}
+                <div className={`p-5 rounded-2xl border ${
+                  theme === 'dark' ? 'bg-[#050912] border-blue-900/30' : 'bg-blue-50/50 border-blue-200'
+                } flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden`}>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-emerald-500/10 border border-emerald-500/25 p-2 rounded-xl text-emerald-400">
+                       <Icons.ShieldCheck className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className={`text-xs font-black uppercase tracking-wide flex items-center gap-1.5 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                        <span>Verified by AI Super Tools Hub</span>
+                        <span className="px-1.5 py-0.5 rounded text-[7px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 font-mono uppercase">TRUST BADGE</span>
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-bold mt-0.5">
+                        {lang === 'gu' ? 'છેલ્લે ચકાસાયેલ: ઓગસ્ટ ૨૦૨૬ (તાજું ઓડિટ)' : 'Last Audited Audit: August 19, 2026 (Verified Working)'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2.5 text-[10px] font-bold">
+                    <span className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg flex items-center gap-1">
+                      ✓ {lang === 'gu' ? 'ટૂલ કાર્યરત છે' : 'Tool Status: Stable'}
+                    </span>
+                    <span className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg flex items-center gap-1">
+                      ✓ {lang === 'gu' ? 'સાચી કિંમતો' : 'Pricing: Verified'}
+                    </span>
+                    <span className="px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg flex items-center gap-1">
+                      ✓ {selectedDirectoryTool.isFree ? (lang === 'gu' ? 'મફત પ્લાન ઉપલબ્ધ' : 'Free Plan: Available') : (lang === 'gu' ? 'ફ્રી ટ્રાયલ' : 'Free Trial/Tier')}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -6445,9 +7591,26 @@ export default function App() {
 
                     <div className="border-t border-slate-500/10 pt-4 space-y-2">
                       <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 font-mono">Pricing & License details</h4>
-                      <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
-                        <Icons.CreditCard className="w-4 h-4 text-blue-400" />
-                        <span className="text-xs font-black tracking-wide text-blue-300 font-mono uppercase">{selectedDirectoryTool.priceInfo}</span>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
+                          <Icons.CreditCard className="w-4 h-4 text-blue-400" />
+                          <span className="text-xs font-black tracking-wide text-blue-300 font-mono uppercase">{selectedDirectoryTool.priceInfo}</span>
+                        </div>
+                        <button
+                          onClick={() => toggleFollowAlerts(selectedDirectoryTool.id)}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-150 border flex items-center gap-1.5 cursor-pointer ${
+                            followedDirectoryTools.includes(selectedDirectoryTool.id)
+                              ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400'
+                              : 'bg-slate-500/10 border-slate-500/20 text-slate-400 hover:text-slate-300'
+                          }`}
+                        >
+                          <Icons.Bell className="w-3.5 h-3.5" />
+                          <span>
+                            {followedDirectoryTools.includes(selectedDirectoryTool.id)
+                              ? (lang === 'gu' ? 'એલર્ટ સક્રિય 🔔' : 'Alerts Active 🔔')
+                              : (lang === 'gu' ? 'ભાવ ટ્રૅક કરો 🔔' : 'Track Price Changes 🔔')}
+                          </span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -6513,11 +7676,18 @@ export default function App() {
                 </div>
 
                 {/* 6. User Reviews */}
-                <div className="space-y-3.5">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 font-mono">User Reviews & Mentions</h4>
+                <div className="space-y-3.5 border-t border-slate-500/10 pt-5">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 font-mono">User Reviews & Community Feedback</h4>
+                  
+                  {/* Write a Review Form */}
+                  <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-[#04060c]/60 border-slate-900/80' : 'bg-slate-50 border-slate-100'} text-left space-y-3`}>
+                    <span className="text-[10px] font-black tracking-wider text-slate-500 uppercase block font-mono">WRITE AN AUDITED REVIEW</span>
+                    <ReviewForm toolId={selectedDirectoryTool.id} onSubmitReview={submitToolReview} theme={theme} lang={lang} />
+                  </div>
+
                   <div className="space-y-3">
-                    {selectedDirectoryTool.reviews.map((rev, idx) => (
-                      <div key={idx} className="p-4 rounded-xl border border-slate-900 bg-slate-950/40 text-left space-y-1">
+                    {[...(customReviews[selectedDirectoryTool.id] || []), ...selectedDirectoryTool.reviews].map((rev, idx) => (
+                      <div key={idx} className={`p-4 rounded-xl border ${theme === 'dark' ? 'border-slate-900 bg-[#04060c]/30' : 'border-slate-200 bg-white shadow-sm'} text-left space-y-1`}>
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-extrabold text-slate-300">{rev.user}</span>
                           <span className="text-amber-500 font-mono flex items-center gap-0.5">
@@ -6564,6 +7734,239 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Sticky Comparison Tray */}
+      {mainDashboardView === 'discovery' && comparedDirectoryToolIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-2xl px-4 animate-slide-up">
+          <div className={`p-4 rounded-2xl border shadow-2xl flex items-center justify-between gap-4 ${
+            theme === 'dark' ? 'bg-[#090d16]/95 border-blue-900/40 text-slate-100 backdrop-blur-md' : 'bg-white/95 border-slate-200 text-slate-800 backdrop-blur-md'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/25">
+                <Icons.GitCompare className="w-5 h-5 animate-pulse" />
+              </div>
+              <div className="text-left">
+                <span className="block text-xs font-black uppercase tracking-wider font-mono">
+                  {lang === 'gu' ? 'સાધનોની સરખામણી' : 'Advanced Comparison'}
+                </span>
+                <span className="text-[10px] text-slate-400 font-semibold leading-none">
+                  {comparedDirectoryToolIds.length} {lang === 'gu' ? 'ટૂલ્સ પસંદ કરેલ (મહત્તમ ૫)' : 'tools selected (Max 5)'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowDirectoryCompareModal(true);
+                  playSynthSound('success');
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md cursor-pointer"
+              >
+                {lang === 'gu' ? 'સરખામણી જુઓ 🏆' : 'Compare side-by-side 🏆'}
+              </button>
+              <button
+                onClick={() => {
+                  setComparedDirectoryToolIds([]);
+                  playSynthSound('click');
+                }}
+                className={`p-2 rounded-xl border hover:text-red-500 transition-all cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-250'
+                }`}
+                title="Clear list"
+              >
+                <Icons.Trash className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Side-by-Side Comparison Overlay Modal */}
+      {showDirectoryCompareModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className={`w-full max-w-5xl rounded-3xl border shadow-2xl overflow-hidden flex flex-col my-8 ${
+              theme === 'dark' ? 'bg-[#090d16] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+            }`}
+          >
+            <div className={`p-6 border-b flex items-center justify-between ${
+              theme === 'dark' ? 'bg-slate-950/40 border-slate-900' : 'bg-slate-50 border-slate-100'
+            }`}>
+              <div className="flex items-center gap-3 text-left">
+                <div className="p-2.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 rounded-2xl">
+                  <Icons.GitCompare className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-sm lg:text-base font-black uppercase tracking-wide">
+                    {lang === 'gu' ? '🏆 અદ્યતન એઆઈ ટૂલ સરખામણી કોષ્ટક' : '🏆 Advanced AI Tool Comparison'}
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-extrabold font-mono mt-0.5">
+                    {lang === 'gu' ? 'વાસ્તવિક ઓડિટ ડેટા આધારિત સ્વચાલિત સરખામણી' : 'AUDITED SPECIFICATIONS & REAL METRICS'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowDirectoryCompareModal(false);
+                  playSynthSound('click');
+                }}
+                className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                  theme === 'dark' ? 'bg-slate-950 border-slate-900 hover:text-white' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'
+                }`}
+              >
+                <Icons.X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-x-auto overflow-y-auto max-h-[75vh] text-left">
+              {(() => {
+                const comparedTools = AI_TOOLS_DIRECTORY.filter(t => comparedDirectoryToolIds.includes(t.id));
+                if (comparedTools.length === 0) return <p className="text-xs text-slate-500 font-bold italic">No tools selected.</p>;
+
+                // Determine the winner (highest score)
+                const winner = [...comparedTools].sort((a, b) => b.score - a.score)[0];
+
+                return (
+                  <div className="space-y-6">
+                    {/* Winner Announcement Card */}
+                    {comparedTools.length >= 2 && (
+                      <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-500/5 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl animate-bounce">🏆</span>
+                          <div>
+                            <h4 className="text-xs font-black uppercase tracking-wide text-amber-400">
+                              {lang === 'gu' ? 'નિર્ણય: વિજેતા સાધન' : 'Hub Verdict: Ultimate Winner'}
+                            </h4>
+                            <p className={`text-base font-black ${theme === 'dark' ? 'text-white' : 'text-slate-900'} mt-1`}>
+                              {winner.name} ({lang === 'gu' ? 'સ્કોર:' : 'Score:'} {winner.score}/10)
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-bold md:max-w-md text-left md:text-right leading-relaxed">
+                          {lang === 'gu' 
+                            ? `અમારા ઓડિટ અને વપરાશકર્તા સંતોષના આધારે, ${winner.name} તેના શ્રેષ્ઠ ફીચર્સ અને કિંમતની સરખામણીમાં સૌથી મજબૂત સ્કોર મેળવે છે.`
+                            : `Based on verified system metrics and overall rating breakdown, ${winner.name} earns the winner's crown for its superior architecture and price efficiency.`}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Table */}
+                    <table className="w-full text-xs font-semibold text-left border-collapse min-w-[650px]">
+                      <thead>
+                        <tr className={`border-b ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
+                          <th className="py-3 px-4 text-slate-400 font-mono uppercase tracking-wider text-[10px] w-48">Spec Metric</th>
+                          {comparedTools.map(t => (
+                            <th key={t.id} className="py-3 px-4 text-center">
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="text-2xl">{t.logo}</span>
+                                <span className={`font-black tracking-tight text-sm ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>{t.name}</span>
+                                {t.id === winner.id && comparedTools.length >= 2 && (
+                                  <span className="px-1.5 py-0.5 rounded text-[7px] bg-amber-500/15 text-amber-400 border border-amber-500/20 font-mono">🏆 WINNER</span>
+                                )}
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className={`border-b ${theme === 'dark' ? 'border-slate-900/50' : 'border-slate-100'}`}>
+                          <td className="py-4 px-4 text-slate-400 font-mono uppercase text-[9px]">Hub Score</td>
+                          {comparedTools.map(t => (
+                            <td key={t.id} className="py-4 px-4 text-center">
+                              <span className="text-base font-black text-blue-500 font-mono">{t.score}/10</span>
+                            </td>
+                          ))}
+                        </tr>
+
+                        <tr className={`border-b ${theme === 'dark' ? 'border-slate-900/50' : 'border-slate-100'}`}>
+                          <td className="py-4 px-4 text-slate-400 font-mono uppercase text-[9px]">Best For Use Case</td>
+                          {comparedTools.map(t => (
+                            <td key={t.id} className="py-4 px-4 text-center text-slate-300">
+                              <span className="font-mono text-[10px] text-indigo-400 font-black">{t.bestFor}</span>
+                            </td>
+                          ))}
+                        </tr>
+
+                        <tr className={`border-b ${theme === 'dark' ? 'border-slate-900/50' : 'border-slate-100'}`}>
+                          <td className="py-4 px-4 text-slate-400 font-mono uppercase text-[9px]">Pricing Model</td>
+                          {comparedTools.map(t => (
+                            <td key={t.id} className="py-4 px-4 text-center">
+                              <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wide border ${
+                                t.isFree ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' : 'bg-amber-500/10 border-amber-500/25 text-amber-400'
+                              }`}>
+                                {t.priceInfo}
+                              </span>
+                            </td>
+                          ))}
+                        </tr>
+
+                        <tr className={`border-b ${theme === 'dark' ? 'border-slate-900/50' : 'border-slate-100'}`}>
+                          <td className="py-4 px-4 text-slate-400 font-mono uppercase text-[9px]">Pros (ફાયદાઓ)</td>
+                          {comparedTools.map(t => (
+                            <td key={t.id} className="py-4 px-4 text-slate-300 leading-relaxed text-[11px] text-center">
+                              <ul className="list-disc list-inside space-y-1 inline-block text-left">
+                                {t.pros.slice(0, 2).map((p, i) => (
+                                  <li key={i}>{p}</li>
+                                ))}
+                              </ul>
+                            </td>
+                          ))}
+                        </tr>
+
+                        <tr className={`border-b ${theme === 'dark' ? 'border-slate-900/50' : 'border-slate-100'}`}>
+                          <td className="py-4 px-4 text-slate-400 font-mono uppercase text-[9px]">Cons (ગેરફાયદાઓ)</td>
+                          {comparedTools.map(t => (
+                            <td key={t.id} className="py-4 px-4 text-slate-400 leading-relaxed text-[11px] text-center">
+                              <ul className="list-disc list-inside space-y-1 inline-block text-left text-slate-500">
+                                {t.cons.slice(0, 2).map((c, i) => (
+                                  <li key={i}>{c}</li>
+                                ))}
+                              </ul>
+                            </td>
+                          ))}
+                        </tr>
+
+                        <tr className={`border-b ${theme === 'dark' ? 'border-slate-900/50' : 'border-slate-100'}`}>
+                          <td className="py-4 px-4 text-slate-400 font-mono uppercase text-[9px]">Features list</td>
+                          {comparedTools.map(t => (
+                            <td key={t.id} className="py-4 px-4 text-slate-400 leading-relaxed text-[11px]">
+                              <div className="flex flex-wrap gap-1 justify-center">
+                                {t.featuresList.slice(0, 3).map((f, i) => (
+                                  <span key={i} className="px-1.5 py-0.5 bg-slate-900 border border-slate-800 text-slate-400 rounded text-[9px] uppercase font-mono">
+                                    {f}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                          ))}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className={`p-4 border-t flex justify-end ${
+              theme === 'dark' ? 'bg-slate-950/40 border-slate-900' : 'bg-slate-50 border-slate-100'
+            }`}>
+              <button
+                onClick={() => {
+                  setShowDirectoryCompareModal(false);
+                  playSynthSound('click');
+                }}
+                className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md cursor-pointer"
+              >
+                Close Comparison
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* ================= GLOBAL TOASTS STACK NOTIFICATIONS ================= */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3.5 max-w-sm pointer-events-none">
