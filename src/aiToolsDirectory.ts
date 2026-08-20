@@ -30,6 +30,9 @@ export interface ToolProfile {
     versus: string;
     verdict: string;
   };
+  isSponsored?: boolean;
+  sponsoredLabel?: string; // "Featured Tool" | "Top Placement" | "Sponsored Listing"
+  affiliateUrl?: string;
 }
 
 export const AI_TOOLS_DIRECTORY: ToolProfile[] = [
@@ -80,7 +83,10 @@ export const AI_TOOLS_DIRECTORY: ToolProfile[] = [
     comparisonText: {
       versus: "ChatGPT vs Claude 3.5 Sonnet",
       verdict: "ChatGPT is superior for raw speed, coding tasks, and voice conversations, while Claude is preferred for long-form reading comprehension and writing natural, human-sounding text."
-    }
+    },
+    isSponsored: true,
+    sponsoredLabel: "Featured Tool",
+    affiliateUrl: "https://openai.com/chatgpt?ref=aisupertools"
   },
   {
     id: "claude",
@@ -223,7 +229,10 @@ export const AI_TOOLS_DIRECTORY: ToolProfile[] = [
     comparisonText: {
       versus: "Canva vs Adobe Express",
       verdict: "Canva is more user-friendly and template-heavy, while Adobe Express integrates better with professional Photoshop elements and Firefly AI vector graphics."
-    }
+    },
+    isSponsored: true,
+    sponsoredLabel: "Sponsored Listing",
+    affiliateUrl: "https://canva.com?ref=aisupertools"
   },
   {
     id: "elevenlabs",

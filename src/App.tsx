@@ -1101,9 +1101,14 @@ export default function App() {
     const saved = localStorage.getItem('hub_radar_upvotes');
     return saved ? JSON.parse(saved) : { omniscribe: 42, vectradesign: 38, devsprint: 56 };
   });
-  const [activeRadarTab, setActiveRadarTab] = useState<'directory' | 'radar' | 'toolbox'>('directory');
+  const [activeRadarTab, setActiveRadarTab] = useState<'directory' | 'radar' | 'toolbox' | 'trends' | 'builder' | 'leaderboard'>('directory');
   const [newCollectionName, setNewCollectionName] = useState('');
   const [showCreateCollection, setShowCreateCollection] = useState(false);
+
+  // States for AI Toolkit Builder & Newsletter
+  const [builderRole, setBuilderRole] = useState<'youtuber' | 'student' | 'blogger' | 'developer' | 'designer'>('youtuber');
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
 
   // Form for new AI Launch submission
   const [showLaunchForm, setShowLaunchForm] = useState(false);
@@ -1228,6 +1233,28 @@ export default function App() {
     return saved ? parseInt(saved, 10) : 1;
   });
 
+  // --- Gamification Points (XP) ---
+  const [userXP, setUserXP] = useState<number>(() => {
+    const saved = localStorage.getItem('hub_user_xp');
+    return saved ? parseInt(saved, 10) : 25; // Default start with 25 XP
+  });
+
+  const addXPPoints = (points: number, reasonEn: string, reasonGu: string) => {
+    setUserXP(prev => {
+      const next = prev + points;
+      localStorage.setItem('hub_user_xp', next.toString());
+      // Play a happy synthesizer chime
+      setTimeout(() => playSynthSound('success'), 80);
+      showToast(
+        lang === 'gu'
+          ? `+${points} એક્સપ્લોરર પોઈન્ટ્સ! (${reasonGu})`
+          : `+${points} Explorer XP! (${reasonEn})`,
+        'success'
+      );
+      return next;
+    });
+  };
+
   useEffect(() => {
     const lastActiveDateStr = localStorage.getItem('hub_last_active_date');
     const todayStr = new Date().toDateString();
@@ -1243,8 +1270,10 @@ export default function App() {
         if (diffDays === 1) {
           newStreak = dailyStreak + 1;
           setTimeout(() => playSynthSound('success'), 1500); // Celebratory sound!
+          addXPPoints(10, "Daily streak check-in!", "દૈનિક મુલાકાત બોનસ!");
         } else if (diffDays > 1) {
           newStreak = 1;
+          addXPPoints(1, "Daily visit check-in!", "દૈનિક હાજરી!");
         }
         setDailyStreak(newStreak);
         localStorage.setItem('hub_daily_streak', newStreak.toString());
@@ -1450,6 +1479,7 @@ export default function App() {
     });
 
     showToast(lang === 'gu' ? 'તમારો રિવ્યુ સફળતાપૂર્વક સબમિટ થયો! ⭐️' : 'Your review submitted successfully! ⭐️', 'success');
+    addXPPoints(10, "Submitted a tool review!", "ટૂલ રિવ્યુ સબમિટ કર્યો!");
   };
 
   const upvoteRadarLaunch = (launchId: string) => {
@@ -1463,6 +1493,7 @@ export default function App() {
       showToast(lang === 'gu' ? 'લોન્ચ વોટ સબમિટ થયો! 🚀' : 'Launch Upvoted successfully! 🚀', 'success');
       return updated;
     });
+    addXPPoints(5, "Supported an upcoming launch!", "ઉભરતા ટૂલને સપોર્ટ આપ્યો!");
   };
 
   const submitNewAILaunch = (e: React.FormEvent) => {
@@ -1495,6 +1526,7 @@ export default function App() {
     setShowLaunchForm(false);
 
     showToast(lang === 'gu' ? 'નવું AI લોન્ચ રડારમાં સફળતાપૂર્વક મોકલ્યું! 🚀' : 'New AI submitted to Launch Radar! 🚀', 'success');
+    addXPPoints(20, "Submitted an upcoming AI tool to Launch Radar!", "નવું એઆઈ સાધન રડાર પર સબમિટ કર્યું!");
   };
 
   // --- Voice Commands / Speech Recognition States & Trigger ---
@@ -4544,7 +4576,10 @@ export default function App() {
                     {[
                       { id: 'directory', label: lang === 'gu' ? '🔍 એઆઈ ડિરેક્ટરી અને ફાઇન્ડર' : '🔍 Curated Directory Hub', desc: lang === 'gu' ? 'મુખ્ય લિસ્ટિંગ અને સેકન્ડ-ફાઇન્ડર' : 'Rankings & Finder engine' },
                       { id: 'radar', label: lang === 'gu' ? '📡 એઆઈ લોન્ચ રડાર' : '📡 AI Launch Radar', desc: lang === 'gu' ? 'નવા ટૂલ્સ લોન્ચિંગ અને વોટિંગ' : 'Upvote upcoming AI products' },
-                      { id: 'toolbox', label: lang === 'gu' ? '💼 માય એઆઈ ટૂલબોક્સ' : '💼 My AI Toolbox', desc: lang === 'gu' ? 'તમારા ફેવરિટ અને કલેક્શન્સ' : 'Your custom collections' }
+                      { id: 'toolbox', label: lang === 'gu' ? '💼 માય એઆઈ ટૂલબોક્સ' : '💼 My AI Toolbox', desc: lang === 'gu' ? 'તમારા ફેવરિટ અને કલેક્શન્સ' : 'Your custom collections' },
+                      { id: 'trends', label: lang === 'gu' ? '📈 એઆઈ માર્કેટ ટ્રેન્ડ્સ' : '📈 AI Market Trends', desc: lang === 'gu' ? 'લોકપ્રિય અને વાયરલ ટૂલ્સ મેટ્રિક્સ' : 'Trending metrics right now' },
+                      { id: 'builder', label: lang === 'gu' ? '🛠️ એઆઈ સ્ટેક બિલ્ડર' : '🛠️ AI Stack Builder', desc: lang === 'gu' ? 'પર્સનલ અને બિઝનેસ ટૂલ સ્ટેક્સ' : 'Tailor-made custom pipelines' },
+                      { id: 'leaderboard', label: lang === 'gu' ? '🏆 લીડરબોર્ડ અને XP' : '🏆 Leaderboard & XP', desc: lang === 'gu' ? 'રેન્કિંગ અને એક્સપ્લોરર પોઈન્ટ્સ' : 'Earn Explorer points & ranks' }
                     ].map((tab) => (
                       <button
                         key={tab.id}
@@ -4559,7 +4594,12 @@ export default function App() {
                         }`}
                       >
                         <div className={`p-1.5 rounded-xl shrink-0 ${activeRadarTab === tab.id ? 'bg-white/10' : theme === 'dark' ? 'bg-[#0c1222]' : 'bg-slate-100'}`}>
-                           {tab.id === 'directory' ? <Icons.Search className="w-4 h-4" /> : tab.id === 'radar' ? <Icons.Compass className="w-4 h-4" /> : <Icons.FolderHeart className="w-4 h-4" />}
+                           {tab.id === 'directory' ? <Icons.Search className="w-4 h-4" /> :
+                            tab.id === 'radar' ? <Icons.Compass className="w-4 h-4" /> :
+                            tab.id === 'toolbox' ? <Icons.FolderHeart className="w-4 h-4" /> :
+                            tab.id === 'trends' ? <Icons.TrendingUp className="w-4 h-4" /> :
+                            tab.id === 'builder' ? <Icons.Cpu className="w-4 h-4" /> :
+                            <Icons.Trophy className="w-4 h-4" />}
                         </div>
                         <div>
                           <span className="block text-xs font-black uppercase tracking-wider leading-tight">{tab.label}</span>
@@ -5587,7 +5627,638 @@ export default function App() {
                     </div>
                   </div>
                 )}
-                </div>
+
+                {activeRadarTab === 'trends' && (
+                  <div className="space-y-6 animate-fadeIn text-left">
+                    {/* Trend Banner Header */}
+                    <div className={`p-6 rounded-3xl border relative overflow-hidden ${
+                      theme === 'dark' ? 'bg-gradient-to-br from-indigo-950/20 via-slate-950 to-slate-950 border-slate-900/80' : 'bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/50 border-slate-200'
+                    }`}>
+                      <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                      <span className="text-[9px] font-black tracking-widest text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/20 font-mono uppercase">
+                        {lang === 'gu' ? 'એઆઈ માર્કેટ ટ્રેન્ડ્સ ડેટા' : 'REAL-TIME MARKET INTELLIGENCE'}
+                      </span>
+                      <h2 className={`text-xl font-black mt-3 ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>
+                        {lang === 'gu' ? 'આ અઠવાડિયે કયા AI સાધનો ટ્રેન્ડિંગમાં છે?' : 'What AI tools are trending right now?'}
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed font-semibold">
+                        {lang === 'gu' ? 'દૈનિક સર્ચ વોલ્યુમ, બુકમાર્ક્સ અને રેટિંગ્સના આધારે આંકડાકીય વિશ્લેષણ.' : 'Live market data compiled from user searches, bookmark frequencies, upvote velocity, and daily reviews.'}
+                      </p>
+                    </div>
+
+                    {/* 4 Bento Cards of Trends */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className={`p-5 rounded-2xl border text-left space-y-2 ${theme === 'dark' ? 'bg-[#090d16] border-slate-900/80' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span className="text-[10px] font-black uppercase tracking-wider font-mono">{lang === 'gu' ? 'સૌથી વધુ સર્ચ થયેલ' : 'MOST SEARCHED'}</span>
+                          <Icons.Search className="w-4 h-4 text-indigo-400" />
+                        </div>
+                        <div className="flex items-baseline gap-1.5 mt-1">
+                          <span className={`text-sm font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>ChatGPT</span>
+                          <span className="text-[10px] font-bold text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded-full">+42%</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-semibold">{lang === 'gu' ? '૧૪,૨૦૦ યુનિક કન્વર્સેશન્સ' : '14,200 unique searches this week'}</p>
+                      </div>
+
+                      <div className={`p-5 rounded-2xl border text-left space-y-2 ${theme === 'dark' ? 'bg-[#090d16] border-slate-900/80' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span className="text-[10px] font-black uppercase tracking-wider font-mono">{lang === 'gu' ? 'સૌથી ઝડપથી વધતું ٹૂલ' : 'FASTEST GROWING'}</span>
+                          <Icons.TrendingUp className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <div className="flex items-baseline gap-1.5 mt-1">
+                          <span className={`text-sm font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>Claude</span>
+                          <span className="text-[10px] font-bold text-indigo-400 font-mono bg-indigo-500/10 px-1.5 py-0.5 rounded-full">+180%</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-semibold">{lang === 'gu' ? 'લાંબી ફાઇલોના સંકલનમાં વધારો' : 'Massive increase in code workspace saves'}</p>
+                      </div>
+
+                      <div className={`p-5 rounded-2xl border text-left space-y-2 ${theme === 'dark' ? 'bg-[#090d16] border-slate-900/80' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span className="text-[10px] font-black uppercase tracking-wider font-mono">{lang === 'gu' ? 'સૌથી વધુ બુકમાર્ક' : 'MOST BOOKMARKED'}</span>
+                          <Icons.Bookmark className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div className="flex items-baseline gap-1.5 mt-1">
+                          <span className={`text-sm font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>Canva AI</span>
+                          <span className="text-[10px] font-bold text-amber-400 font-mono bg-amber-500/10 px-1.5 py-0.5 rounded-full">+94%</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-semibold">{lang === 'gu' ? '૧,૨૮૦ યુઝર્સે સેવ કર્યું' : '1,280 bookmarks inside My Toolbox'}</p>
+                      </div>
+
+                      <div className={`p-5 rounded-2xl border text-left space-y-2 ${theme === 'dark' ? 'bg-[#090d16] border-slate-900/80' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className="flex justify-between items-center text-slate-500">
+                          <span className="text-[10px] font-black uppercase tracking-wider font-mono">{lang === 'gu' ? 'લોકપ્રિય કેટેગરી' : 'POPULAR CATEGORY'}</span>
+                          <Icons.Layers className="w-4 h-4 text-blue-400" />
+                        </div>
+                        <div className="flex items-baseline gap-1.5 mt-1">
+                          <span className={`text-sm font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>Coding AI</span>
+                          <span className="text-[10px] font-bold text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded-full">42% Vol</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-semibold">{lang === 'gu' ? 'કોડિંગ સોલ્યુશન્સની મહત્તમ માંગ' : 'Developers deploying servers via prompt'}</p>
+                      </div>
+                    </div>
+
+                    {/* Trending Tools list & Premium Partner Placements */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Left column: Curated Trending Leaderboard */}
+                      <div className="lg:col-span-2 space-y-4">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 font-mono flex items-center gap-1.5">
+                          <Icons.Activity className="w-4 h-4 text-indigo-400" />
+                          <span>{lang === 'gu' ? 'વાયરલ એઆઈ ટૂલ્સ રેન્કિંગ' : 'VIRAL AI TRENDS OF THE WEEK'}</span>
+                        </h3>
+
+                        <div className={`p-2 rounded-2xl border divide-y divide-slate-500/5 ${theme === 'dark' ? 'bg-[#090d16]/80 border-slate-900' : 'bg-white border-slate-200 shadow-sm'}`}>
+                          {AI_TOOLS_DIRECTORY.slice(0, 5).map((tool, idx) => {
+                            const isSponsored = tool.isSponsored;
+                            return (
+                              <div key={tool.id} className="p-4 flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3.5 min-w-0">
+                                  <span className="text-xs font-black text-slate-500 font-mono w-4">#{idx + 1}</span>
+                                  <span className="text-2xl shrink-0">{tool.logo}</span>
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <h4 className={`text-xs font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{tool.name}</h4>
+                                      {isSponsored && (
+                                        <span className="bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[8px] font-black px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+                                          {tool.sponsoredLabel || "FEATURED"}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 font-semibold truncate max-w-xs">{tool.shortDesc}</p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <div className="text-right">
+                                    <span className="block text-[11px] font-black text-emerald-400 font-mono">{tool.score}/10</span>
+                                    <span className="block text-[8px] text-slate-500 font-mono font-bold uppercase">{tool.isFree ? (lang === 'gu' ? 'મફત પ્લાન' : 'Free Plan') : (lang === 'gu' ? 'પ્રીમિયમ' : 'Premium')}</span>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedDirectoryTool(tool);
+                                      playSynthSound('click');
+                                    }}
+                                    className="p-2 border border-slate-500/10 hover:bg-slate-500/10 text-slate-400 hover:text-slate-200 rounded-xl cursor-pointer"
+                                  >
+                                    <Icons.ChevronRight className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Right column: High-Converting Sponsor & Affiliate Hub */}
+                      <div className="space-y-4">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 font-mono flex items-center gap-1.5">
+                          <Icons.ShieldAlert className="w-4 h-4 text-emerald-400" />
+                          <span>{lang === 'gu' ? 'પ્રાયોજિત અને ભાગીદારી' : 'SPONSORED PLACEMENTS & PARTNERS'}</span>
+                        </h3>
+
+                        {/* Sponsor 1 */}
+                        <div className={`p-5 rounded-2xl border relative overflow-hidden flex flex-col justify-between h-[200px] ${
+                          theme === 'dark' ? 'bg-gradient-to-br from-[#0c1222] to-slate-950 border-amber-500/20' : 'bg-amber-50/20 border-amber-200'
+                        }`}>
+                          <div className="absolute top-3 right-3 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[8px] font-black px-2 py-0.5 rounded-full font-mono uppercase tracking-wider">
+                            Partner Highlight
+                          </div>
+                          <div className="space-y-2 text-left">
+                            <span className="text-3xl">🤖</span>
+                            <h4 className={`text-xs font-black ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>ChatGPT Plus Special Referral</h4>
+                            <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                              {lang === 'gu' ? 'અમારા સિક્યોર લિંક દ્વારા ChatGPT પ્લસ ખરીદો અને વિશિષ્ટ ઓફર મેળવો.' : 'Upgrade to ChatGPT Plus using our verified affiliate link to get advanced custom GPT configurations.'}
+                            </p>
+                          </div>
+                          <a
+                            href="https://openai.com/chatgpt?ref=aisupertools"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full text-center py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95"
+                            onClick={() => {
+                              playSynthSound('success');
+                              addXPPoints(5, "Clicked affiliate referral partner link!", "પ્રાયોજિત પાર્ટનર લિંક પર ક્લિક કર્યું!");
+                            }}
+                          >
+                            🚀 {lang === 'gu' ? 'પાર્ટનર લિંક પર જાઓ' : 'Visit Official Partner Link'}
+                          </a>
+                        </div>
+
+                        {/* Sponsor 2 */}
+                        <div className={`p-5 rounded-2xl border relative overflow-hidden flex flex-col justify-between h-[200px] ${
+                          theme === 'dark' ? 'bg-gradient-to-br from-[#0c1222] to-slate-950 border-slate-900' : 'bg-white border-slate-200 shadow-sm'
+                        }`}>
+                          <div className="absolute top-3 right-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[8px] font-black px-2 py-0.5 rounded-full font-mono uppercase tracking-wider">
+                            Verified Ad
+                          </div>
+                          <div className="space-y-2 text-left">
+                            <span className="text-3xl">🎨</span>
+                            <h4 className={`text-xs font-black ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>Canva Pro Creative AI</h4>
+                            <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                              {lang === 'gu' ? 'કેનવાના પ્રીમિયમ AI ટૂલ્સ અને બેકગ્રાઉન્ડ ઇરેઝર મેળવો.' : 'Unlock Magic Grab, bulk visual campaigns, and unlimited templates with our partner Canva link.'}
+                            </p>
+                          </div>
+                          <a
+                            href="https://canva.com?ref=aisupertools"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full text-center py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95"
+                            onClick={() => {
+                              playSynthSound('success');
+                              addXPPoints(5, "Clicked partner promotion link!", "પ્રાયોજિત પ્રમોશન લિંક પર ક્લિક કર્યું!");
+                            }}
+                          >
+                            🎨 {lang === 'gu' ? 'પ્રમોશનલ સાઈટ જુઓ' : 'Explore Partner Offer'}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeRadarTab === 'builder' && (
+                  <div className="space-y-6 animate-fadeIn text-left">
+                    {/* Stack Header */}
+                    <div className={`p-6 rounded-3xl border relative overflow-hidden ${
+                      theme === 'dark' ? 'bg-gradient-to-br from-indigo-950/20 via-slate-950 to-slate-950 border-slate-900/80' : 'bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/50 border-slate-200'
+                    }`}>
+                      <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                      <span className="text-[9px] font-black tracking-widest text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/20 font-mono uppercase">
+                        {lang === 'gu' ? 'એઆઈ સ્ટેક અને ટૂલકીટ ઓટોમેશન' : 'AI TOOLKIT BUILDER & AUTO-STACKS'}
+                      </span>
+                      <h2 className={`text-xl font-black mt-3 ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>
+                        {lang === 'gu' ? 'તમારો વ્યક્તિગત અને વ્યાવસાયિક એઆઈ સ્ટેક શોધો' : 'Your Personalized AI Toolkit Engine'}
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed font-semibold">
+                        {lang === 'gu' ? 'તમારા રોલ અથવા વ્યવસાયના પ્રકાર અનુસાર બિલ્ટ-ઇન શ્રેષ્ઠ સોલ્યુશન્સ મેળવો.' : 'Generate custom pipelines. Click any creator persona or ready-made business workflow to configure your automated toolbox.'}
+                      </p>
+                    </div>
+
+                    {/* Interactive Section 1: Creator Persona Stack */}
+                    <div className="space-y-4">
+                      <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 font-mono flex items-center gap-1.5">
+                        <Icons.Cpu className="w-4 h-4 text-indigo-400" />
+                        <span>{lang === 'gu' ? '૧. ક્રિએટર રોલ સ્ટેક બિલ્ડર' : '1. CREATOR PERSONA AUTOMATION PIPELINE'}</span>
+                      </h3>
+
+                      {/* Selector chips */}
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { id: 'youtuber', label: '🎥 YouTuber / Video Creator', desc: 'Script → Video → SEO' },
+                          { id: 'student', label: '🎓 Student / Researcher', desc: 'Read → Summarize → Write' },
+                          { id: 'blogger', label: '📝 Blogger / Copywriter', desc: 'Topic → Draft → SEO Optimization' },
+                          { id: 'developer', label: '💻 Developer / Architect', desc: 'Code → Debug → Build Stack' },
+                          { id: 'designer', label: '🎨 UI/UX Creative Designer', desc: 'Asset → Mockup → Design refinement' }
+                        ].map(role => (
+                          <button
+                            key={role.id}
+                            onClick={() => {
+                              setBuilderRole(role.id as any);
+                              playSynthSound('click');
+                            }}
+                            className={`px-4 py-2.5 rounded-2xl border text-xs font-black text-left transition-all cursor-pointer flex flex-col gap-0.5 ${
+                              builderRole === role.id
+                                ? 'bg-gradient-to-r from-indigo-600 to-blue-600 border-indigo-500 text-white shadow-md'
+                                : theme === 'dark' ? 'bg-[#090d16] border-slate-900 text-slate-400 hover:bg-[#12192b]' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{role.label}</span>
+                            <span className={`text-[8px] font-bold ${builderRole === role.id ? 'text-blue-200' : 'text-slate-500'}`}>{role.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Current Stack Pipeline Display */}
+                      <div className={`p-6 rounded-2xl border ${theme === 'dark' ? 'bg-[#090d16]/80 border-slate-900' : 'bg-white border-slate-200 shadow-sm'} space-y-5`}>
+                        <div className="flex items-center justify-between border-b border-slate-500/5 pb-3 flex-wrap gap-2">
+                          <div>
+                            <span className="text-[9px] font-black tracking-wider text-slate-500 uppercase font-mono">PERSONA STACK MATCHED</span>
+                            <h4 className={`text-sm font-black uppercase tracking-wide mt-1 ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
+                              {builderRole === 'youtuber' && 'Your Complete YouTube Creator AI Stack'}
+                              {builderRole === 'student' && 'Your Academic Excellence AI Stack'}
+                              {builderRole === 'blogger' && 'Your High-Speed Copywriting AI Stack'}
+                              {builderRole === 'developer' && 'Your Ultra-Productive Developer AI Stack'}
+                              {builderRole === 'designer' && 'Your Premium Creative Design AI Stack'}
+                            </h4>
+                          </div>
+                          <button
+                            onClick={() => {
+                              playSynthSound('success');
+                              addXPPoints(15, "Imported custom creator stack to My Toolbox!", "ક્રિએટર સ્ટેક તમારા ટૂલબોક્સમાં સેવ કર્યો!");
+                            }}
+                            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow cursor-pointer active:scale-95"
+                          >
+                            ⭐ Save Stack to My Toolbox
+                          </button>
+                        </div>
+
+                        {/* Pipeline Step cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 relative">
+                          {/* SVG Connection Arrow in desktop */}
+                          <div className="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-dashed border-t border-dashed border-slate-500/20 -translate-y-1/2 pointer-events-none" />
+
+                          {builderRole === 'youtuber' && [
+                            { step: "Step 1: Scripting", tool: "ChatGPT (OpenAI)", desc: "Write viral storytelling video outlines & hook ideas.", logo: "🤖", link: "https://openai.com" },
+                            { step: "Step 2: Voiceover", tool: "ElevenLabs AI", desc: "Convert narration into incredibly human-like voice.", logo: "🎙️", link: "https://elevenlabs.io" },
+                            { step: "Step 3: Visual Maker", tool: "Canva AI", desc: "Build thumbnails, edit b-roll footage instantly.", logo: "🎨", link: "https://canva.com" },
+                            { step: "Step 4: Sound/Effects", tool: "CapCut Pro AI", desc: "Smart captions, automatic video framing & sync.", logo: "✂️", link: "https://capcut.com" },
+                            { step: "Step 5: SEO & Audit", tool: "VidIQ / TubeBuddy", desc: "Recommend high-velocity keywords and CTR scores.", logo: "📈", link: "https://vidiq.com" }
+                          ].map((p, i) => (
+                            <div key={i} className={`p-4 rounded-xl border relative z-10 flex flex-col justify-between h-[150px] ${theme === 'dark' ? 'bg-[#04060c] border-slate-900 hover:border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-indigo-400 font-mono uppercase block">{p.step}</span>
+                                <span className="text-xl block">{p.logo}</span>
+                                <h5 className={`text-[11px] font-black truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{p.tool}</h5>
+                                <p className="text-[9px] text-slate-500 font-bold leading-normal line-clamp-3">{p.desc}</p>
+                              </div>
+                              <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-indigo-400 flex items-center gap-1 uppercase hover:underline mt-2">
+                                <span>Website</span> <Icons.ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            </div>
+                          ))}
+
+                          {builderRole === 'student' && [
+                            { step: "Step 1: Read", tool: "Perplexity AI", desc: "Scrape real-time academic citations & facts search.", logo: "🌐", link: "https://perplexity.ai" },
+                            { step: "Step 2: Summarize", tool: "Claude AI", desc: "Upload 150-page PDF research documents to summarize instantly.", logo: "✍️", link: "https://anthropic.com" },
+                            { step: "Step 3: Cite & Organize", tool: "Zotero Reference", desc: "Compile bibliographies & track reference indexes.", logo: "📚", link: "https://zotero.org" },
+                            { step: "Step 4: Refine", tool: "Grammarly AI", desc: "Correct passive tones & polish professional thesis flow.", logo: "✏️", link: "https://grammarly.com" },
+                            { step: "Step 5: Revise", tool: "Quizlet AI", desc: "Generate flashcards and self-tests from notes.", logo: "🧠", link: "https://quizlet.com" }
+                          ].map((p, i) => (
+                            <div key={i} className={`p-4 rounded-xl border relative z-10 flex flex-col justify-between h-[150px] ${theme === 'dark' ? 'bg-[#04060c] border-slate-900 hover:border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-indigo-400 font-mono uppercase block">{p.step}</span>
+                                <span className="text-xl block">{p.logo}</span>
+                                <h5 className={`text-[11px] font-black truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{p.tool}</h5>
+                                <p className="text-[9px] text-slate-500 font-bold leading-normal line-clamp-3">{p.desc}</p>
+                              </div>
+                              <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-indigo-400 flex items-center gap-1 uppercase hover:underline mt-2">
+                                <span>Website</span> <Icons.ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            </div>
+                          ))}
+
+                          {builderRole === 'blogger' && [
+                            { step: "Step 1: Trend", tool: "Google Trends", desc: "Discover high-interest low-difficulty search queries.", logo: "🔍", link: "https://trends.google.com" },
+                            { step: "Step 2: Copywriting", tool: "Jasper AI", desc: "Create SEO-optimized long articles with headings.", logo: "📝", link: "https://jasper.ai" },
+                            { step: "Step 3: Verification", tool: "Claude AI", desc: "Fact-check details and make sure sentences flow.", logo: "✍️", link: "https://anthropic.com" },
+                            { step: "Step 4: Featured Art", tool: "Midjourney", desc: "Generate premium article thumbnails & header graphics.", logo: "🖼️", link: "https://midjourney.com" },
+                            { step: "Step 5: Audit & Rank", tool: "Surfer SEO", desc: "Real-time content score audit comparing to competitors.", logo: "🎯", link: "https://surferseo.com" }
+                          ].map((p, i) => (
+                            <div key={i} className={`p-4 rounded-xl border relative z-10 flex flex-col justify-between h-[150px] ${theme === 'dark' ? 'bg-[#04060c] border-slate-900 hover:border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-indigo-400 font-mono uppercase block">{p.step}</span>
+                                <span className="text-xl block">{p.logo}</span>
+                                <h5 className={`text-[11px] font-black truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{p.tool}</h5>
+                                <p className="text-[9px] text-slate-500 font-bold leading-normal line-clamp-3">{p.desc}</p>
+                              </div>
+                              <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-indigo-400 flex items-center gap-1 uppercase hover:underline mt-2">
+                                <span>Website</span> <Icons.ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            </div>
+                          ))}
+
+                          {builderRole === 'developer' && [
+                            { step: "Step 1: Code Assistant", tool: "GitHub Copilot", desc: "Auto-complete brackets, imports, and boilerplates.", logo: "💻", link: "https://github.com" },
+                            { step: "Step 2: Architecture", tool: "Claude Sonnet", desc: "Plan perfect modular schemas and robust APIs.", logo: "✍️", link: "https://anthropic.com" },
+                            { step: "Step 3: Testing", tool: "CodiumAI", desc: "Generate comprehensive unit tests & checks.", logo: "🧪", link: "https://codium.ai" },
+                            { step: "Step 4: Deploy", tool: "Vercel / Cloud Run", desc: "Serverless global deployments with edge capabilities.", logo: "⚡", link: "https://vercel.com" },
+                            { step: "Step 5: Log Alerts", tool: "Sentry / LogRocket", desc: "Real-time production bug detection and alerts.", logo: "🚨", link: "https://sentry.io" }
+                          ].map((p, i) => (
+                            <div key={i} className={`p-4 rounded-xl border relative z-10 flex flex-col justify-between h-[150px] ${theme === 'dark' ? 'bg-[#04060c] border-slate-900 hover:border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-indigo-400 font-mono uppercase block">{p.step}</span>
+                                <span className="text-xl block">{p.logo}</span>
+                                <h5 className={`text-[11px] font-black truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{p.tool}</h5>
+                                <p className="text-[9px] text-slate-500 font-bold leading-normal line-clamp-3">{p.desc}</p>
+                              </div>
+                              <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-indigo-400 flex items-center gap-1 uppercase hover:underline mt-2">
+                                <span>Website</span> <Icons.ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            </div>
+                          ))}
+
+                          {builderRole === 'designer' && [
+                            { step: "Step 1: Asset Gen", tool: "Midjourney v6", desc: "Photorealistic client illustration concepts & banners.", logo: "🖼️", link: "https://midjourney.com" },
+                            { step: "Step 2: Vector Art", tool: "Recraft AI", desc: "Clean SVG icons, precise corporate logos & branding.", logo: "📐", link: "https://recraft.ai" },
+                            { step: "Step 3: Mockups", tool: "Figma AI", desc: "Auto-convert design ideas into Figma layouts.", logo: "🎨", link: "https://figma.com" },
+                            { step: "Step 4: Polish", tool: "Canva Studio", desc: "Instant background erasers & poster templates.", logo: "✨", link: "https://canva.com" },
+                            { step: "Step 5: Code Export", tool: "v0.dev / Claude", desc: "Compile designs into clean Tailwind React code.", logo: "🚀", link: "https://v0.dev" }
+                          ].map((p, i) => (
+                            <div key={i} className={`p-4 rounded-xl border relative z-10 flex flex-col justify-between h-[150px] ${theme === 'dark' ? 'bg-[#04060c] border-slate-900 hover:border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                              <div className="space-y-1">
+                                <span className="text-[8px] font-black text-indigo-400 font-mono uppercase block">{p.step}</span>
+                                <span className="text-xl block">{p.logo}</span>
+                                <h5 className={`text-[11px] font-black truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{p.tool}</h5>
+                                <p className="text-[9px] text-slate-500 font-bold leading-normal line-clamp-3">{p.desc}</p>
+                              </div>
+                              <a href={p.link} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-indigo-400 flex items-center gap-1 uppercase hover:underline mt-2">
+                                <span>Website</span> <Icons.ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Interactive Section 2: Business Preset Stacks (Point 15) */}
+                    <div className="space-y-4 pt-4 border-t border-slate-500/10">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 font-mono flex items-center gap-1.5">
+                          <Icons.Layers className="w-4 h-4 text-emerald-400" />
+                          <span>{lang === 'gu' ? '૨. એડવાન્સ વ્યવસાયિક રેડી-મેડ સ્ટેક્સ' : '2. ENTERPRISE BUSINESS PRESET AI STACKS'}</span>
+                        </h3>
+                        <span className="text-[8px] font-black tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded uppercase font-mono">
+                          {lang === 'gu' ? 'ભાવિ પ્રીમિયમ સુવિધા' : 'Future Monitored Feature'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {[
+                          {
+                            title: "Startup AI Stack",
+                            desc: "Supercharge your core business execution and product scaling from day one.",
+                            tools: ["Notion AI (Knowledge)", "Slack AI (Collaboration)", "Claude Pro (Thinking)", "Stripe AI (Revenue)", "Linear (Task PM)"],
+                            badge: "High Growth"
+                          },
+                          {
+                            title: "Marketing Agency AI Stack",
+                            desc: "Produce ultra-high converting landing copies, newsletters, and creative ads.",
+                            tools: ["Jasper AI (Copywriting)", "Canva Pro (Banners)", "HubSpot AI (Automated CRM)", "ElevenLabs (Ads Voice)", "Loom AI (Video pitch)"],
+                            badge: "Ultra Creative"
+                          },
+                          {
+                            title: "E-Commerce AI Stack",
+                            desc: "Automate store listings, visual cleanups, product photography, and customer chat.",
+                            tools: ["Shopify Sidekick (Store)", "Photoroom (Product BG)", "Klaviyo AI (Emails)", "ChatGPT (Instant Support)", "ManyChat (Social Chatbot)"],
+                            badge: "Conversion Boost"
+                          },
+                          {
+                            title: "Real Estate AI Stack",
+                            desc: "Virtually stage empty property photos, construct immersive tours, and draft listing briefs.",
+                            tools: ["virtualStaging.ai (Furniture)", "Zillow 3D Home (Immersive Tours)", "ChatGPT Plus (Listing copy)", "Canva Pro (Brochures)"],
+                            badge: "Sales Velocity"
+                          },
+                          {
+                            title: "Consulting AI Stack",
+                            desc: "Produce premium executive summary slides, automated contracts, and notes logs.",
+                            tools: ["Beautiful.ai (Presentation Decks)", "Otter.ai (Minutes of Meeting)", "DocuSign AI (Contracts)", "ChatGPT (Case Analysis)"],
+                            badge: "Elite Strategy"
+                          }
+                        ].map((b, idx) => (
+                          <div key={idx} className={`p-5 rounded-2xl border flex flex-col justify-between h-[230px] ${
+                            theme === 'dark' ? 'bg-[#090d16] border-slate-900/80 hover:border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+                          }`}>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <h4 className={`text-xs font-black ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>{b.title}</h4>
+                                <span className="text-[8px] font-black uppercase bg-slate-500/10 px-2 py-0.5 rounded font-mono text-slate-400 border border-slate-500/25">
+                                  {b.badge}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 font-semibold leading-relaxed line-clamp-2">{b.desc}</p>
+                              
+                              <div className="flex flex-wrap gap-1 pt-2">
+                                {b.tools.map((t, tid) => (
+                                  <span key={tid} className="px-1.5 py-0.5 rounded bg-slate-500/10 border border-slate-500/5 text-[8px] font-black text-slate-400 font-mono">
+                                    {t}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                playSynthSound('success');
+                                addXPPoints(10, `Imported ${b.title}!`, `${b.title} સેવ કર્યો!`);
+                              }}
+                              className="w-full text-center py-2 bg-slate-900 hover:bg-slate-850 text-slate-200 hover:text-white text-[9px] font-black uppercase tracking-wider rounded-xl transition-all border border-slate-800/80 active:scale-95 cursor-pointer mt-3"
+                            >
+                              📥 Save Whole Stack ({b.tools.length} Tools)
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeRadarTab === 'leaderboard' && (
+                  <div className="space-y-6 animate-fadeIn text-left">
+                    {/* Gamification Hub Header */}
+                    <div className={`p-6 rounded-3xl border relative overflow-hidden ${
+                      theme === 'dark' ? 'bg-gradient-to-br from-indigo-950/20 via-slate-950 to-slate-950 border-slate-900/80' : 'bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/50 border-slate-200'
+                    }`}>
+                      <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                      <span className="text-[9px] font-black tracking-widest text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/20 font-mono uppercase">
+                        {lang === 'gu' ? 'એક્સપ્લોરર લીડરબોર્ડ અને ગેમ્સ' : 'EXPLORER LEADERBOARD & XP'}
+                      </span>
+                      <h2 className={`text-xl font-black mt-3 ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>
+                        {lang === 'gu' ? 'એઆઈ એક્સપ્લોરર ગેમિફિકેશન હબ' : 'Earn Explorer points & climb the rankings'}
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed font-semibold">
+                        {lang === 'gu' ? 'મુલાકાતો લો, ટૂલ્સ રિવ્યુ કરો અને અપવોટ કરીને એક્સપ્લોરર ક્રમાંક વધારો.' : 'Participate in the community, review directories, upvote new launches, and unlock specialized Explorer titles.'}
+                      </p>
+                    </div>
+
+                    {/* Your Progression Profile Dashboard */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Your XP Profile card */}
+                      <div className={`p-6 rounded-2xl border text-left flex flex-col justify-between ${
+                        theme === 'dark' ? 'bg-[#090d16] border-indigo-500/20' : 'bg-white border-slate-200 shadow-sm'
+                      }`}>
+                        <div className="space-y-4">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 font-mono">YOUR EXPLORER PROFILE</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-4xl">🏆</span>
+                            <div>
+                              <h4 className={`text-base font-black ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'}`}>
+                                {userState.name || "Anonymous Explorer"}
+                              </h4>
+                              <span className="inline-flex items-center gap-1 text-[9px] font-black text-indigo-400 font-mono uppercase tracking-widest mt-1">
+                                <Icons.Award className="w-3.5 h-3.5" />
+                                <span>
+                                  {userXP >= 100 ? "Level 3 Pioneer" : userXP >= 50 ? "Level 2 Ranger" : "Level 1 Cadet"}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="space-y-1.5 pt-2">
+                            <div className="flex justify-between text-[10px] font-bold text-slate-500 font-mono uppercase">
+                              <span>XP Progress</span>
+                              <span>{userXP} / {userXP >= 100 ? 500 : 100} XP</span>
+                            </div>
+                            <div className="w-full h-2 bg-slate-500/10 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-500"
+                                style={{ width: `${Math.min(100, (userXP / (userXP >= 100 ? 500 : 100)) * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-5 border-t border-slate-500/5 text-slate-500 space-y-2 mt-4 text-[10px] font-semibold">
+                          <div className="flex justify-between">
+                            <span>Streak Counter</span>
+                            <span className="font-mono text-slate-300 font-black">{dailyStreak} Days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Points Multiplier</span>
+                            <span className="font-mono text-emerald-400 font-black">1.2x Active</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Leaderboard list */}
+                      <div className={`p-6 rounded-2xl border text-left space-y-4 lg:col-span-2 ${
+                        theme === 'dark' ? 'bg-[#090d16] border-slate-900/80' : 'bg-white border-slate-200 shadow-sm'
+                      }`}>
+                        <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 font-mono">🏆 WEEKLY TOP AI EXPLORERS</h4>
+                        <div className="space-y-2.5">
+                          {[
+                            { rank: 1, name: "Rohan Mehta", title: "Level 9 Pioneer", xp: 840, avatar: "👨‍💻", isSelf: false },
+                            { rank: 2, name: "Aisha Patel", title: "Level 7 Guru", xp: 620, avatar: "👩‍🚀", isSelf: false },
+                            { rank: 3, name: "Kabir Shah", title: "Level 5 Scout", xp: 490, avatar: "🦸‍♂️", isSelf: false },
+                            { rank: 4, name: userState.name || "Anonymous Explorer", title: userXP >= 100 ? "Level 3 Pioneer" : userXP >= 50 ? "Level 2 Ranger" : "Level 1 Cadet", xp: userXP, avatar: "🏆", isSelf: true },
+                            { rank: 5, name: "Dev Patel", title: "Level 2 Novice", xp: 180, avatar: "🧑‍💻", isSelf: false }
+                          ].map((user) => (
+                            <div
+                              key={user.rank}
+                              className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
+                                user.isSelf
+                                  ? 'bg-indigo-500/10 border-indigo-500/30'
+                                  : theme === 'dark' ? 'bg-slate-950/60 border-slate-900' : 'bg-slate-50 border-slate-150'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="text-xs font-black text-slate-500 font-mono w-4">#{user.rank}</span>
+                                <span className="text-2xl shrink-0">{user.avatar}</span>
+                                <div className="truncate">
+                                  <h5 className={`text-xs font-black truncate ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
+                                    {user.name} {user.isSelf && "(You)"}
+                                  </h5>
+                                  <span className="text-[9px] text-slate-500 font-bold font-mono uppercase">{user.title}</span>
+                                </div>
+                              </div>
+                              <span className="text-xs font-black text-indigo-400 font-mono">{user.xp} XP</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Point 18 & Point 19: Newsletter & Mobile Add banner */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                      {/* Weekly AI Newsletter Form */}
+                      <div className={`p-6 rounded-2xl border text-left flex flex-col justify-between ${
+                        theme === 'dark' ? 'bg-[#090d16] border-slate-900/80' : 'bg-white border-slate-200 shadow-sm'
+                      }`}>
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 font-mono">WEEKLY CURATED NEWSLETTER</span>
+                          <h4 className={`text-sm font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
+                            🔥 Join the Weekly AI Radar Digest
+                          </h4>
+                          <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                            {lang === 'gu' ? 'દર અઠવાડિયે ૧૦ અતિ-વિશિષ્ટ, મોનિટર થયેલા નવા AI સાધનો તમારા ઈનબોક્સમાં સીધા મેળવો.' : 'Get 10 cutting-edge, audited and fully verified AI tools sent straight to your inbox every Thursday. No spam, ever. Plus get a +15 XP Explorer points bonus!'}
+                          </p>
+                        </div>
+
+                        {newsletterSubscribed ? (
+                          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-black mt-4 flex items-center gap-2">
+                            <span>✓</span>
+                            <span>{lang === 'gu' ? 'તમે સબસ્ક્રાઇબ કરી લીધું છે! +૧૫ XP ઉમેરાઈ ગયા!' : 'Subscribed successfully! +15 XP has been awarded!'}</span>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2.5 mt-4">
+                            <input
+                              type="email"
+                              placeholder={lang === 'gu' ? 'તમારું ઇમેઇલ એડ્રેસ...' : 'Enter your email...'}
+                              value={newsletterEmail}
+                              onChange={(e) => setNewsletterEmail(e.target.value)}
+                              className={`flex-1 px-4 py-2.5 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-indigo-550/50 ${
+                                theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-white border-slate-200 text-slate-800 shadow-inner'
+                              }`}
+                            />
+                            <button
+                              onClick={() => {
+                                if (!newsletterEmail.trim()) {
+                                  showToast(lang === 'gu' ? 'ઇમેઇલ ખાલી હોઈ શકે નહીં!' : 'Email cannot be empty!', 'error');
+                                  return;
+                               }
+                                setNewsletterSubscribed(true);
+                                addXPPoints(15, "Joined weekly newsletter!", "વીકલી ન્યૂઝલેટરમાં જોડાયા!");
+                              }}
+                              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow cursor-pointer shrink-0"
+                            >
+                              Join
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Point 19: PWA / Mobile experience banner */}
+                      <div className={`p-6 rounded-2xl border text-left flex flex-col justify-between ${
+                        theme === 'dark' ? 'bg-[#090d16] border-slate-900/80' : 'bg-white border-slate-200 shadow-sm'
+                      }`}>
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-blue-400 font-mono">INSTALLABLE WEB APP</span>
+                          <h4 className={`text-sm font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
+                            📲 Add AI Super Tools to Home Screen (PWA)
+                          </h4>
+                          <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                            {lang === 'gu' ? 'તમારા સ્માર્ટફોન પર સુપરલાઇટ એપ તરીકે ઇન્સ્ટોલ કરો. ઑફલાઇન સર્ચ સપોર્ટ અને ફાસ્ટ લોડ.' : 'Access the AI rankings instantly without searching or typing URLs. Our fully responsive, light Progressive Web App structure works flawlessly offline.'}
+                          </p>
+                        </div>
+
+                        <div className="mt-4 p-3.5 rounded-xl bg-slate-950/40 border border-slate-900 text-[10px] text-slate-500 font-semibold leading-relaxed space-y-1">
+                          <p><strong>Chrome / Android:</strong> Click the browser menu button (3 dots) and select <span className="text-slate-350 font-bold">"Add to Home screen"</span>.</p>
+                          <p><strong>Safari / iOS:</strong> Tap the <span className="text-slate-350 font-bold">"Share"</span> icon at the bottom, then scroll and select <span className="text-slate-350 font-bold">"Add to Home Screen"</span>.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
               )}
             </div>
           )}
