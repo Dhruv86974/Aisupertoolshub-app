@@ -18,6 +18,7 @@ import EmailNewsletterCampaign from './components/EmailNewsletterCampaign';
 import AffiliateAndPartnerHub from './components/AffiliateAndPartnerHub';
 import AISuperToolsIndex from './components/AISuperToolsIndex';
 import XPRewardStore from './components/XPRewardStore';
+import AIDeveloperSandbox from './components/AIDeveloperSandbox';
 import { doc, setDoc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, executeResilientDbOp, auth } from './firebase';
 import { signOut } from 'firebase/auth';
@@ -5977,10 +5978,25 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+                    <AISuperToolsIndex
+                      lang={lang}
+                      theme={theme}
+                      playSynthSound={playSynthSound as any}
+                      addXPPoints={addXPPoints}
+                    />
                   </div>
                 )}
 
                 {activeRadarTab === 'builder' && (
+                  <BusinessAIStackPanel
+                    lang={lang}
+                    theme={theme}
+                    playSynthSound={playSynthSound as any}
+                    addXPPoints={addXPPoints}
+                  />
+                )}
+
+                {activeRadarTab === 'builder_old' && (
                   <div className="space-y-6 animate-fadeIn text-left">
                     {/* Stack Header */}
                     <div className={`p-6 rounded-3xl border relative overflow-hidden ${
@@ -6665,6 +6681,12 @@ export default function App() {
 
                 {activeRadarTab === 'dev-directory' && (
                   <div className="space-y-6 animate-fadeIn text-left">
+                    <AIDeveloperSandbox
+                      lang={lang}
+                      theme={theme}
+                      playSynthSound={playSynthSound as any}
+                      addXPPoints={addXPPoints}
+                    />
                     {/* Developer Directory Header */}
                     <div className={`p-6 rounded-3xl border relative overflow-hidden ${
                       theme === 'dark' ? 'bg-gradient-to-br from-indigo-950/20 via-slate-950 to-slate-950 border-slate-900/80' : 'bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/50 border-slate-200'
@@ -7173,6 +7195,15 @@ export default function App() {
                 )}
 
                 {activeRadarTab === 'scam-detector' && (
+                  <ScamFakeAIDetector
+                    lang={lang}
+                    theme={theme}
+                    playSynthSound={playSynthSound as any}
+                    addXPPoints={addXPPoints}
+                  />
+                )}
+
+                {activeRadarTab === 'scam-detector_old' && (
                   <div className="space-y-6 animate-fadeIn text-left">
                     {/* Scam Detector Header */}
                     <div className={`p-6 rounded-3xl border relative overflow-hidden ${
@@ -7436,6 +7467,35 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                )}
+
+                {activeRadarTab === 'newsletter' && (
+                  <EmailNewsletterCampaign
+                    lang={lang}
+                    theme={theme}
+                    playSynthSound={playSynthSound as any}
+                    addXPPoints={addXPPoints}
+                  />
+                )}
+
+                {activeRadarTab === 'affiliate-hub' && (
+                  <AffiliateAndPartnerHub
+                    lang={lang}
+                    theme={theme}
+                    playSynthSound={playSynthSound as any}
+                    addXPPoints={addXPPoints}
+                  />
+                )}
+
+                {activeRadarTab === 'rewards' && (
+                  <XPRewardStore
+                    lang={lang}
+                    theme={theme}
+                    userXP={userXP}
+                    setUserXP={setUserXP}
+                    playSynthSound={playSynthSound as any}
+                    showToast={showToast}
+                  />
                 )}
               </div>
               )}
