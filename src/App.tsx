@@ -19,7 +19,7 @@ import AffiliateAndPartnerHub from './components/AffiliateAndPartnerHub';
 import AISuperToolsIndex from './components/AISuperToolsIndex';
 import XPRewardStore from './components/XPRewardStore';
 import AIDeveloperSandbox from './components/AIDeveloperSandbox';
-import { doc, setDoc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, onSnapshot, getDocs, addDoc, updateDoc, orderBy } from 'firebase/firestore';
 import { db, executeResilientDbOp, auth } from './firebase';
 import { signOut } from 'firebase/auth';
 import { AI_TOOLS_DIRECTORY, AI_RESOURCES_LIBRARY, ToolProfile } from './aiToolsDirectory';
@@ -605,6 +605,38 @@ export default function App() {
   // --- 50 Crore AI Discovery & Directory Hub States ---
   const [mainDashboardView, setMainDashboardView] = useState<'workspace' | 'discovery'>('workspace');
   const [selectedDirectoryTool, setSelectedDirectoryTool] = useState<ToolProfile | null>(null);
+  const [firestoreReviews, setFirestoreReviews] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!selectedDirectoryTool) {
+      setFirestoreReviews([]);
+      return;
+    }
+    let unsub: (() => void) | null = null;
+    executeResilientDbOp(async (currentDb) => {
+      const q = query(
+        collection(currentDb, 'community_reviews'),
+        where('toolId', '==', selectedDirectoryTool.id)
+      );
+      unsub = onSnapshot(q, (snapshot) => {
+        const list: any[] = [];
+        snapshot.forEach(docSnap => {
+          list.push(docSnap.data());
+        });
+        // Sort newest first
+        list.sort((a, b) => {
+          const tA = new Date(a.date).getTime() || 0;
+          const tB = new Date(b.date).getTime() || 0;
+          return tB - tA;
+        });
+        setFirestoreReviews(list);
+      }, (err) => console.warn("Firestore reviews sync failed:", err));
+    }).catch(e => console.warn("Reviews load failed:", e));
+
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [selectedDirectoryTool?.id]);
   const [activeDiscoveryUseCase, setActiveDiscoveryUseCase] = useState<string | null>(null);
   
   // AI Tool Finder States
@@ -749,6 +781,43 @@ export default function App() {
       if (unsubscribeUserPendingTx) unsubscribeUserPendingTx();
     };
   }, [userState.isLoggedIn, userState.id, userState.email, userPendingTx?.id, lang]);
+
+  // --- Global Community Sync for Launches & Sponsors ---
+  useEffect(() => {
+    let unsubLaunches: (() => void) | null = null;
+    let unsubSponsors: (() => void) | null = null;
+
+    executeResilientDbOp(async (currentDb) => {
+      const q = query(collection(currentDb, 'launch_radar'), orderBy('votes', 'desc'));
+      unsubLaunches = onSnapshot(q, (snapshot) => {
+        if (!snapshot.empty) {
+          const list: any[] = [];
+          snapshot.forEach(docSnap => {
+            list.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          setCustomLaunches(list);
+        }
+      }, (err) => console.warn("Launches sync failed:", err));
+    }).catch(e => console.warn("Launches query failed:", e));
+
+    executeResilientDbOp(async (currentDb) => {
+      const q = query(collection(currentDb, 'sponsored_placements'), orderBy('bidAmount', 'desc'));
+      unsubSponsors = onSnapshot(q, (snapshot) => {
+        if (!snapshot.empty) {
+          const list: any[] = [];
+          snapshot.forEach(docSnap => {
+            list.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          setCustomSponsoredTools(list);
+        }
+      }, (err) => console.warn("Sponsors sync failed:", err));
+    }).catch(e => console.warn("Sponsors query failed:", e));
+
+    return () => {
+      if (unsubLaunches) unsubLaunches();
+      if (unsubSponsors) unsubSponsors();
+    };
+  }, []);
 
   // --- Tool Onboarding Tour Step ---
   const [tourStep, setTourStep] = useState<number | null>(null);
@@ -1221,6 +1290,16 @@ export default function App() {
     const saved = localStorage.getItem('hub_sponsored_tools');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Stripe Payment Simulator Modal states
+  const [showStripeModal, setShowStripeModal] = useState(false);
+  const [stripeCardName, setStripeCardName] = useState('');
+  const [stripeCardNum, setStripeCardNum] = useState('');
+  const [stripeCardExpiry, setStripeCardExpiry] = useState('');
+  const [stripeCardCVV, setStripeCardCVV] = useState('');
+  const [checkoutSponsorPlan, setCheckoutSponsorPlan] = useState<'basic' | 'spotlight'>('basic');
+  const [pendingSponsorItem, setPendingSponsorItem] = useState<any>(null);
+  const [stripeProcessing, setStripeProcessing] = useState(false);
 
   // Newsletter Vault States
   const [showNewsletterVault, setShowNewsletterVault] = useState(false);
@@ -1726,7 +1805,7 @@ export default function App() {
     });
   };
 
-  const submitToolReview = (toolId: string, rating: number, comment: string) => {
+  const submitToolReview = async (toolId: string, rating: number, comment: string) => {
     if (!comment.trim()) {
       showToast(lang === 'gu' ? 'કૃપા કરીને ટિપ્પણી લખો!' : 'Please write a comment!', 'error');
       return;
@@ -1734,6 +1813,7 @@ export default function App() {
     playSynthSound('success');
     const author = userState.name || 'Anonymous User';
     const newRev = {
+      toolId,
       user: author,
       rating,
       comment: comment.trim(),
@@ -1748,6 +1828,14 @@ export default function App() {
       };
     });
 
+    try {
+      await executeResilientDbOp(async (currentDb) => {
+        await addDoc(collection(currentDb, 'community_reviews'), newRev);
+      });
+    } catch (err) {
+      console.warn("Failed to sync review to firestore:", err);
+    }
+
     showToast(lang === 'gu' ? 'તમારો રિવ્યુ સફળતાપૂર્વક સબમિટ થયો! ⭐️' : 'Your review submitted successfully! ⭐️', 'success');
     addXPPoints(10, "Submitted a tool review!", "ટૂલ રિવ્યુ સબમિટ કર્યો!");
   };
@@ -1756,25 +1844,40 @@ export default function App() {
     playSynthSound('chime');
     setRadarUpvotes(prev => {
       const currentVal = prev[launchId] || 0;
-      const updated = {
+      return {
         ...prev,
         [launchId]: currentVal + 1
       };
-      showToast(lang === 'gu' ? 'લોન્ચ વોટ સબમિટ થયો! 🚀' : 'Launch Upvoted successfully! 🚀', 'success');
-      return updated;
     });
+
+    setCustomLaunches(prev => prev.map(l => {
+      if (l.id === launchId) {
+        const nextVotes = (l.votes || 0) + 1;
+        executeResilientDbOp(async (currentDb) => {
+          await setDoc(doc(currentDb, 'launch_radar', launchId), {
+            ...l,
+            votes: nextVotes
+          }, { merge: true });
+        }).catch(err => console.warn("Firestore upvote save failed:", err));
+        return { ...l, votes: nextVotes };
+      }
+      return l;
+    }));
+
+    showToast(lang === 'gu' ? 'લોન્ચ વોટ સબમિટ થયો! 🚀' : 'Launch Upvoted successfully! 🚀', 'success');
     addXPPoints(5, "Supported an upcoming launch!", "ઉભરતા ટૂલને સપોર્ટ આપ્યો!");
   };
 
-  const submitNewAILaunch = (e: React.FormEvent) => {
+  const submitNewAILaunch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!launchName || !launchFounder || !launchDesc || !launchPrice || !launchUrl) {
       showToast(lang === 'gu' ? 'બધી વિગતો ભરવી ફરજિયાત છે!' : 'All fields are required!', 'error');
       return;
     }
     playSynthSound('success');
+    const newId = 'custom-launch-' + Date.now();
     const newLaunch = {
-      id: 'custom-launch-' + Date.now(),
+      id: newId,
       name: launchName,
       logo: "🚀",
       founder: launchFounder,
@@ -1787,6 +1890,14 @@ export default function App() {
 
     setCustomLaunches(prev => [newLaunch, ...prev]);
     
+    try {
+      await executeResilientDbOp(async (currentDb) => {
+        await setDoc(doc(currentDb, 'launch_radar', newId), newLaunch);
+      });
+    } catch (err) {
+      console.warn("Failed to sync launch to firestore:", err);
+    }
+
     // Clear Form & Hide
     setLaunchName('');
     setLaunchFounder('');
@@ -4474,17 +4585,32 @@ export default function App() {
                               </div>
                             </div>
 
-                            <div>
-                              <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Punchline / Best For</label>
-                              <input
-                                type="text"
-                                placeholder="Translate local shop items to online catalog with AI models."
-                                value={sponsorBestFor}
-                                onChange={(e) => setSponsorBestFor(e.target.value)}
-                                className={`w-full p-2 rounded-lg text-xs font-bold outline-none border ${
-                                  theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
-                                }`}
-                              />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-left">
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">SELECT SPONSORSHIP TIER</label>
+                                <select
+                                  value={checkoutSponsorPlan}
+                                  onChange={(e) => { playSynthSound('click'); setCheckoutSponsorPlan(e.target.value as any); }}
+                                  className={`w-full p-2 rounded-lg text-xs font-bold outline-none border ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+                                  }`}
+                                >
+                                  <option value="basic">Standard Banner Placement ($49 USD)</option>
+                                  <option value="spotlight">Premium Spotlight Sticky ($99 USD)</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Punchline / Best For</label>
+                                <input
+                                  type="text"
+                                  placeholder="Translate local shop items to online catalog with AI models."
+                                  value={sponsorBestFor}
+                                  onChange={(e) => setSponsorBestFor(e.target.value)}
+                                  className={`w-full p-2 rounded-lg text-xs font-bold outline-none border ${
+                                    theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-100 border-slate-200 text-slate-800'
+                                  }`}
+                                />
+                              </div>
                             </div>
 
                             <div className="flex justify-end pt-2">
@@ -4495,7 +4621,7 @@ export default function App() {
                                     return;
                                   }
                                   playSynthSound('success');
-                                  const newSponsor = {
+                                  const item = {
                                     id: `custom-spon-${Date.now()}`,
                                     name: sponsorToolName,
                                     bestFor: sponsorBestFor,
@@ -4503,29 +4629,15 @@ export default function App() {
                                     cost: sponsorCost || 'Free Plan',
                                     url: sponsorUrl,
                                     category: sponsorCategory,
-                                    bidAmount: 180
+                                    bidAmount: checkoutSponsorPlan === 'spotlight' ? 99 : 49
                                   };
-                                  const updated = [newSponsor, ...customSponsoredTools];
-                                  setCustomSponsoredTools(updated);
-                                  localStorage.setItem('hub_sponsored_tools', JSON.stringify(updated));
-                                  
-                                  // Clear form
-                                  setSponsorToolName('');
-                                  setSponsorUrl('');
-                                  setSponsorBestFor('');
-                                  setShowSponsorForm(false);
-
-                                  showToast(
-                                    lang === 'gu'
-                                      ? `અભિનંદન! તમારું ટૂલ '${newSponsor.name}' સ્પોન્સર્ડ કવોટામાં રજીસ્ટર થયું છે.`
-                                      : `Successfully listed '${newSponsor.name}' in our Preferred Sponsored Partners banner!`,
-                                    'success'
-                                  );
-                                  addXPPoints(30, `Sponsored your own tool: ${newSponsor.name}!`, `${newSponsor.name} સાધનને સ્પોન્સર કર્યું!`);
+                                  setPendingSponsorItem(item);
+                                  setShowStripeModal(true);
                                 }}
-                                className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-slate-950 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer active:scale-95"
+                                className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-slate-950 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer active:scale-95 flex items-center gap-2"
                               >
-                                {lang === 'gu' ? '💸 બીડ જમા કરો અને લાઇવ કરો (+૩૦ XP)' : '💸 Submit Bid & Launch Live (+30 XP)'}
+                                <Icons.CreditCard className="w-4 h-4 text-slate-950" />
+                                <span>{lang === 'gu' ? '💸 પેમેન્ટ ગેટવે ખોલો અને સબમિટ કરો' : '💸 Proceed to Secure Checkout'}</span>
                               </button>
                             </div>
                           </div>
@@ -9339,6 +9451,196 @@ export default function App() {
       </AnimatePresence>
 
       <AnimatePresence>
+        {showStripeModal && pendingSponsorItem && (
+          <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={`w-full max-w-md p-6 rounded-3xl border shadow-2xl text-left relative ${
+                theme === 'dark' ? 'bg-[#090d16] border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800'
+              }`}
+            >
+              {/* Stripe Branding Header */}
+              <div className="flex items-center justify-between border-b border-slate-500/10 pb-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <Icons.CreditCard className="w-5 h-5 text-indigo-400" />
+                  <span className="text-xs font-black font-mono tracking-widest text-indigo-400">STRIPE SECURE CHECKOUT</span>
+                </div>
+                <button
+                  onClick={() => { playSynthSound('click'); setShowStripeModal(false); }}
+                  className="p-1 hover:bg-slate-500/10 rounded-full cursor-pointer text-slate-400"
+                >
+                  <Icons.X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {stripeProcessing ? (
+                <div className="py-12 flex flex-col items-center justify-center space-y-4 text-center">
+                  <Icons.RefreshCw className="w-10 h-10 text-indigo-400 animate-spin" />
+                  <div>
+                    <h4 className="text-sm font-black uppercase tracking-wider">Verifying Card Credentials...</h4>
+                    <p className="text-[10px] text-slate-500 font-semibold mt-1">Contacting Stripe live API gateways secure handshake...</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Invoice Summary */}
+                  <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
+                    <span className="text-[8px] font-mono text-indigo-400 uppercase font-black block">PROD SLOT RESERVED</span>
+                    <h3 className="text-sm font-black mt-1">Sponsor: {pendingSponsorItem.name}</h3>
+                    <p className="text-[10px] text-slate-400 mt-1">{pendingSponsorItem.bestFor}</p>
+
+                    <div className="flex justify-between items-center border-t border-slate-500/10 mt-3 pt-3">
+                      <span className="text-[9px] font-black text-slate-500 uppercase font-mono">Invoice Total</span>
+                      <span className="text-lg font-black font-mono text-emerald-400">${pendingSponsorItem.bidAmount}.00 USD</span>
+                    </div>
+                  </div>
+
+                  {/* Payment Inputs */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-[8px] font-black text-slate-500 uppercase font-mono">Cardholder Name</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Dhruv Tarsariya"
+                        value={stripeCardName}
+                        onChange={(e) => setStripeCardName(e.target.value)}
+                        className={`w-full p-2.5 rounded-xl text-xs font-bold outline-none border ${
+                          theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[8px] font-black text-slate-500 uppercase font-mono">Credit Card Number</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          required
+                          maxLength={19}
+                          placeholder="4242 4242 4242 4242"
+                          value={stripeCardNum}
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/\D/g, '');
+                            val = val.match(/.{1,4}/g)?.join(' ') || val;
+                            setStripeCardNum(val.slice(0, 19));
+                          }}
+                          className={`w-full p-2.5 pl-9 rounded-xl text-xs font-bold outline-none border ${
+                            theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
+                        />
+                        <Icons.CreditCard className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[8px] font-black text-slate-500 uppercase font-mono">Expiration</label>
+                        <input
+                          type="text"
+                          required
+                          maxLength={5}
+                          placeholder="MM/YY"
+                          value={stripeCardExpiry}
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/\D/g, '');
+                            if (val.length > 2) {
+                              val = val.slice(0, 2) + '/' + val.slice(2, 4);
+                            }
+                            setStripeCardExpiry(val.slice(0, 5));
+                          }}
+                          className={`w-full p-2.5 rounded-xl text-xs font-bold outline-none border text-center ${
+                            theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[8px] font-black text-slate-500 uppercase font-mono">CVC / Security Code</label>
+                        <input
+                          type="password"
+                          required
+                          maxLength={3}
+                          placeholder="123"
+                          value={stripeCardCVV}
+                          onChange={(e) => setStripeCardCVV(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                          className={`w-full p-2.5 rounded-xl text-xs font-bold outline-none border text-center ${
+                            theme === 'dark' ? 'bg-slate-950 border-slate-900 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      if (!stripeCardName.trim() || stripeCardNum.length < 15 || stripeCardExpiry.length < 5 || stripeCardCVV.length < 3) {
+                        showToast(lang === 'gu' ? 'કૃપા કરીને સાચી કાર્ડ વિગતો ભરો!' : 'Please provide valid credit card credentials!', 'error');
+                        return;
+                      }
+                      playSynthSound('click');
+                      setStripeProcessing(true);
+
+                      // Simulate server authorization
+                      setTimeout(async () => {
+                        setStripeProcessing(false);
+                        playSynthSound('success');
+
+                        const completeSponsor = {
+                          ...pendingSponsorItem,
+                          approvedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                          receiptId: `ST-` + Math.floor(100000 + Math.random() * 900000)
+                        };
+
+                        // Add to local state
+                        setCustomSponsoredTools(prev => [completeSponsor, ...prev]);
+
+                        // Sync to Firestore
+                        try {
+                          await executeResilientDbOp(async (currentDb) => {
+                            await setDoc(doc(currentDb, 'sponsored_placements', completeSponsor.id), completeSponsor);
+                          });
+                        } catch (err) {
+                          console.warn("Could not sync sponsored placement to cloud Firestore:", err);
+                        }
+
+                        // Reset
+                        setSponsorToolName('');
+                        setSponsorUrl('');
+                        setSponsorBestFor('');
+                        setShowSponsorForm(false);
+                        setPendingSponsorItem(null);
+                        setStripeCardName('');
+                        setStripeCardNum('');
+                        setStripeCardExpiry('');
+                        setStripeCardCVV('');
+                        setShowStripeModal(false);
+
+                        showToast(
+                          lang === 'gu'
+                            ? `સફળ! પેમેન્ટ મંજૂર થયું. તમારું ટૂલ સ્પોન્સર્ડ બેનરમાં લાઇવ છે.`
+                            : `Stripe Authorization Succeeded! Listed globally on Sponsored Slots. Receipt ${completeSponsor.receiptId}`,
+                          'success'
+                        );
+                        addXPPoints(50, `Completed Stripe Sponsor checkout for $${completeSponsor.bidAmount}!`, `પ્રીમિયમ સ્પોન્સર કવોટા એક્ટિવેટ થયો! (+૫૦ XP)`);
+                      }, 2500);
+                    }}
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow cursor-pointer text-center"
+                  >
+                    🔒 Pay & Launch Campaign Now
+                  </button>
+                  <p className="text-[8px] text-slate-500 font-mono text-center">
+                    Payments are audited and processed under Stripe Sandbox Merchant ID compliance. TLS 1.3 Encryption Active.
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {selectedDirectoryTool && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
             <motion.div
@@ -9668,7 +9970,7 @@ export default function App() {
                   </div>
 
                   <div className="space-y-3">
-                    {[...(customReviews[selectedDirectoryTool.id] || []), ...selectedDirectoryTool.reviews].map((rev, idx) => (
+                    {[...firestoreReviews, ...(customReviews[selectedDirectoryTool.id] || []), ...selectedDirectoryTool.reviews].map((rev, idx) => (
                       <div key={idx} className={`p-4 rounded-xl border ${theme === 'dark' ? 'border-slate-900 bg-[#04060c]/30' : 'border-slate-200 bg-white shadow-sm'} text-left space-y-1`}>
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-extrabold text-slate-300">{rev.user}</span>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { LanguageCode } from '../types';
+import { collection, getDocs, addDoc, updateDoc, doc, setDoc, query, orderBy } from 'firebase/firestore';
+import { db, executeResilientDbOp } from '../firebase';
 
 interface ToolItem {
   name: string;
@@ -17,6 +19,7 @@ interface StackPreset {
   tools: ToolItem[];
   badge: string;
   upvotes: number;
+  hoursSaved?: number;
 }
 
 interface BusinessAIStackPanelProps {
@@ -34,98 +37,205 @@ export default function BusinessAIStackPanel({
 }: BusinessAIStackPanelProps) {
   const isGu = lang === 'gu';
 
-  // State variables
-  const [activeStackId, setActiveStackId] = useState<string>('startup');
-  const [customStacks, setCustomStacks] = useState<StackPreset[]>(() => {
-    const saved = localStorage.getItem('hub_business_stacks');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { console.error(e); }
+  // Preset default stacks
+  const defaultPresets: StackPreset[] = [
+    {
+      id: "startup",
+      title: "Startup AI Stack",
+      desc: "Supercharge your core business execution and product scaling from day one.",
+      descGu: "પ્રારંભિક વ્યવસાયો અને ઉત્પાદન વેગ વધારવા માટેનું બુદ્ધિશાળી સોફ્ટવેર કલેક્શન.",
+      badge: "High Growth",
+      upvotes: 24,
+      tools: [
+        { name: "Notion AI", category: "Knowledge Base", cost: 10, logo: "📓" },
+        { name: "Slack AI", category: "Collaboration", cost: 15, logo: "💬" },
+        { name: "Claude Pro", category: "Thinking Engine", cost: 20, logo: "✍️" },
+        { name: "Stripe Billing AI", category: "Revenue", cost: 0, logo: "💳" },
+        { name: "Linear PM", category: "Task Track", cost: 12, logo: "⚙️" }
+      ]
+    },
+    {
+      id: "marketing",
+      title: "Marketing Agency AI Stack",
+      desc: "Produce ultra-high converting landing copies, newsletters, and creative ads.",
+      descGu: "ઉચ્ચ રૂપાંતરણ ધરાવતી જાહેરાતો અને સુંદર ન્યૂઝલેટર બનાવવા માટેનું સેટઅપ.",
+      badge: "Ultra Creative",
+      upvotes: 45,
+      tools: [
+        { name: "Jasper AI", category: "Copywriting", cost: 39, logo: "📝" },
+        { name: "Canva Pro", category: "Design Hub", cost: 13, logo: "🎨" },
+        { name: "HubSpot AI", category: "CRM Automation", cost: 50, logo: "🤝" },
+        { name: "ElevenLabs", category: "Voiceovers", cost: 5, logo: "🎙️" },
+        { name: "Loom AI", category: "Video Pitch", cost: 10, logo: "📹" }
+      ]
+    },
+    {
+      id: "ecommerce",
+      title: "E-Commerce AI Stack",
+      desc: "Automate store listings, visual cleanups, product photography, and customer chat.",
+      descGu: "પ્રોડક્ટ ફોટોગ્રાફી, લિસ્ટિંગ જનરેશન અને કસ્ટમર સપોર્ટ ઓટોમેશન.",
+      badge: "Conversion Boost",
+      upvotes: 38,
+      tools: [
+        { name: "Shopify Sidekick", category: "Store Admin", cost: 29, logo: "🛍️" },
+        { name: "Photoroom Premium", category: "Product BG", cost: 9, logo: "🖼️" },
+        { name: "Klaviyo AI", category: "Email Marketing", cost: 45, logo: "📧" },
+        { name: "ChatGPT Support", category: "Customer Chat", cost: 20, logo: "🤖" },
+        { name: "ManyChat", category: "Social Chatbot", cost: 15, logo: "💬" }
+      ]
+    },
+    {
+      id: "consulting",
+      title: "Elite Consulting AI Stack",
+      desc: "Produce premium executive summary slides, automated contracts, and notes logs.",
+      descGu: "સુંદર પ્રેઝન્ટેશન, ઓટોમેટિક કોન્ટ્રાક્ટ અને પ્રોફેશનલ મીટિંગ મિનિટ્સ.",
+      badge: "Elite Strategy",
+      upvotes: 19,
+      tools: [
+        { name: "Beautiful.ai", category: "Presentation", cost: 12, logo: "📊" },
+        { name: "Otter.ai Pro", category: "Meeting Transcriber", cost: 10, logo: "🎙️" },
+        { name: "DocuSign AI", category: "Legal Contracts", cost: 25, logo: "📝" },
+        { name: "ChatGPT Team", category: "Case Analysis", cost: 25, logo: "🧠" }
+      ]
     }
-    return [
-      {
-        id: "startup",
-        title: "Startup AI Stack",
-        desc: "Supercharge your core business execution and product scaling from day one.",
-        descGu: "પ્રારંભિક વ્યવસાયો અને ઉત્પાદન વેગ વધારવા માટેનું બુદ્ધિશાળી સોફ્ટવેર કલેક્શન.",
-        badge: "High Growth",
-        upvotes: 24,
-        tools: [
-          { name: "Notion AI", category: "Knowledge Base", cost: 10, logo: "📓" },
-          { name: "Slack AI", category: "Collaboration", cost: 15, logo: "💬" },
-          { name: "Claude Pro", category: "Thinking Engine", cost: 20, logo: "✍️" },
-          { name: "Stripe Billing AI", category: "Revenue", cost: 0, logo: "💳" },
-          { name: "Linear PM", category: "Task Track", cost: 12, logo: "⚙️" }
-        ]
-      },
-      {
-        id: "marketing",
-        title: "Marketing Agency AI Stack",
-        desc: "Produce ultra-high converting landing copies, newsletters, and creative ads.",
-        descGu: "ઉચ્ચ રૂપાંતરણ ધરાવતી જાહેરાતો અને સુંદર ન્યૂઝલેટર બનાવવા માટેનું સેટઅપ.",
-        badge: "Ultra Creative",
-        upvotes: 45,
-        tools: [
-          { name: "Jasper AI", category: "Copywriting", cost: 39, logo: "📝" },
-          { name: "Canva Pro", category: "Design Hub", cost: 13, logo: "🎨" },
-          { name: "HubSpot AI", category: "CRM Automation", cost: 50, logo: "🤝" },
-          { name: "ElevenLabs", category: "Voiceovers", cost: 5, logo: "🎙️" },
-          { name: "Loom AI", category: "Video Pitch", cost: 10, logo: "📹" }
-        ]
-      },
-      {
-        id: "ecommerce",
-        title: "E-Commerce AI Stack",
-        desc: "Automate store listings, visual cleanups, product photography, and customer chat.",
-        descGu: "પ્રોડક્ટ ફોટોગ્રાફી, લિસ્ટિંગ જનરેશન અને કસ્ટમર સપોર્ટ ઓટોમેશન.",
-        badge: "Conversion Boost",
-        upvotes: 38,
-        tools: [
-          { name: "Shopify Sidekick", category: "Store Admin", cost: 29, logo: "🛍️" },
-          { name: "Photoroom Premium", category: "Product BG", cost: 9, logo: "🖼️" },
-          { name: "Klaviyo AI", category: "Email Marketing", cost: 45, logo: "📧" },
-          { name: "ChatGPT Support", category: "Customer Chat", cost: 20, logo: "🤖" },
-          { name: "ManyChat", category: "Social Chatbot", cost: 15, logo: "💬" }
-        ]
-      },
-      {
-        id: "consulting",
-        title: "Elite Consulting AI Stack",
-        desc: "Produce premium executive summary slides, automated contracts, and notes logs.",
-        descGu: "સુંદર પ્રેઝન્ટેશન, ઓટોમેટિક કોન્ટ્રાક્ટ અને પ્રોફેશનલ મીટિંગ મિનિટ્સ.",
-        badge: "Elite Strategy",
-        upvotes: 19,
-        tools: [
-          { name: "Beautiful.ai", category: "Presentation", cost: 12, logo: "📊" },
-          { name: "Otter.ai Pro", category: "Meeting Transcriber", cost: 10, logo: "🎙️" },
-          { name: "DocuSign AI", category: "Legal Contracts", cost: 25, logo: "📝" },
-          { name: "ChatGPT Team", category: "Case Analysis", cost: 25, logo: "🧠" }
-        ]
-      }
-    ];
-  });
+  ];
 
-  // Editor states
+  // States
+  const [activeStackId, setActiveStackId] = useState<string>('startup');
+  const [customStacks, setCustomStacks] = useState<StackPreset[]>(defaultPresets);
   const [editingStack, setEditingStack] = useState<StackPreset | null>(null);
   const [newToolName, setNewToolName] = useState('');
   const [newToolCategory, setNewToolCategory] = useState('');
   const [newToolCost, setNewToolCost] = useState('10');
   const [newToolLogo, setNewToolLogo] = useState('🛠️');
 
-  // New custom stack builder fields
+  // Blank stack form
   const [creationTitle, setCreationTitle] = useState('');
   const [creationDesc, setCreationDesc] = useState('');
   const [creationBadge, setCreationBadge] = useState('Custom Stack');
 
+  // JSON Import/Export state
+  const [showImportArea, setShowImportArea] = useState(false);
+  const [importJsonText, setImportJsonText] = useState('');
+
+  // Fetch from Firestore
   useEffect(() => {
-    localStorage.setItem('hub_business_stacks', JSON.stringify(customStacks));
-  }, [customStacks]);
+    async function loadFirestoreStacks() {
+      try {
+        await executeResilientDbOp(async (currentDb) => {
+          const q = query(collection(currentDb, 'business_stacks'), orderBy('upvotes', 'desc'));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            const list: StackPreset[] = [];
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              list.push({
+                id: docSnap.id,
+                title: data.title || '',
+                desc: data.desc || '',
+                descGu: data.descGu || '',
+                tools: data.tools || [],
+                badge: data.badge || '',
+                upvotes: data.upvotes || 0,
+                hoursSaved: data.hoursSaved || 0,
+              });
+            });
+
+            // Combine defaults and loaded firestore ones (deduplicated by ID)
+            const combined = [...defaultPresets];
+            list.forEach(item => {
+              const idx = combined.findIndex(c => c.id === item.id);
+              if (idx > -1) {
+                combined[idx] = item;
+              } else {
+                combined.unshift(item);
+              }
+            });
+            setCustomStacks(combined);
+          }
+        });
+      } catch (err) {
+        console.warn("[Firestore] Loading business stacks failed, relying on localStorage fallback:", err);
+        const saved = localStorage.getItem('hub_business_stacks');
+        if (saved) {
+          try {
+            setCustomStacks(JSON.parse(saved));
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    }
+    loadFirestoreStacks();
+  }, []);
 
   const activeStack = customStacks.find(s => s.id === activeStackId) || customStacks[0];
 
-  const handleUpvote = (id: string, e: React.MouseEvent) => {
+  // Calculations
+  const totalMonthlyCost = activeStack?.tools ? activeStack.tools.reduce((sum, t) => sum + t.cost, 0) : 0;
+  
+  // High-value productivity parameters based on category types
+  const calculateAggregateStats = (preset: StackPreset) => {
+    const toolCount = preset?.tools ? preset.tools.length : 0;
+    const hrsSaved = preset?.tools ? preset.tools.reduce((sum, t) => {
+      const cat = t.category.toLowerCase();
+      if (cat.includes('thinking') || cat.includes('llm') || cat.includes('chat')) return sum + 12; // 12 hours saved/week
+      if (cat.includes('copywriting') || cat.includes('marketing')) return sum + 10;
+      if (cat.includes('design') || cat.includes('video') || cat.includes('audio')) return sum + 8;
+      if (cat.includes('collaboration') || cat.includes('meeting')) return sum + 6;
+      return sum + 5;
+    }, 0) : 0;
+
+    const multiplier = Math.min(5.0, 1.0 + (toolCount * 0.7));
+    const automationLevel = Math.min(100, Math.round((toolCount * 18)));
+
+    return {
+      hoursSaved: hrsSaved,
+      multiplier: multiplier.toFixed(1),
+      automationLevel
+    };
+  };
+
+  const { hoursSaved, multiplier, automationLevel } = calculateAggregateStats(activeStack);
+
+  // Firestore & local persistence save wrapper
+  const persistStack = async (updatedList: StackPreset[], itemToSave: StackPreset) => {
+    setCustomStacks(updatedList);
+    localStorage.setItem('hub_business_stacks', JSON.stringify(updatedList));
+
+    try {
+      await executeResilientDbOp(async (currentDb) => {
+        const docRef = doc(currentDb, 'business_stacks', itemToSave.id);
+        await setDoc(docRef, {
+          id: itemToSave.id,
+          title: itemToSave.title,
+          desc: itemToSave.desc,
+          descGu: itemToSave.descGu,
+          tools: itemToSave.tools,
+          badge: itemToSave.badge,
+          upvotes: itemToSave.upvotes,
+          hoursSaved: itemToSave.hoursSaved || 0,
+          updatedAt: new Date().toISOString()
+        });
+      });
+      console.log("[Firestore] Business Stack saved successfully:", itemToSave.title);
+    } catch (e) {
+      console.warn("[Firestore] Failed saving to Firestore, using local backup only:", e);
+    }
+  };
+
+  const handleUpvote = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     playSynthSound('success');
-    setCustomStacks(prev => prev.map(s => s.id === id ? { ...s, upvotes: s.upvotes + 1 } : s));
+    
+    const updated = customStacks.map(s => {
+      if (s.id === id) {
+        const item = { ...s, upvotes: s.upvotes + 1 };
+        persistStack(customStacks.map(x => x.id === id ? item : x), item);
+        return item;
+      }
+      return s;
+    });
     addXPPoints(5, `Upvoted stack!`, `સ્ટેકને અપવોટ કર્યો!`);
   };
 
@@ -137,7 +247,8 @@ export default function BusinessAIStackPanel({
   const saveEditedStack = () => {
     if (!editingStack) return;
     playSynthSound('achievement');
-    setCustomStacks(prev => prev.map(s => s.id === editingStack.id ? editingStack : s));
+    const updatedList = customStacks.map(s => s.id === editingStack.id ? editingStack : s);
+    persistStack(updatedList, editingStack);
     setEditingStack(null);
     addXPPoints(15, `Customized business stack saved!`, `કસ્ટમ વ્યાવસાયિક સ્ટેક સેવ કર્યો!`);
   };
@@ -185,7 +296,8 @@ export default function BusinessAIStackPanel({
         { name: "ChatGPT Pro", category: "Core AI", cost: 20, logo: "🤖" }
       ]
     };
-    setCustomStacks(prev => [newStack, ...prev]);
+    const updated = [newStack, ...customStacks];
+    persistStack(updated, newStack);
     setActiveStackId(newId);
     setCreationTitle('');
     setCreationDesc('');
@@ -197,16 +309,55 @@ export default function BusinessAIStackPanel({
     e.stopPropagation();
     playSynthSound('toggle');
     setCustomStacks(prev => prev.filter(s => s.id !== id));
+    localStorage.setItem('hub_business_stacks', JSON.stringify(customStacks.filter(s => s.id !== id)));
     if (activeStackId === id) {
       setActiveStackId('startup');
     }
   };
 
-  // Stack calculation metrics
-  const totalMonthlyCost = activeStack.tools.reduce((sum, t) => sum + t.cost, 0);
+  // JSON Import & Export handlers
+  const handleExportStack = () => {
+    playSynthSound('success');
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activeStack, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `${activeStack.title.toLowerCase().replace(/\s+/g, '_')}_stack.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    addXPPoints(10, "Exported custom AI stack schema!", "એઆઈ સ્ટેક સ્કીમા એક્સપોર્ટ કરી!");
+  };
+
+  const handleImportStack = () => {
+    try {
+      const parsed = JSON.parse(importJsonText);
+      if (!parsed.title || !Array.isArray(parsed.tools)) {
+        throw new Error("Invalid structure. Must have a 'title' and 'tools' array.");
+      }
+      playSynthSound('achievement');
+      const importedStack: StackPreset = {
+        id: 'custom-imported-' + Date.now(),
+        title: parsed.title,
+        desc: parsed.desc || 'Imported workflow configuration.',
+        descGu: parsed.descGu || parsed.desc || 'આયાત કરેલ સ્ટેક સેટઅપ.',
+        badge: parsed.badge || 'Imported',
+        tools: parsed.tools,
+        upvotes: parsed.upvotes || 1
+      };
+      const updated = [importedStack, ...customStacks];
+      persistStack(updated, importedStack);
+      setActiveStackId(importedStack.id);
+      setShowImportArea(false);
+      setImportJsonText('');
+      addXPPoints(15, "Imported external AI Stack structure successfully!", "એઆઈ સ્ટેક સફળતાપૂર્વક ઈમ્પોર્ટ કર્યો!");
+    } catch (err: any) {
+      playSynthSound('error');
+      alert(`Import failed: ${err?.message || "Invalid JSON syntax"}`);
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       {/* Intro banner */}
       <div className={`p-6 rounded-3xl border relative overflow-hidden text-left ${
         theme === 'dark' ? 'bg-gradient-to-br from-emerald-950/20 via-slate-950 to-slate-950 border-emerald-950/40' : 'bg-gradient-to-br from-emerald-50/50 via-white to-teal-50/50 border-slate-200 shadow-sm'
@@ -252,14 +403,14 @@ export default function BusinessAIStackPanel({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={(e) => handleUpvote(s.id, e)}
-                      className="text-[9px] font-bold font-mono px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all rounded-lg flex items-center gap-1"
+                      className="text-[9px] font-bold font-mono px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all rounded-lg flex items-center gap-1 cursor-pointer"
                     >
                       <span>🚀</span> <span>{s.upvotes}</span>
                     </button>
                     {s.id.startsWith('custom-') && (
                       <button
                         onClick={(e) => deleteStack(s.id, e)}
-                        className="p-1 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 border border-red-500/20 transition-all rounded-lg shrink-0"
+                        className="p-1 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 border border-red-500/20 transition-all rounded-lg shrink-0 cursor-pointer"
                       >
                         <Icons.Trash className="w-3.5 h-3.5" />
                       </button>
@@ -270,8 +421,8 @@ export default function BusinessAIStackPanel({
                   {isGu ? s.descGu : s.desc}
                 </p>
                 <div className="flex items-center justify-between text-[9px] font-black font-mono text-slate-500 pt-3 border-t border-slate-500/5 mt-2 uppercase">
-                  <span>Tools: {s.tools.length}</span>
-                  <span className="text-emerald-400">Est. Cost: ${s.tools.reduce((sum, t) => sum + t.cost, 0)}/mo</span>
+                  <span>Tools: {s.tools ? s.tools.length : 0}</span>
+                  <span className="text-emerald-400">Est. Cost: ${s.tools ? s.tools.reduce((sum, t) => sum + t.cost, 0) : 0}/mo</span>
                 </div>
               </div>
             ))}
@@ -315,6 +466,41 @@ export default function BusinessAIStackPanel({
               🚀 Initialize Stack
             </button>
           </form>
+
+          {/* Schema JSON Sync Panel */}
+          <div className={`p-4 rounded-2xl border text-left space-y-3 ${
+            theme === 'dark' ? 'bg-[#090d16]/40 border-slate-900' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-mono font-black text-slate-400">SCHEMA SYNC</span>
+              <button
+                onClick={() => { playSynthSound('click'); setShowImportArea(!showImportArea); }}
+                className="text-[9px] font-bold text-indigo-400 hover:underline cursor-pointer"
+              >
+                {showImportArea ? "Close" : "Import JSON"}
+              </button>
+            </div>
+            
+            {showImportArea && (
+              <div className="space-y-2.5">
+                <textarea
+                  rows={4}
+                  placeholder='Paste stack JSON schema here...'
+                  value={importJsonText}
+                  onChange={(e) => setImportJsonText(e.target.value)}
+                  className={`w-full p-2.5 text-xs font-mono rounded-xl outline-none border ${
+                    theme === 'dark' ? 'bg-slate-950 border-slate-800 text-emerald-400' : 'bg-white border-slate-200 text-slate-800 shadow-inner'
+                  }`}
+                />
+                <button
+                  onClick={handleImportStack}
+                  className="w-full py-1.5 bg-indigo-650 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all cursor-pointer"
+                >
+                  Confirm Import Block
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right: Selected Stack Deep Customizer & Stats */}
@@ -325,13 +511,13 @@ export default function BusinessAIStackPanel({
             <div className="flex justify-between items-start gap-4 border-b border-slate-500/5 pb-4">
               <div>
                 <span className="text-[9px] font-black uppercase text-emerald-400 font-mono tracking-wider">ACTIVE SYSTEM PREVIEW</span>
-                <h3 className={`text-base font-black ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'} mt-1`}>{activeStack.title}</h3>
+                <h3 className={`text-base font-black ${theme === 'dark' ? 'text-slate-100' : 'text-slate-800'} mt-1`}>{activeStack?.title}</h3>
                 <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mt-1">
-                  {isGu ? activeStack.descGu : activeStack.desc}
+                  {isGu ? activeStack?.descGu : activeStack?.desc}
                 </p>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <button
                   onClick={() => startEditing(activeStack)}
                   className="px-3.5 py-1.5 bg-slate-500/10 hover:bg-slate-500/20 text-[10px] font-black uppercase tracking-wider text-slate-400 rounded-xl transition-all border border-slate-500/10 flex items-center gap-1 cursor-pointer"
@@ -340,35 +526,33 @@ export default function BusinessAIStackPanel({
                   <span>Customize Stack</span>
                 </button>
                 <button
-                  onClick={() => {
-                    playSynthSound('achievement');
-                    addXPPoints(15, `Imported ${activeStack.title} to Toolbox!`, `${activeStack.title} ટૂલબોક્સમાં સેવ કર્યો!`);
-                  }}
-                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow cursor-pointer flex items-center gap-1"
+                  onClick={handleExportStack}
+                  className="px-3.5 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-[10px] font-black uppercase tracking-wider text-indigo-400 rounded-xl transition-all border border-indigo-500/10 flex items-center gap-1 cursor-pointer"
+                  title="Download JSON schema file"
                 >
-                  <Icons.FolderHeart className="w-3.5 h-3.5" />
-                  <span>Add To Toolbox</span>
+                  <Icons.Download className="w-3.5 h-3.5" />
+                  <span>Export JSON</span>
                 </button>
               </div>
             </div>
 
-            {/* Micro Specs Indicators */}
+            {/* B2B ROI & Productivity Indicator Widgets */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
               <div className="p-3 bg-slate-500/5 rounded-xl border border-slate-500/5 text-left">
-                <span className="block text-[8px] font-black uppercase text-slate-500 font-mono">INTEGRATED TOOLS</span>
-                <span className="block text-lg font-black font-mono text-emerald-400 mt-0.5">{activeStack.tools.length}</span>
+                <span className="block text-[8px] font-black uppercase text-slate-500 font-mono">TIME SAVED</span>
+                <span className="block text-base font-black font-mono text-emerald-400 mt-0.5">~{hoursSaved} hrs/week</span>
               </div>
               <div className="p-3 bg-slate-500/5 rounded-xl border border-slate-500/5 text-left">
-                <span className="block text-[8px] font-black uppercase text-slate-500 font-mono">EST. STACK BUDGET</span>
-                <span className="block text-lg font-black font-mono text-emerald-400 mt-0.5">${totalMonthlyCost}/mo</span>
+                <span className="block text-[8px] font-black uppercase text-slate-500 font-mono">PRODUCTIVITY BIAS</span>
+                <span className="block text-base font-black font-mono text-indigo-400 mt-0.5">{multiplier}x Output</span>
               </div>
               <div className="p-3 bg-slate-500/5 rounded-xl border border-slate-500/5 text-left">
-                <span className="block text-[8px] font-black uppercase text-slate-500 font-mono">YEARLY COMMITMENT</span>
-                <span className="block text-lg font-black font-mono text-emerald-400 mt-0.5">${totalMonthlyCost * 12}/yr</span>
+                <span className="block text-[8px] font-black uppercase text-slate-500 font-mono">AUTOMATION STRENGTH</span>
+                <span className="block text-base font-black font-mono text-amber-400 mt-0.5">{automationLevel}% Hands-Free</span>
               </div>
               <div className="p-3 bg-slate-500/5 rounded-xl border border-slate-500/5 text-left">
-                <span className="block text-[8px] font-black uppercase text-slate-500 font-mono">COMPUTE VELOCITY</span>
-                <span className="block text-lg font-black font-mono text-emerald-400 mt-0.5">High Performance</span>
+                <span className="block text-[8px] font-black uppercase text-slate-500 font-mono">EST. COST SUMMARY</span>
+                <span className="block text-base font-black font-mono text-emerald-400 mt-0.5">${totalMonthlyCost}/mo</span>
               </div>
             </div>
 
@@ -377,7 +561,7 @@ export default function BusinessAIStackPanel({
               <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 font-mono">AUTOMATED PIPELINE WORKFLOW</span>
               
               <div className="space-y-2">
-                {activeStack.tools.map((t, idx) => (
+                {activeStack?.tools && activeStack.tools.map((t, idx) => (
                   <div key={idx} className={`p-3 rounded-xl border flex items-center justify-between ${theme === 'dark' ? 'bg-[#04060c] border-slate-900' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex items-center gap-3">
                       <span className="text-xl p-1.5 bg-slate-500/5 rounded-xl">{t.logo}</span>
