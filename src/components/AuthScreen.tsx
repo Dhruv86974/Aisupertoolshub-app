@@ -274,6 +274,21 @@ export default function AuthScreen({ lang, theme, playSynthSound, showToast, onA
         return;
       }
       if (event.data && event.data.type === 'OAUTH_AUTH_SUCCESS' && event.data.user) {
+        const socialEmail = event.data.user.email;
+        if (socialEmail) {
+          // Synchronize OAuth login with Firebase Auth silently
+          signInWithEmailAndPassword(auth, socialEmail, 'social-authenticated-pass-123')
+            .catch(async (fbErr) => {
+              if (fbErr.code === 'auth/user-not-found' || fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password') {
+                await createUserWithEmailAndPassword(auth, socialEmail, 'social-authenticated-pass-123').catch(err2 => {
+                  console.warn("[Firebase] Social OAuth silent signup failed:", err2);
+                });
+              } else {
+                console.warn("[Firebase] Social OAuth silent signin failed:", fbErr);
+              }
+            });
+        }
+
         showToast(lang === 'gu' ? "સોશિયલ લોગિન સફળ રહ્યું!" : "Social Login Successful!", 'success');
         playSynthSound('success');
         setSocialModalType(null);
@@ -337,6 +352,21 @@ export default function AuthScreen({ lang, theme, playSynthSound, showToast, onA
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Social login failed');
+      }
+
+      // Synchronize social login with Firebase Auth silently
+      try {
+        await signInWithEmailAndPassword(auth, socialEmail, 'social-authenticated-pass-123').catch(async (fbErr) => {
+          if (fbErr.code === 'auth/user-not-found' || fbErr.code === 'auth/invalid-credential' || fbErr.code === 'auth/wrong-password') {
+            await createUserWithEmailAndPassword(auth, socialEmail, 'social-authenticated-pass-123').catch(err2 => {
+              console.warn("[Firebase] Social client signup sync failed:", err2);
+            });
+          } else {
+            console.warn("[Firebase] Social client signin sync failed:", fbErr);
+          }
+        });
+      } catch (fbErr) {
+        console.warn("[Firebase] Social auth synchronization failed:", fbErr);
       }
 
       showToast(lang === 'gu' ? "સોશિયલ લોગિન સફળ રહ્યું!" : "Social Login Successful!", 'success');

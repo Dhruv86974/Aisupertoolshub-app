@@ -80,8 +80,55 @@ export function switchToDefaultDatabase() {
   }
 }
 
+// Helper to wait for Firebase Auth to restore session on page mount
+function waitForAuthInit(): Promise<void> {
+  return new Promise((resolve) => {
+    if (auth.currentUser) {
+      resolve();
+      return;
+    }
+
+    // Check if we expect a logged-in session based on local storage
+    let hasSession = false;
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUser = localStorage.getItem('hub_user');
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser);
+          if (parsed && parsed.isLoggedIn) {
+            hasSession = true;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (!hasSession) {
+      resolve();
+      return;
+    }
+
+    let resolved = false;
+    const unsubscribe = auth.onAuthStateChanged(() => {
+      if (!resolved) {
+        resolved = true;
+        unsubscribe();
+        resolve();
+      }
+    });
+
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        unsubscribe();
+        resolve();
+      }
+    }, 1500);
+  });
+}
+
 // Wrapper for robust database queries
 export async function executeResilientDbOp<T>(op: (currentDb: Firestore) => Promise<T>): Promise<T> {
+  await waitForAuthInit();
   try {
     return await op(db);
   } catch (err: any) {

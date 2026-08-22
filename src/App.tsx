@@ -393,8 +393,18 @@ export default function App() {
     localStorage.setItem('hub_user', JSON.stringify(userState));
   }, [userState]);
 
+  const [isAuthInitialized, setIsAuthInitialized] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(() => {
+      setIsAuthInitialized(true);
+    });
+    return () => unsubscribe();
+  }, []);
+
   // --- Firebase Firestore Bi-directional Real-Time Synchronizer ---
   useEffect(() => {
+    if (!isAuthInitialized) return;
     if (!userState.isLoggedIn || !userState.id) return;
 
     executeResilientDbOp(async (currentDb) => {
@@ -430,9 +440,10 @@ export default function App() {
     }).catch(err => {
       console.warn("Firestore resilient sync failed:", err);
     });
-  }, [userState.isLoggedIn, userState.id]);
+  }, [isAuthInitialized, userState.isLoggedIn, userState.id]);
 
   useEffect(() => {
+    if (!isAuthInitialized) return;
     if (!userState.isLoggedIn || !userState.id) return;
     
     const timeoutId = setTimeout(() => {
@@ -456,6 +467,7 @@ export default function App() {
 
     return () => clearTimeout(timeoutId);
   }, [
+    isAuthInitialized,
     userState.credits, 
     userState.tier, 
     JSON.stringify(userState.favorites), 
@@ -609,6 +621,7 @@ export default function App() {
   const [firestoreReviews, setFirestoreReviews] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!isAuthInitialized) return;
     if (!selectedDirectoryTool) {
       setFirestoreReviews([]);
       return;
@@ -637,7 +650,7 @@ export default function App() {
     return () => {
       if (unsub) unsub();
     };
-  }, [selectedDirectoryTool?.id]);
+  }, [isAuthInitialized, selectedDirectoryTool?.id]);
   const [activeDiscoveryUseCase, setActiveDiscoveryUseCase] = useState<string | null>(null);
   
   // AI Tool Finder States
@@ -720,6 +733,7 @@ export default function App() {
 
   // --- Live Real-Time Firestore Synchronization for Transactions & Approvals ---
   useEffect(() => {
+    if (!isAuthInitialized) return;
     if (!userState.isLoggedIn || !userState.id) return;
 
     let unsubscribeTxList: (() => void) | null = null;
@@ -781,10 +795,12 @@ export default function App() {
       if (unsubscribeTxList) unsubscribeTxList();
       if (unsubscribeUserPendingTx) unsubscribeUserPendingTx();
     };
-  }, [userState.isLoggedIn, userState.id, userState.email, userPendingTx?.id, lang]);
+  }, [isAuthInitialized, userState.isLoggedIn, userState.id, userState.email, userPendingTx?.id, lang]);
 
   // --- Global Community Sync for Launches & Sponsors ---
   useEffect(() => {
+    if (!isAuthInitialized) return;
+
     let unsubLaunches: (() => void) | null = null;
     let unsubSponsors: (() => void) | null = null;
 
@@ -818,7 +834,7 @@ export default function App() {
       if (unsubLaunches) unsubLaunches();
       if (unsubSponsors) unsubSponsors();
     };
-  }, []);
+  }, [isAuthInitialized]);
 
   // --- Tool Onboarding Tour Step ---
   const [tourStep, setTourStep] = useState<number | null>(null);
