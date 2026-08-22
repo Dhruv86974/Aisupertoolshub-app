@@ -994,12 +994,6 @@ app.post('/api/tools/chat', async (req, res) => {
       return res.status(400).json({ error: 'Messages array is required' });
     }
 
-    // Convert client-side chat format to Gemini contents structure
-    const contents = messages.map((m: any) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
-    }));
-
     // Choose premium system instruction and model target
     let systemInstruction = 'You are an advanced conversational assistant inside the AI Super Tools Hub. Provide clear, visually formatted, engaging, and detailed responses in markdown layout.';
     let preferredModel = 'gemini-3.7-flash';
@@ -1023,6 +1017,135 @@ app.post('/api/tools/chat', async (req, res) => {
       preferredModel = 'gemini-3.7-flash';
       systemInstruction = 'You are Gemini 3.7 Flash, Google\'s latest real-time multimodal flagship model. Deliver fast, highly accurate, engaging, and balanced answers in elegant markdown format, using bolding, lists, and code blocks as appropriate.';
     }
+
+    // ================= REAL THIRD-PARTY API INTEGRATIONS =================
+    
+    // 1. REAL OPENAI GPT-4o INTEGRATION
+    if (model === 'gpt-4o' && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== '' && !process.env.OPENAI_API_KEY.includes('placeholder')) {
+      try {
+        console.log('[API] Routing call to real OpenAI GPT-4o API...');
+        const openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY.trim()}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              { role: 'system', content: systemInstruction },
+              ...messages.map((m: any) => ({
+                role: m.role === 'user' ? 'user' : 'assistant',
+                content: m.content
+              }))
+            ],
+            temperature: 0.7
+          })
+        });
+
+        if (!openAiRes.ok) {
+          const errData = await openAiRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Status ${openAiRes.status}`);
+        }
+
+        const openAiData = await openAiRes.json();
+        const text = openAiData.choices?.[0]?.message?.content || '';
+        return res.json({ output: text });
+      } catch (err: any) {
+        console.error('[API] OpenAI actual API failed, falling back to simulated:', err.message);
+        // Fall through to Gemini simulated fallback
+      }
+    }
+
+    // 2. REAL ANTHROPIC CLAUDE 3.5 SONNET INTEGRATION
+    if (model === 'claude-3.5-sonnet' && process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim() !== '' && !process.env.ANTHROPIC_API_KEY.includes('placeholder')) {
+      try {
+        console.log('[API] Routing call to real Anthropic Claude API...');
+        const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY.trim(),
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 4096,
+            system: systemInstruction,
+            messages: messages
+              .filter((m: any) => m.role === 'user' || m.role === 'assistant' || m.role === 'model')
+              .map((m: any) => ({
+                role: m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user',
+                content: m.content
+              })),
+            temperature: 0.7
+          })
+        });
+
+        if (!anthropicRes.ok) {
+          const errData = await anthropicRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Status ${anthropicRes.status}`);
+        }
+
+        const anthropicData = await anthropicRes.json();
+        const text = anthropicData.content?.[0]?.text || '';
+        return res.json({ output: text });
+      } catch (err: any) {
+        console.error('[API] Anthropic actual API failed, falling back to simulated:', err.message);
+        // Fall through to Gemini simulated fallback
+      }
+    }
+
+    // 3. REAL DEEPSEEK-R1 INTEGRATION
+    if (model === 'deepseek-r1' && process.env.DEEPSEEK_API_KEY && process.env.DEEPSEEK_API_KEY.trim() !== '' && !process.env.DEEPSEEK_API_KEY.includes('placeholder')) {
+      try {
+        console.log('[API] Routing call to real DeepSeek API...');
+        const deepseekRes = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY.trim()}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-reasoner',
+            messages: [
+              { role: 'system', content: 'You are DeepSeek-R1. Work through the reasoning process step-by-step and write a detailed response.' },
+              ...messages.map((m: any) => ({
+                role: m.role === 'user' ? 'user' : 'assistant',
+                content: m.content
+              }))
+            ]
+          })
+        });
+
+        if (!deepseekRes.ok) {
+          const errData = await deepseekRes.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Status ${deepseekRes.status}`);
+        }
+
+        const dsData = await deepseekRes.json();
+        const reasoning = dsData.choices?.[0]?.message?.reasoning_content || '';
+        const text = dsData.choices?.[0]?.message?.content || '';
+        
+        let output = '';
+        if (reasoning) {
+          output += `<think>\n${reasoning}\n</think>\n\n`;
+        }
+        output += text;
+        
+        return res.json({ output });
+      } catch (err: any) {
+        console.error('[API] DeepSeek actual API failed, falling back to simulated:', err.message);
+        // Fall through to Gemini simulated fallback
+      }
+    }
+
+    // ================= FALLBACK/DEFAULT GEMINI CALL =================
+    // Convert client-side chat format to Gemini contents structure
+    const contents = messages.map((m: any) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }],
+    }));
 
     const ai = getGemini();
     const response = await runGenerateWithFallback(ai, {
@@ -1048,11 +1171,6 @@ app.post('/api/tools/chat-stream', async (req, res) => {
       return res.status(400).json({ error: 'Messages array is required' });
     }
 
-    const contents = messages.map((m: any) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
-    }));
-
     // Choose premium system instruction and model target
     let systemInstruction = 'You are an advanced conversational assistant inside the AI Super Tools Hub. Provide clear, visually formatted, engaging, and detailed responses in markdown layout.';
     let preferredModel = 'gemini-3.7-flash';
@@ -1077,6 +1195,232 @@ app.post('/api/tools/chat-stream', async (req, res) => {
       systemInstruction = 'You are Gemini 3.7 Flash, Google\'s latest real-time multimodal flagship model. Deliver fast, highly accurate, engaging, and balanced answers in elegant markdown format, using bolding, lists, and code blocks as appropriate.';
     }
 
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // ================= STREAMING THIRD-PARTY INTEGRATIONS =================
+
+    // 1. STREAMING REAL GPT-4o
+    if (model === 'gpt-4o' && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim() !== '' && !process.env.OPENAI_API_KEY.includes('placeholder')) {
+      try {
+        console.log('[API] Streaming actual OpenAI GPT-4o response...');
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY.trim()}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              { role: 'system', content: systemInstruction },
+              ...messages.map((m: any) => ({
+                role: m.role === 'user' ? 'user' : 'assistant',
+                content: m.content
+              }))
+            ],
+            temperature: 0.7,
+            stream: true
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Status ${response.status}`);
+        }
+
+        const body = response.body as any;
+        if (!body) throw new Error('OpenAI stream body is empty');
+
+        let buffer = '';
+        const decoder = new TextDecoder('utf-8');
+
+        for await (const chunk of body) {
+          buffer += decoder.decode(chunk, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const cleanLine = line.trim();
+            if (!cleanLine) continue;
+
+            if (cleanLine.startsWith('data: ')) {
+              const dataStr = cleanLine.slice(6);
+              if (dataStr === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(dataStr);
+                const text = parsed.choices?.[0]?.delta?.content || '';
+                if (text) {
+                  res.write(`data: ${JSON.stringify({ text })}\n\n`);
+                }
+              } catch (e) {}
+            }
+          }
+        }
+        return res.end();
+      } catch (err: any) {
+        console.error('[API] OpenAI stream failed, falling back to Gemini:', err.message);
+        res.write(`data: ${JSON.stringify({ text: `*⚠️ [OpenAI Connection Failed, utilizing Gemini simulation fallback]: ${err.message}*\n\n` })}\n\n`);
+        // Fall through to normal streaming below
+      }
+    }
+
+    // 2. STREAMING REAL CLAUDE 3.5 SONNET
+    if (model === 'claude-3.5-sonnet' && process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim() !== '' && !process.env.ANTHROPIC_API_KEY.includes('placeholder')) {
+      try {
+        console.log('[API] Streaming actual Claude 3.5 Sonnet response...');
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY.trim(),
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 4096,
+            system: systemInstruction,
+            messages: messages
+              .filter((m: any) => m.role === 'user' || m.role === 'assistant' || m.role === 'model')
+              .map((m: any) => ({
+                role: m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user',
+                content: m.content
+              })),
+            temperature: 0.7,
+            stream: true
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Status ${response.status}`);
+        }
+
+        const body = response.body as any;
+        if (!body) throw new Error('Anthropic stream body is empty');
+
+        let buffer = '';
+        const decoder = new TextDecoder('utf-8');
+
+        for await (const chunk of body) {
+          buffer += decoder.decode(chunk, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const cleanLine = line.trim();
+            if (!cleanLine) continue;
+
+            if (cleanLine.startsWith('data: ')) {
+              const dataStr = cleanLine.slice(6);
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed.type === 'content_block_delta') {
+                  const text = parsed.delta?.text || '';
+                  if (text) {
+                    res.write(`data: ${JSON.stringify({ text })}\n\n`);
+                  }
+                }
+              } catch (e) {}
+            }
+          }
+        }
+        return res.end();
+      } catch (err: any) {
+        console.error('[API] Anthropic stream failed, falling back to Gemini:', err.message);
+        res.write(`data: ${JSON.stringify({ text: `*⚠️ [Claude Connection Failed, utilizing Gemini simulation fallback]: ${err.message}*\n\n` })}\n\n`);
+        // Fall through to normal streaming below
+      }
+    }
+
+    // 3. STREAMING REAL DEEPSEEK-R1
+    if (model === 'deepseek-r1' && process.env.DEEPSEEK_API_KEY && process.env.DEEPSEEK_API_KEY.trim() !== '' && !process.env.DEEPSEEK_API_KEY.includes('placeholder')) {
+      try {
+        console.log('[API] Streaming actual DeepSeek-R1 response with chain-of-thought...');
+        const response = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY.trim()}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-reasoner',
+            messages: [
+              { role: 'system', content: 'You are DeepSeek-R1. Reason thoroughly and provide highly actionable outcomes.' },
+              ...messages.map((m: any) => ({
+                role: m.role === 'user' ? 'user' : 'assistant',
+                content: m.content
+              }))
+            ],
+            stream: true
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `Status ${response.status}`);
+        }
+
+        const body = response.body as any;
+        if (!body) throw new Error('DeepSeek stream body is empty');
+
+        let buffer = '';
+        const decoder = new TextDecoder('utf-8');
+        let isThinking = false;
+
+        for await (const chunk of body) {
+          buffer += decoder.decode(chunk, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const cleanLine = line.trim();
+            if (!cleanLine) continue;
+
+            if (cleanLine.startsWith('data: ')) {
+              const dataStr = cleanLine.slice(6);
+              if (dataStr === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(dataStr);
+                const reasoning = parsed.choices?.[0]?.delta?.reasoning_content || '';
+                const content = parsed.choices?.[0]?.delta?.content || '';
+
+                if (reasoning) {
+                  if (!isThinking) {
+                    isThinking = true;
+                    res.write(`data: ${JSON.stringify({ text: '<think>\n' })}\n\n`);
+                  }
+                  res.write(`data: ${JSON.stringify({ text: reasoning })}\n\n`);
+                } else if (content) {
+                  if (isThinking) {
+                    isThinking = false;
+                    res.write(`data: ${JSON.stringify({ text: '\n</think>\n\n' })}\n\n`);
+                  }
+                  res.write(`data: ${JSON.stringify({ text: content })}\n\n`);
+                }
+              } catch (e) {}
+            }
+          }
+        }
+
+        if (isThinking) {
+          res.write(`data: ${JSON.stringify({ text: '\n</think>\n\n' })}\n\n`);
+        }
+        return res.end();
+      } catch (err: any) {
+        console.error('[API] DeepSeek stream failed, falling back to Gemini:', err.message);
+        res.write(`data: ${JSON.stringify({ text: `*⚠️ [DeepSeek Connection Failed, utilizing Gemini simulation fallback]: ${err.message}*\n\n` })}\n\n`);
+        // Fall through to normal streaming below
+      }
+    }
+
+    // ================= FALLBACK/DEFAULT GEMINI STREAM CALL =================
+    const contents = messages.map((m: any) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }],
+    }));
+
     const ai = getGemini();
     const responseStream = await runGenerateStreamWithFallback(ai, {
       contents: contents,
@@ -1085,10 +1429,6 @@ app.post('/api/tools/chat-stream', async (req, res) => {
         temperature: 0.7,
       },
     }, preferredModel);
-
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
 
     for await (const chunk of responseStream) {
       const text = chunk.text || '';
