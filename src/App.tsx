@@ -2212,6 +2212,7 @@ export default function App() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [selectedPlan, setSelectedPlan] = useState<'pro' | 'elite' | 'ultimate' | 'business' | 'agency' | 'custom'>('pro');
   const [planTypeTab, setPlanTypeTab] = useState<'preset' | 'custom'>('preset');
+  const [showAllShareOptions, setShowAllShareOptions] = useState(false);
   
   // Custom Plan Constructor Interactive State
   const [customUnlimited, setCustomUnlimited] = useState(true);
@@ -3206,8 +3207,8 @@ export default function App() {
 
             <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
               {lang === 'gu' 
-                ? 'આ વેબસાઇટને તમારા મિત્રો સાથે વોટ્સએપ અથવા ટ્વિટર પર શેર કરો અને તરત જ +૫૦ ક્રેડિટ્સ મેળવો! સાથે મળીને વાયરલ કરીએ.'
-                : 'Share this suite with friends or groups on WhatsApp or Twitter/X to unlock +50 Free Credits instantly!'}
+                ? 'આ વેબસાઇટને તમારા સોશિયલ મીડિયા પર શેર કરો અને તરત જ +૫૦ ક્રેડિટ્સ મેળવો! સાથે મળીને વાયરલ કરીએ.'
+                : 'Share this suite on your favorite social media to unlock +50 Free Credits instantly!'}
             </p>
 
             <div className="grid grid-cols-1 gap-2 pt-1">
@@ -3221,52 +3222,225 @@ export default function App() {
                   
                   window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
                   
-                  // Award Credits
-                  setUserState((prev: any) => ({
-                    ...prev,
-                    credits: prev.credits + 50
-                  }));
+                  setUserState((prev: any) => ({ ...prev, credits: prev.credits + 50 }));
                   showToast(lang === 'gu' ? '🎁 +૫૦ ફ્રી ક્રેડિટ્સ સફળતાપૂર્વક ઉમેરાઈ!' : '🎁 +50 Free Credits Added Successfully!', 'success');
                 }}
                 className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/30 text-emerald-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
               >
                 <div className="flex items-center gap-2">
                   <Icons.MessageSquare className="w-4 h-4 text-emerald-500" />
-                  <span>{lang === 'gu' ? 'WhatsApp પર શેર કરો' : 'Share on WhatsApp'}</span>
+                  <span>WhatsApp</span>
                 </div>
                 <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-emerald-500/30">
                   +50 CR
                 </span>
               </button>
 
-              {/* Twitter Share Button */}
+              {/* Telegram Share Button */}
               <button
                 onClick={() => {
                   playSynthSound('success');
                   const text = lang === 'gu'
-                    ? "એઆઈ સુપર ટૂલ્સ હબ (AI Super Tools Hub) ગુજરાતી અને ઇંગ્લિશ ભાષામાં ૨૫+ પ્રીમિયમ એઆઈ એપ્સનું પાવરફુલ હબ છે! @DeepSeek_HQ, Claude, GPT રિયલ કનેક્ટિવિટી સાથે!"
-                    : "AI Super Tools Hub: Elite multilingual developer sandbox and 25+ premium AI automation engines on a single elegant dashboard. Real DeepSeek-R1 & Claude integrations are fully live!";
+                    ? "નમસ્તે! AI Super Tools Hub પર ૨૫+થી વધુ પ્રીમિયમ AI ટૂલ્સ (જેમ કે DeepSeek-R1, GPT-4o, Claude 3.5) ઉપલબ્ધ છે!"
+                    : "Hey! Try AI Super Tools Hub - it has over 25+ premium AI engines (DeepSeek-R1, GPT-4o, Claude 3.5) in English & Gujarati.";
                   const url = "https://www.aisupertoolshub.com";
                   
-                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                  window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
                   
-                  // Award Credits
-                  setUserState((prev: any) => ({
-                    ...prev,
-                    credits: prev.credits + 50
-                  }));
-                  showToast(lang === 'gu' ? '🎁 +૫૦ ફ્રી ક્રેડિટ્સ ઉમેરાઈ!' : '🎁 +50 Free Credits Added!', 'success');
+                  setUserState((prev: any) => ({ ...prev, credits: prev.credits + 50 }));
+                  showToast(lang === 'gu' ? '🎁 +૫૦ ફ્રી ક્રેડિટ્સ સફળતાપૂર્વક ઉમેરાઈ!' : '🎁 +50 Free Credits Added Successfully!', 'success');
                 }}
-                className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-sky-500/10 hover:bg-sky-500/15 border border-sky-500/20 hover:border-sky-500/30 text-sky-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+                className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/15 border border-cyan-500/20 hover:border-cyan-500/30 text-cyan-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
               >
                 <div className="flex items-center gap-2">
-                  <Icons.Twitter className="w-4 h-4 text-sky-400" />
-                  <span>{lang === 'gu' ? 'Twitter (X) પર ટ્વીટ કરો' : 'Tweet on Twitter (X)'}</span>
+                  <Icons.Send className="w-4 h-4 text-cyan-500" />
+                  <span>Telegram</span>
                 </div>
-                <span className="bg-sky-500/20 text-sky-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-sky-500/30">
+                <span className="bg-cyan-500/20 text-cyan-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-cyan-500/30">
                   +50 CR
                 </span>
               </button>
+
+              {/* Native / System Share Button (Instagram, Discord, Snapchat, Messenger) */}
+              <button
+                onClick={async () => {
+                  playSynthSound('success');
+                  const shareData = {
+                    title: 'AI Super Tools Hub',
+                    text: lang === 'gu' 
+                      ? 'AI Super Tools Hub પર ૨૫+થી વધુ પ્રીમિયમ AI ટૂલ્સ (જેમ કે DeepSeek-R1, GPT-4o, Claude 3.5) ઉપલબ્ધ છે!'
+                      : 'Try AI Super Tools Hub with over 25+ premium AI engines (DeepSeek, GPT-4o, Claude) in English & Gujarati!',
+                    url: 'https://www.aisupertoolshub.com'
+                  };
+
+                  if (navigator.share) {
+                    try {
+                      await navigator.share(shareData);
+                      setUserState((prev: any) => ({ ...prev, credits: prev.credits + 50 }));
+                      showToast(lang === 'gu' ? '🎁 શેર કરવા બદલ +૫૦ ક્રેડિટ્સ ઉમેરાઈ!' : '🎁 Share reward of +50 Credits Added!', 'success');
+                    } catch (err) {}
+                  } else {
+                    // Fallback to clipboard if native share not supported
+                    navigator.clipboard.writeText(shareData.url);
+                    setUserState((prev: any) => ({ ...prev, credits: prev.credits + 20 }));
+                    showToast(lang === 'gu' ? '🔗 લિંક કોપી થઈ અને +૨૦ ક્રેડિટ્સ ઉમેરાઈ!' : '🔗 Link copied and +20 Credits Added!', 'success');
+                  }
+                }}
+                className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-purple-500/10 hover:bg-purple-500/15 border border-purple-500/20 hover:border-purple-500/30 text-purple-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+              >
+                <div className="flex items-center gap-2">
+                  <Icons.Instagram className="w-4 h-4 text-purple-500" />
+                  <span>{lang === 'gu' ? 'સિસ્ટમ શેર (Insta, Discord)' : 'Share (Insta, Discord...)'}</span>
+                </div>
+                <span className="bg-purple-500/20 text-purple-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-purple-500/30">
+                  +50 CR
+                </span>
+              </button>
+
+              {/* Collapsible / Expandable Social Options */}
+              <button
+                onClick={() => {
+                  playSynthSound('click');
+                  setShowAllShareOptions(!showAllShareOptions);
+                }}
+                className={`flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all duration-200 mt-1 ${
+                  theme === 'dark' ? 'text-slate-500 hover:text-blue-400' : 'text-slate-400 hover:text-blue-500'
+                }`}
+              >
+                <span>{showAllShareOptions 
+                  ? (lang === 'gu' ? 'ઓછા પ્લેટફોર્મ દર્શાવો ▴' : 'Show less platforms ▴')
+                  : (lang === 'gu' ? 'બધા સોશિયલ મીડિયા જુઓ ▾' : 'View all social platforms ▾')}
+                </span>
+              </button>
+
+              <AnimatePresence>
+                {showAllShareOptions && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-2 overflow-hidden pt-1"
+                  >
+                    {/* Twitter / X */}
+                    <button
+                      onClick={() => {
+                        playSynthSound('success');
+                        const text = lang === 'gu'
+                          ? "એઆઈ સુપર ટૂલ્સ હબ (AI Super Tools Hub) ગુજરાતી અને ઇંગ્લિશ ભાષામાં ૨૫+ પ્રીમિયમ એઆઈ એપ્સનું પાવરફુલ હબ છે! @DeepSeek_HQ, Claude, GPT રિયલ કનેક્ટિવિટી સાથે!"
+                          : "AI Super Tools Hub: Elite multilingual developer sandbox and 25+ premium AI automation engines on a single elegant dashboard. Real DeepSeek-R1 & Claude integrations are fully live!";
+                        const url = "https://www.aisupertoolshub.com";
+                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                        
+                        setUserState((prev: any) => ({ ...prev, credits: prev.credits + 50 }));
+                        showToast(lang === 'gu' ? '🎁 +૫૦ ફ્રી ક્રેડિટ્સ ઉમેરાઈ!' : '🎁 +50 Free Credits Added!', 'success');
+                      }}
+                      className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-sky-500/10 hover:bg-sky-500/15 border border-sky-500/20 hover:border-sky-500/30 text-sky-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icons.Twitter className="w-4 h-4 text-sky-400" />
+                        <span>Twitter (X)</span>
+                      </div>
+                      <span className="bg-sky-500/20 text-sky-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-sky-500/30">
+                        +50 CR
+                      </span>
+                    </button>
+
+                    {/* Facebook */}
+                    <button
+                      onClick={() => {
+                        playSynthSound('success');
+                        const url = "https://www.aisupertoolshub.com";
+                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+                        
+                        setUserState((prev: any) => ({ ...prev, credits: prev.credits + 50 }));
+                        showToast(lang === 'gu' ? '🎁 +૫૦ ફ્રી ક્રેડિટ્સ સફળતાપૂર્વક ઉમેરાઈ!' : '🎁 +50 Free Credits Added!', 'success');
+                      }}
+                      className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-blue-600/10 hover:bg-blue-600/15 border border-blue-600/20 hover:border-blue-600/30 text-blue-500 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icons.Facebook className="w-4 h-4 text-blue-600" />
+                        <span>Facebook</span>
+                      </div>
+                      <span className="bg-blue-600/20 text-blue-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-blue-600/30">
+                        +50 CR
+                      </span>
+                    </button>
+
+                    {/* LinkedIn */}
+                    <button
+                      onClick={() => {
+                        playSynthSound('success');
+                        const url = "https://www.aisupertoolshub.com";
+                        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
+                        
+                        setUserState((prev: any) => ({ ...prev, credits: prev.credits + 50 }));
+                        showToast(lang === 'gu' ? '🎁 +૫૦ ફ્રી ક્રેડિટ્સ સફળતાપૂર્વક ઉમેરાઈ!' : '🎁 +50 Free Credits Added!', 'success');
+                      }}
+                      className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-indigo-600/10 hover:bg-indigo-600/15 border border-indigo-600/20 hover:border-indigo-600/30 text-indigo-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icons.Linkedin className="w-4 h-4 text-indigo-500" />
+                        <span>LinkedIn</span>
+                      </div>
+                      <span className="bg-indigo-600/20 text-indigo-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-indigo-600/30">
+                        +50 CR
+                      </span>
+                    </button>
+
+                    {/* Reddit */}
+                    <button
+                      onClick={() => {
+                        playSynthSound('success');
+                        const url = "https://www.aisupertoolshub.com";
+                        const title = lang === 'gu'
+                          ? "AI Super Tools Hub - ૨૫+થી વધુ પ્રીમિયમ AI ટૂલ્સ (DeepSeek, GPT-4o, Claude)"
+                          : "AI Super Tools Hub - 25+ Premium AI Engines with Real DeepSeek & Claude Integrations!";
+                        window.open(`https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`, '_blank');
+                        
+                        setUserState((prev: any) => ({ ...prev, credits: prev.credits + 50 }));
+                        showToast(lang === 'gu' ? '🎁 +૫૦ ફ્રી ક્રેડિટ્સ સફળતાપૂર્વક ઉમેરાઈ!' : '🎁 +50 Free Credits Added!', 'success');
+                      }}
+                      className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-orange-500/10 hover:bg-orange-500/15 border border-orange-500/20 hover:border-orange-500/30 text-orange-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icons.Award className="w-4 h-4 text-orange-500" />
+                        <span>Reddit</span>
+                      </div>
+                      <span className="bg-orange-500/20 text-orange-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-orange-500/30">
+                        +50 CR
+                      </span>
+                    </button>
+
+                    {/* Email Invite */}
+                    <button
+                      onClick={() => {
+                        playSynthSound('success');
+                        const subject = lang === 'gu'
+                          ? "આ અદ્ભુત AI પ્લેટફોર્મ ચેક કરો: AI Super Tools Hub"
+                          : "Check out this awesome platform: AI Super Tools Hub";
+                        const body = lang === 'gu'
+                          ? "નમસ્તે!\n\nમેં એક ખૂબ જ રસપ્રદ પ્લેટફોર્મ જોયું છે: AI Super Tools Hub. આમાં ૨૫+ પ્રીમિયમ એઆઈ ટૂલ્સ ઉપલબ્ધ છે જેમ કે DeepSeek-R1, GPT-4o, Claude 3.5. તમે લાઈવ પ્રોગ્રામ્સ રન કરી શકો છો અને તમારી વૉઇસ પણ ક્લોન કરી શકો છો!\n\nહમણાં જ મુલાકાત લો: https://www.aisupertoolshub.com"
+                          : "Hey there,\n\nCheck out AI Super Tools Hub! It has over 25+ premium AI automations (DeepSeek-R1, GPT-4o, Claude, voice cloning, sandbox compiler) on a single elegant dashboard.\n\nVisit: https://www.aisupertoolshub.com";
+                        
+                        window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+                        
+                        setUserState((prev: any) => ({ ...prev, credits: prev.credits + 20 }));
+                        showToast(lang === 'gu' ? '🎁 +૨૦ ફ્રી ક્રેડિટ્સ સફળતાપૂર્વક ઉમેરાઈ!' : '🎁 +20 Free Credits Added!', 'success');
+                      }}
+                      className="w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-slate-500/10 hover:bg-slate-500/15 border border-slate-500/20 hover:border-slate-500/30 text-slate-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icons.Mail className="w-4 h-4 text-slate-400" />
+                        <span>Email Invite</span>
+                      </div>
+                      <span className="bg-slate-500/20 text-slate-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-slate-500/30">
+                        +20 CR
+                      </span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Copy Share Link Button */}
               <button
@@ -3281,7 +3455,7 @@ export default function App() {
                   }));
                   showToast(lang === 'gu' ? '🔗 લિંક કોપી થઈ અને +૧૦ ક્રેડિટ્સ મળી!' : '🔗 Link copied & +10 Credits Added!', 'success');
                 }}
-                className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 hover:border-blue-500/30 text-blue-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+                className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 hover:border-blue-500/30 text-blue-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150 mt-1"
               >
                 <div className="flex items-center gap-2">
                   <Icons.Copy className="w-4 h-4 text-blue-400" />
