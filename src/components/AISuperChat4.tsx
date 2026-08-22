@@ -27,10 +27,85 @@ interface AISuperChat4Props {
 }
 
 const AVAILABLE_MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Ultra-Fast)', icon: 'Zap', desc: 'Optimized for speed and general analytical tasks.', badge: 'Speed' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (Extreme Intelligence)', icon: 'BrainCircuit', desc: 'Complex coding, math proofs, and long context reasoning.', badge: 'Pro' },
-  { id: 'deepseek-v3', name: 'DeepSeek-V3 Coder Pro', icon: 'Cpu', desc: 'Highly skilled in programming syntax, script compilation, and debugging.', badge: 'Code' }
+  { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash (Next-Gen Flagship)', shortName: 'Gemini 3.7', icon: 'Sparkles', desc: 'Google\'s brand-new flagship multi-modal reasoning engine.', badge: 'New Flagship' },
+  { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro (Ultra-Intelligence)', shortName: 'Gemini 3.1 Pro', icon: 'BrainCircuit', desc: 'Extreme cognitive power, math proofs, and long-context processing.', badge: 'Pro reasoning' },
+  { id: 'deepseek-r1', name: 'DeepSeek-R1 (CoT Thinking Agent)', shortName: 'DeepSeek R1', icon: 'Cpu', desc: 'R1-powered reasoning chain-of-thought with live mental tracing.', badge: 'R1 Thinking' },
+  { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet (Enterprise Pro)', shortName: 'Claude 3.5', icon: 'FileText', desc: 'Perfect creative writing, software architectural design, and pristine English.', badge: 'Creative Coder' },
+  { id: 'gpt-4o', name: 'GPT-4o (High-Speed Logic)', shortName: 'GPT-4o', icon: 'Activity', desc: 'OpenAI\'s flagship optimized for operational workflows and marketing strategies.', badge: 'Logical' },
+  { id: 'quantum-v', name: 'Quantum-V (50-Crore Custom Agent)', shortName: 'Quantum-V', icon: 'Layers', desc: 'Simulated custom model fine-tuned for high-end enterprise scale and wealth.', badge: '50Cr Elite' }
 ];
+
+const parseThinkingAndResponse = (content: string) => {
+  const thinkStart = content.indexOf('<think>');
+  const thinkEnd = content.indexOf('</think>');
+  
+  if (thinkStart !== -1 && thinkEnd !== -1) {
+    const thinking = content.substring(thinkStart + 7, thinkEnd).trim();
+    const response = content.substring(thinkEnd + 8).trim();
+    return { thinking, response, isThinkingInProgress: false };
+  } else if (thinkStart !== -1) {
+    const thinking = content.substring(thinkStart + 7).trim();
+    return { thinking, response: '', isThinkingInProgress: true };
+  }
+  
+  return { thinking: null, response: content, isThinkingInProgress: false };
+};
+
+interface ThinkingBlockProps {
+  thinking: string;
+  isStreaming: boolean;
+  theme: 'dark' | 'light';
+  isGu: boolean;
+}
+
+function ThinkingBlock({ thinking, isStreaming, theme, isGu }: ThinkingBlockProps) {
+  const [expanded, setExpanded] = useState(true);
+  
+  return (
+    <div className={`mb-3.5 rounded-2xl border text-xs overflow-hidden transition-all duration-200 shadow-sm ${
+      theme === 'dark' 
+        ? 'bg-slate-950/50 border-slate-900/80 text-slate-400' 
+        : 'bg-indigo-50/10 border-indigo-100/40 text-slate-500'
+    }`}>
+      {/* Header */}
+      <div 
+        onClick={() => setExpanded(!expanded)}
+        className="px-4 py-3 flex items-center justify-between cursor-pointer select-none bg-slate-500/5 hover:bg-slate-500/10 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Icons.Cpu className={`w-3.5 h-3.5 text-indigo-400 ${isStreaming ? 'animate-spin' : 'animate-pulse'}`} />
+          <span className="font-black tracking-wider uppercase text-[10px] text-indigo-400">
+            {isStreaming 
+              ? (isGu ? 'વિચાર પ્રક્રિયા ચાલુ છે...' : 'THINKING PROCESS IN PROGRESS...') 
+              : (isGu ? 'વિચાર પ્રક્રિયા પૂર્ણ' : 'THINKING PROCESS COMPLETED')}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+          <span>{expanded ? (isGu ? 'છુપાવો' : 'Hide') : (isGu ? 'બતાવો' : 'Show')}</span>
+          {expanded ? <Icons.ChevronUp className="w-3.5 h-3.5" /> : <Icons.ChevronDown className="w-3.5 h-3.5" />}
+        </div>
+      </div>
+      
+      {/* Content */}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="border-t border-slate-500/5"
+          >
+            <div className="p-4 font-mono italic whitespace-pre-wrap leading-relaxed max-h-[180px] overflow-y-auto custom-scrollbar">
+              {thinking}
+              {isStreaming && <span className="inline-block w-1.5 h-3.5 bg-indigo-500 animate-pulse ml-1" />}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 const PRESET_PROMPTS = {
   en: [
@@ -64,7 +139,7 @@ export default function AISuperChat4({
   // Chats & Session State
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.7-flash');
   const [inputVal, setInputVal] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [speechActive, setSpeechActive] = useState<boolean>(false);
@@ -81,7 +156,7 @@ export default function AISuperChat4({
         if (parsed.length > 0) {
           setSessions(parsed);
           setCurrentSessionId(parsed[0].id);
-          setSelectedModel(parsed[0].model || 'gemini-2.5-flash');
+          setSelectedModel(parsed[0].model || 'gemini-3.7-flash');
           return;
         }
       }
@@ -103,7 +178,7 @@ export default function AISuperChat4({
         }
       ],
       created: new Date().toLocaleDateString(),
-      model: 'gemini-2.5-flash'
+      model: 'gemini-3.7-flash'
     };
     setSessions([firstSession]);
     setCurrentSessionId(firstSessionId);
@@ -174,7 +249,7 @@ export default function AISuperChat4({
       const response = await fetch('/api/tools/chat-stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: historyPayload })
+        body: JSON.stringify({ messages: historyPayload, model: selectedModel })
       });
 
       if (!response.ok) {
@@ -327,7 +402,7 @@ export default function AISuperChat4({
         title: isGu ? 'નવી ચેટ સત્ર' : 'New Chat Session',
         messages: [{ id: 'welcome', role: 'assistant', content: isGu ? SYSTEM_GREETINGS.gu : SYSTEM_GREETINGS.en, timestamp: new Date() }],
         created: new Date().toLocaleDateString(),
-        model: 'gemini-2.5-flash'
+        model: 'gemini-3.7-flash'
       };
       saveSessions([fallback]);
       setCurrentSessionId(fallbackId);
@@ -452,42 +527,52 @@ export default function AISuperChat4({
         theme === 'dark' ? 'bg-[#050811]/90 border-slate-900 text-slate-100' : 'bg-white border-slate-200 text-slate-800 shadow-xl'
       }`}>
         {/* Chat Header: Model Selector */}
-        <div className="p-4 border-b border-slate-500/10 flex flex-wrap items-center justify-between gap-4 bg-slate-950/20 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-black text-slate-400 uppercase tracking-widest block">
-              {isGu ? 'પસંદ કરેલ મોડલ:' : 'Active LLM Agent:'}
-            </span>
-            <div className="flex gap-1.5 flex-wrap">
-              {AVAILABLE_MODELS.map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => {
-                    setSelectedModel(m.id);
-                    playSynthSound('toggle');
-                  }}
-                  className={`px-3 py-1.5 rounded-xl border text-[10px] font-black transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
-                    selectedModel === m.id
-                      ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white border-indigo-500 shadow-md shadow-indigo-600/10 scale-[1.02]'
-                      : theme === 'dark' ? 'bg-[#090d16] border-slate-900 text-slate-400 hover:text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-600'
-                  }`}
-                >
-                  <span>{m.name.split(' ')[0]}</span>
-                  <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-white/10">{m.badge}</span>
-                </button>
-              ))}
+        <div className="p-4 border-b border-slate-500/10 flex flex-col gap-3.5 bg-slate-950/20 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest block">
+                {isGu ? 'પસંદ કરેલ મોડલ:' : 'Active LLM Agent:'}
+              </span>
+              <div className="flex gap-1.5 flex-wrap">
+                {AVAILABLE_MODELS.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      setSelectedModel(m.id);
+                      playSynthSound('toggle');
+                    }}
+                    className={`px-3 py-1.5 rounded-xl border text-[10px] font-black transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+                      selectedModel === m.id
+                        ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white border-indigo-500 shadow-md shadow-indigo-600/10 scale-[1.02]'
+                        : theme === 'dark' ? 'bg-[#090d16] border-slate-900 text-slate-400 hover:text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-600'
+                    }`}
+                  >
+                    <span>{m.shortName}</span>
+                    <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-white/10">{m.badge}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleSpeakText(currentSession?.messages[currentSession.messages.length - 1]?.content || '')}
+                className={`p-2 rounded-xl transition duration-150 ${
+                  speechActive ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                }`}
+                title="Speak last response"
+              >
+                {speechActive ? <Icons.VolumeX className="w-4 h-4" /> : <Icons.Volume2 className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleSpeakText(currentSession?.messages[currentSession.messages.length - 1]?.content || '')}
-              className={`p-2 rounded-xl transition duration-150 ${
-                speechActive ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
-              title="Speak last response"
-            >
-              {speechActive ? <Icons.VolumeX className="w-4 h-4" /> : <Icons.Volume2 className="w-4 h-4" />}
-            </button>
+          {/* Active Model Description Info Bar */}
+          <div className="text-[11px] text-slate-400 flex items-center gap-2 border-t border-slate-500/5 pt-2 animate-fadeIn">
+            <Icons.Info className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span className="font-semibold leading-normal">
+              <strong className="text-indigo-400">{AVAILABLE_MODELS.find(m => m.id === selectedModel)?.name}</strong>: {AVAILABLE_MODELS.find(m => m.id === selectedModel)?.desc}
+            </span>
           </div>
         </div>
 
@@ -515,7 +600,22 @@ export default function AISuperChat4({
 
                   {/* Message Content */}
                   <div className="text-sm whitespace-pre-wrap font-medium space-y-1">
-                    {m.content}
+                    {(() => {
+                      const { thinking, response, isThinkingInProgress } = parseThinkingAndResponse(m.content);
+                      return (
+                        <>
+                          {thinking !== null && (
+                            <ThinkingBlock 
+                              thinking={thinking} 
+                              isStreaming={isThinkingInProgress || (loading && m.id === currentSession?.messages[currentSession.messages.length - 1]?.id)} 
+                              theme={theme} 
+                              isGu={isGu} 
+                            />
+                          )}
+                          <div>{response}</div>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Utility overlay buttons on message hover */}

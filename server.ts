@@ -883,11 +883,15 @@ const rateLimiter = (req: express.Request, res: express.Response, next: express.
 app.use('/api/tools/*', rateLimiter);
 
 // --- HELPER FOR ROBUST MODEL FALLBACK SYSTEM ---
-const MODEL_FALLBACKS = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-1.5-flash'];
+const MODEL_FALLBACKS = ['gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-1.5-flash'];
 
-async function runGenerateWithFallback(ai: any, params: { contents: any, config?: any }) {
+async function runGenerateWithFallback(ai: any, params: { contents: any, config?: any }, preferredModel?: string) {
   let lastError: any = null;
-  for (const modelName of MODEL_FALLBACKS) {
+  const modelsToTry = preferredModel 
+    ? [preferredModel, ...MODEL_FALLBACKS.filter(m => m !== preferredModel)]
+    : MODEL_FALLBACKS;
+
+  for (const modelName of modelsToTry) {
     try {
       console.log(`[API] Trying content generation using model: ${modelName}`);
       const response = await ai.models.generateContent({
@@ -903,9 +907,13 @@ async function runGenerateWithFallback(ai: any, params: { contents: any, config?
   throw lastError || new Error('All fallback models returned failures.');
 }
 
-async function runGenerateStreamWithFallback(ai: any, params: { contents: any, config?: any }) {
+async function runGenerateStreamWithFallback(ai: any, params: { contents: any, config?: any }, preferredModel?: string) {
   let lastError: any = null;
-  for (const modelName of MODEL_FALLBACKS) {
+  const modelsToTry = preferredModel 
+    ? [preferredModel, ...MODEL_FALLBACKS.filter(m => m !== preferredModel)]
+    : MODEL_FALLBACKS;
+
+  for (const modelName of modelsToTry) {
     try {
       console.log(`[API] Trying streaming generation using model: ${modelName}`);
       const stream = await ai.models.generateContentStream({
@@ -981,7 +989,7 @@ app.post('/api/tools/generate-stream', async (req, res) => {
 // Chat Endpoint with Multi-turn history support
 app.post('/api/tools/chat', async (req, res) => {
   try {
-    const { messages } = req.body;
+    const { messages, model } = req.body;
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Messages array is required' });
     }
@@ -992,14 +1000,38 @@ app.post('/api/tools/chat', async (req, res) => {
       parts: [{ text: m.content }],
     }));
 
+    // Choose premium system instruction and model target
+    let systemInstruction = 'You are an advanced conversational assistant inside the AI Super Tools Hub. Provide clear, visually formatted, engaging, and detailed responses in markdown layout.';
+    let preferredModel = 'gemini-3.7-flash';
+
+    if (model === 'gemini-3.1-pro-preview' || model === 'gemini-2.5-pro') {
+      preferredModel = 'gemini-3.1-pro-preview';
+      systemInstruction = 'You are Gemini 3.1 Pro, Google\'s most intelligent reasoning and logical model. Solve the user\'s requests with elite mathematical rigor, expert coding patterns, deep step-by-step rationalization, and unparalleled accuracy. Present your output with clear, beautiful Markdown structures.';
+    } else if (model === 'deepseek-r1') {
+      preferredModel = 'gemini-3.7-flash';
+      systemInstruction = 'You are DeepSeek-R1, the ultimate reasoning model. You MUST include a detailed, raw thinking process inside a `<think>` and `</think>` tag at the very beginning of your response. For example:\n<think>\n[detailed step-by-step brainstorming, analyzing the request, formulating technical steps]\n</think>\nFollowing the </think> tag, present your final structured, authoritative, and extremely detailed response. Be highly analytical.';
+    } else if (model === 'claude-3.5-sonnet') {
+      preferredModel = 'gemini-3.7-flash';
+      systemInstruction = 'You are Claude 3.5 Sonnet by Anthropic. Your signature traits are absolute precision, highly articulate and professional prose, beautiful structural clarity, and elite code-writing skills. Respond with Anthropic\'s signature elegant, comprehensive, and helpful manner.';
+    } else if (model === 'gpt-4o') {
+      preferredModel = 'gemini-3.7-flash';
+      systemInstruction = 'You are GPT-4o, OpenAI\'s versatile flagship model. Your response style is incredibly rapid, actionable, crisp, and direct. Break complex concepts into bold headings and clear bullet points so the user can scan them instantly.';
+    } else if (model === 'quantum-v') {
+      preferredModel = 'gemini-3.7-flash';
+      systemInstruction = 'You are Quantum-V, a specialized 50-Crore fine-tuned superintelligence trained for elite financial scaling, global operations, and premium luxury enterprise strategy. Speak with supreme business prestige, utilizing terms like "scalable monetization pipelines", "synergistic operational hubs", and "multi-million dollar infrastructure architectures". Give extremely detailed, luxury-grade consulting steps.';
+    } else {
+      preferredModel = 'gemini-3.7-flash';
+      systemInstruction = 'You are Gemini 3.7 Flash, Google\'s latest real-time multimodal flagship model. Deliver fast, highly accurate, engaging, and balanced answers in elegant markdown format, using bolding, lists, and code blocks as appropriate.';
+    }
+
     const ai = getGemini();
     const response = await runGenerateWithFallback(ai, {
       contents: contents,
       config: {
-        systemInstruction: 'You are an advanced conversational assistant inside the AI Super Tools Hub. Provide clear, visually formatted, engaging, and detailed responses in markdown layout.',
+        systemInstruction: systemInstruction,
         temperature: 0.7,
       },
-    });
+    }, preferredModel);
 
     res.json({ output: response.text });
   } catch (error: any) {
@@ -1011,7 +1043,7 @@ app.post('/api/tools/chat', async (req, res) => {
 // Streaming Chat Endpoint with Multi-turn history support
 app.post('/api/tools/chat-stream', async (req, res) => {
   try {
-    const { messages } = req.body;
+    const { messages, model } = req.body;
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Messages array is required' });
     }
@@ -1021,14 +1053,38 @@ app.post('/api/tools/chat-stream', async (req, res) => {
       parts: [{ text: m.content }],
     }));
 
+    // Choose premium system instruction and model target
+    let systemInstruction = 'You are an advanced conversational assistant inside the AI Super Tools Hub. Provide clear, visually formatted, engaging, and detailed responses in markdown layout.';
+    let preferredModel = 'gemini-3.7-flash';
+
+    if (model === 'gemini-3.1-pro-preview' || model === 'gemini-2.5-pro') {
+      preferredModel = 'gemini-3.1-pro-preview';
+      systemInstruction = 'You are Gemini 3.1 Pro, Google\'s most intelligent reasoning and logical model. Solve the user\'s requests with elite mathematical rigor, expert coding patterns, deep step-by-step rationalization, and unparalleled accuracy. Present your output with clear, beautiful Markdown structures.';
+    } else if (model === 'deepseek-r1') {
+      preferredModel = 'gemini-3.7-flash';
+      systemInstruction = 'You are DeepSeek-R1, the ultimate reasoning model. You MUST include a detailed, raw thinking process inside a `<think>` and `</think>` tag at the very beginning of your response. For example:\n<think>\n[detailed step-by-step brainstorming, analyzing the request, formulating technical steps]\n</think>\nFollowing the </think> tag, present your final structured, authoritative, and extremely detailed response. Be highly analytical.';
+    } else if (model === 'claude-3.5-sonnet') {
+      preferredModel = 'gemini-3.7-flash';
+      systemInstruction = 'You are Claude 3.5 Sonnet by Anthropic. Your signature traits are absolute precision, highly articulate and professional prose, beautiful structural clarity, and elite code-writing skills. Respond with Anthropic\'s signature elegant, comprehensive, and helpful manner.';
+    } else if (model === 'gpt-4o') {
+      preferredModel = 'gemini-3.7-flash';
+      systemInstruction = 'You are GPT-4o, OpenAI\'s versatile flagship model. Your response style is incredibly rapid, actionable, crisp, and direct. Break complex concepts into bold headings and clear bullet points so the user can scan them instantly.';
+    } else if (model === 'quantum-v') {
+      preferredModel = 'gemini-3.7-flash';
+      systemInstruction = 'You are Quantum-V, a specialized 50-Crore fine-tuned superintelligence trained for elite financial scaling, global operations, and premium luxury enterprise strategy. Speak with supreme business prestige, utilizing terms like "scalable monetization pipelines", "synergistic operational hubs", and "multi-million dollar infrastructure architectures". Give extremely detailed, luxury-grade consulting steps.';
+    } else {
+      preferredModel = 'gemini-3.7-flash';
+      systemInstruction = 'You are Gemini 3.7 Flash, Google\'s latest real-time multimodal flagship model. Deliver fast, highly accurate, engaging, and balanced answers in elegant markdown format, using bolding, lists, and code blocks as appropriate.';
+    }
+
     const ai = getGemini();
     const responseStream = await runGenerateStreamWithFallback(ai, {
       contents: contents,
       config: {
-        systemInstruction: 'You are an advanced conversational assistant inside the AI Super Tools Hub. Provide clear, visually formatted, engaging, and detailed responses in markdown layout.',
+        systemInstruction: systemInstruction,
         temperature: 0.7,
       },
-    });
+    }, preferredModel);
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
