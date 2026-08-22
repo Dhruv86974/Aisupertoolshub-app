@@ -3185,6 +3185,114 @@ export default function App() {
               </div>
             </div>
           </div>
+
+          {/* ================= VIRAL SHARE LOOP & REWARD ENGINE ================= */}
+          <div className={`${theme === 'dark' ? 'bg-[#090d16] border-slate-900/80' : 'bg-white border-slate-200/80 shadow-lg'} rounded-2xl p-5 border relative overflow-hidden group hover:border-blue-500/30 transition-all duration-300 space-y-4 text-left`}>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-bl-full pointer-events-none" />
+            
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center animate-bounce">
+                <Icons.Share2 className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <span className="text-[10px] font-extrabold text-blue-500 uppercase tracking-widest block">
+                  {lang === 'gu' ? 'ક્રેડિટ બૂસ્ટર લૂપ' : 'Viral Credit Booster'}
+                </span>
+                <h4 className={`text-sm font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                  {lang === 'gu' ? 'મફત ક્રેડિટ્સ મેળવો! 🎁' : 'Get Free Premium Credits!'}
+                </h4>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+              {lang === 'gu' 
+                ? 'આ વેબસાઇટને તમારા મિત્રો સાથે વોટ્સએપ અથવા ટ્વિટર પર શેર કરો અને તરત જ +૫૦ ક્રેડિટ્સ મેળવો! સાથે મળીને વાયરલ કરીએ.'
+                : 'Share this suite with friends or groups on WhatsApp or Twitter/X to unlock +50 Free Credits instantly!'}
+            </p>
+
+            <div className="grid grid-cols-1 gap-2 pt-1">
+              {/* WhatsApp Share Button */}
+              <button
+                onClick={() => {
+                  playSynthSound('success');
+                  const text = lang === 'gu'
+                    ? "નમસ્તે! AI Super Tools Hub પર ૨૫+થી વધુ પ્રીમિયમ AI ટૂલ્સ (જેમ કે DeepSeek-R1, GPT-4o, Claude 3.5) ઉપલબ્ધ છે, તે પણ ગુજરાતી અને English બંને ભાષામાં! વોઇસ ક્લોનિંગ અને ઓનલાઇન કોડિંગ કરી શકાય છે. હમણાં જ ચેક કરો: https://www.aisupertoolshub.com"
+                    : "Hey! Try AI Super Tools Hub - it has over 25+ premium AI engines (DeepSeek-R1, GPT-4o, Claude 3.5, Gemini 3.7) in English & Gujarati. 100% Free to start, run real-time voice cloning, sandbox compilers, and OCR! Check it out: https://www.aisupertoolshub.com";
+                  
+                  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+                  
+                  // Award Credits
+                  setUserState((prev: any) => ({
+                    ...prev,
+                    credits: prev.credits + 50
+                  }));
+                  showToast(lang === 'gu' ? '🎁 +૫૦ ફ્રી ક્રેડિટ્સ સફળતાપૂર્વક ઉમેરાઈ!' : '🎁 +50 Free Credits Added Successfully!', 'success');
+                }}
+                className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/30 text-emerald-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+              >
+                <div className="flex items-center gap-2">
+                  <Icons.MessageSquare className="w-4 h-4 text-emerald-500" />
+                  <span>{lang === 'gu' ? 'WhatsApp પર શેર કરો' : 'Share on WhatsApp'}</span>
+                </div>
+                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-emerald-500/30">
+                  +50 CR
+                </span>
+              </button>
+
+              {/* Twitter Share Button */}
+              <button
+                onClick={() => {
+                  playSynthSound('success');
+                  const text = lang === 'gu'
+                    ? "એઆઈ સુપર ટૂલ્સ હબ (AI Super Tools Hub) ગુજરાતી અને ઇંગ્લિશ ભાષામાં ૨૫+ પ્રીમિયમ એઆઈ એપ્સનું પાવરફુલ હબ છે! @DeepSeek_HQ, Claude, GPT રિયલ કનેક્ટિવિટી સાથે!"
+                    : "AI Super Tools Hub: Elite multilingual developer sandbox and 25+ premium AI automation engines on a single elegant dashboard. Real DeepSeek-R1 & Claude integrations are fully live!";
+                  const url = "https://www.aisupertoolshub.com";
+                  
+                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+                  
+                  // Award Credits
+                  setUserState((prev: any) => ({
+                    ...prev,
+                    credits: prev.credits + 50
+                  }));
+                  showToast(lang === 'gu' ? '🎁 +૫૦ ફ્રી ક્રેડિટ્સ ઉમેરાઈ!' : '🎁 +50 Free Credits Added!', 'success');
+                }}
+                className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-sky-500/10 hover:bg-sky-500/15 border border-sky-500/20 hover:border-sky-500/30 text-sky-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+              >
+                <div className="flex items-center gap-2">
+                  <Icons.Twitter className="w-4 h-4 text-sky-400" />
+                  <span>{lang === 'gu' ? 'Twitter (X) પર ટ્વીટ કરો' : 'Tweet on Twitter (X)'}</span>
+                </div>
+                <span className="bg-sky-500/20 text-sky-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-sky-500/30">
+                  +50 CR
+                </span>
+              </button>
+
+              {/* Copy Share Link Button */}
+              <button
+                onClick={() => {
+                  playSynthSound('success');
+                  navigator.clipboard.writeText("https://www.aisupertoolshub.com");
+                  
+                  // Award Credits
+                  setUserState((prev: any) => ({
+                    ...prev,
+                    credits: prev.credits + 10
+                  }));
+                  showToast(lang === 'gu' ? '🔗 લિંક કોપી થઈ અને +૧૦ ક્રેડિટ્સ મળી!' : '🔗 Link copied & +10 Credits Added!', 'success');
+                }}
+                className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 hover:border-blue-500/30 text-blue-400 font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150"
+              >
+                <div className="flex items-center gap-2">
+                  <Icons.Copy className="w-4 h-4 text-blue-400" />
+                  <span>{lang === 'gu' ? 'ઇન્વિટેશન લિંક કોપી કરો' : 'Copy Invite Link'}</span>
+                </div>
+                <span className="bg-blue-500/20 text-blue-300 text-[10px] font-black px-1.5 py-0.5 rounded-lg border border-blue-500/30">
+                  +10 CR
+                </span>
+              </button>
+            </div>
+          </div>
         </aside>
 
         {/* ================= PRIMARY WORKSPACE VIEW ================= */}
