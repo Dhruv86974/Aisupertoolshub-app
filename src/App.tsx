@@ -19,6 +19,7 @@ import AffiliateAndPartnerHub from './components/AffiliateAndPartnerHub';
 import AISuperToolsIndex from './components/AISuperToolsIndex';
 import XPRewardStore from './components/XPRewardStore';
 import AIDeveloperSandbox from './components/AIDeveloperSandbox';
+import AISuperChat4 from './components/AISuperChat4';
 import { doc, setDoc, getDoc, collection, query, where, onSnapshot, getDocs, addDoc, updateDoc, orderBy } from 'firebase/firestore';
 import { db, executeResilientDbOp, auth } from './firebase';
 import { signOut } from 'firebase/auth';
@@ -1247,7 +1248,7 @@ export default function App() {
     const saved = localStorage.getItem('hub_radar_upvotes');
     return saved ? JSON.parse(saved) : { omniscribe: 42, vectradesign: 38, devsprint: 56 };
   });
-  const [activeRadarTab, setActiveRadarTab] = useState<'directory' | 'radar' | 'toolbox' | 'trends' | 'builder' | 'leaderboard' | 'companies' | 'dev-directory' | 'scam-detector' | 'newsletter' | 'affiliate-hub' | 'rewards'>('directory');
+  const [activeRadarTab, setActiveRadarTab] = useState<'directory' | 'radar' | 'toolbox' | 'trends' | 'builder' | 'leaderboard' | 'companies' | 'dev-directory' | 'scam-detector' | 'newsletter' | 'affiliate-hub' | 'rewards' | 'super-chat'>('directory');
   const [newCollectionName, setNewCollectionName] = useState('');
   const [showCreateCollection, setShowCreateCollection] = useState(false);
 
@@ -7607,6 +7608,15 @@ export default function App() {
                     setUserXP={setUserXP}
                     playSynthSound={playSynthSound as any}
                     showToast={showToast}
+                  />
+                )}
+
+                {activeRadarTab === 'super-chat' && (
+                  <AISuperChat4
+                    lang={lang}
+                    theme={theme}
+                    playSynthSound={playSynthSound as any}
+                    addXPPoints={addXPPoints}
                   />
                 )}
               </div>
