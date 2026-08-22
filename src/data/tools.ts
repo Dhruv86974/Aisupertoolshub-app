@@ -3,6 +3,16 @@ import { Tool } from '../types';
 export const TOOLS_DATA: Tool[] = [
   // ================= ELITE SUPER AI TOOLS =================
   {
+    id: 'ai-agent-swarm',
+    name: 'Multi-Agent Collaborative Swarm Workspace',
+    description: 'Orchestrate 5 master-tier models (DeepSeek-R1, Claude 3.5, Gemini 3.1 Pro, Quantum-V, and Gemini 3.7) concurrently in Sequential, Debate, or Parallel modes for verified "real" answers.',
+    category: 'business-ideas',
+    icon: 'Network',
+    isInteractive: true,
+    isPremium: true,
+    tags: ['Elite Premium', 'Interactive', 'Multi-Agent', 'Popular']
+  },
+  {
     id: 'ai-trend-prediction',
     name: 'AI Global Trend & Prediction Matrix',
     description: 'Predict global stock markets, cryptos, and business trends using real-time news indexing and sentiment mapping graphs.',

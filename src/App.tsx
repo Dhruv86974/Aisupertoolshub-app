@@ -3386,6 +3386,8 @@ export default function App() {
                   userTier={userState.tier}
                   onUseCredit={useCredit}
                   theme={theme}
+                  playSynthSound={playSynthSound}
+                  addXPPoints={addXPPoints}
                 />
 
                 {/* ADVERTISEMENT HUB SLOT INSIDE SELECTED UTILITY */}

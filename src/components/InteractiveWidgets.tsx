@@ -12,6 +12,7 @@ import { Tool, Note, LanguageCode, TRANSLATIONS } from '../types';
 import AITrendPredictionWidget from './AITrendPredictionWidget';
 import AIAppCompilerWidget from './AIAppCompilerWidget';
 import AIVoiceClonerWidget from './AIVoiceClonerWidget';
+import AIAgentSwarmWorkspace from './AIAgentSwarmWorkspace';
 
 interface WidgetProps {
   tool: Tool;
@@ -22,10 +23,24 @@ interface WidgetProps {
   userTier: 'free' | 'pro' | 'elite';
   onUseCredit: () => boolean;
   theme?: 'dark' | 'light';
+  playSynthSound?: (type: 'click' | 'success' | 'rate' | 'chime' | 'laser' | 'toggle') => void;
+  addXPPoints?: (points: number, reasonEn: string, reasonGu: string) => void;
 }
 
 export default function InteractiveWidgets(props: WidgetProps) {
   const { tool } = props;
+  if (tool.id === 'ai-agent-swarm') {
+    return (
+      <AIAgentSwarmWorkspace
+        lang={props.lang}
+        theme={props.theme || 'dark'}
+        playSynthSound={props.playSynthSound || ((type) => console.log('synth:', type))}
+        addXPPoints={props.addXPPoints || ((pts, en, gu) => console.log('XP:', pts, en))}
+        savedNotes={props.savedNotes}
+        onSaveNotes={props.onSaveNotes}
+      />
+    );
+  }
   if (tool.id === 'ai-trend-prediction') return <AITrendPredictionWidget {...props} />;
   if (tool.id === 'ai-app-compiler') return <AIAppCompilerWidget {...props} />;
   if (tool.id === 'ai-voice-cloner') return <AIVoiceClonerWidget {...props} />;
